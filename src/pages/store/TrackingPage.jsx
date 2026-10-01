@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck } from 'lucide-react';
+import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck, MapPin, MessageCircle, Mail } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../storeContact';
 
 // La orden todavía no tiene el pago acreditado
 const isAwaitingPayment = (status) => {
@@ -130,6 +131,18 @@ export default function TrackingPage() {
   const isPaid = selectedOrder ? !isCanceled && !isAwaitingPayment(selectedOrder.status) : false;
   const isConfirmingPayment = !isPaid && !isCanceled && paymentReturn === 'success';
   const shippingLabel = ['', 'Pendiente de despacho', 'En preparación', 'En camino', 'Entregado'][step];
+  const nextStepMessage = [
+    '',
+    isPaid
+      ? 'Recibimos tu pago. El vendedor va a preparar y despachar tu pedido; este estado se actualiza cuando salga.'
+      : 'Estamos esperando la confirmación del pago para preparar tu pedido.',
+    'Estamos preparando tu pedido para despacharlo.',
+    'Tu pedido ya fue despachado y está en camino.',
+    'Tu pedido fue entregado. ¡Gracias por tu compra!'
+  ][step];
+  const address = selectedOrder?.shipping_address;
+  const shortOrderId = selectedOrder ? selectedOrder.id.split('-')[0].toUpperCase() : '';
+  const supportMessage = `Hola! Tengo un problema con mi pedido #${shortOrderId}: `;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] py-12 px-4 sm:px-6 flex flex-col items-center">
@@ -273,9 +286,8 @@ export default function TrackingPage() {
               )}
             </div>
             
-            <div className="mt-8 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
-              {!isCanceled && (
-                <>
+            {!isCanceled && (
+              <div className="mt-8 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
                   <p className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                     Pago:
                     {isPaid ? (
@@ -286,11 +298,66 @@ export default function TrackingPage() {
                       <span className="font-bold text-amber-500">Pendiente</span>
                     )}
                   </p>
-                  <p className="text-zinc-500 dark:text-zinc-400 mt-1 mb-1">Envío: <span className="font-bold text-black dark:text-white">{shippingLabel}</span></p>
-                </>
+                  <p className="text-zinc-500 dark:text-zinc-400 mt-1">Envío: <span className="font-bold text-black dark:text-white">{shippingLabel}</span></p>
+                  <p className="text-zinc-500 dark:text-zinc-400 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10">{nextStepMessage}</p>
+              </div>
+            )}
+
+            {/* Detalle de la entrega */}
+            <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
+              <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Entrega</h4>
+              {address?.street ? (
+                <p className="font-medium text-black dark:text-white leading-relaxed">
+                  {address.street} {address.number}{address.apartment ? `, ${address.apartment}` : ''}<br />
+                  {[address.city, address.state].filter(Boolean).join(', ')}{address.zip ? ` (CP ${address.zip})` : ''}
+                </p>
+              ) : (
+                <p className="font-medium text-black dark:text-white">Retiro en local / a coordinar</p>
               )}
-              <p className="text-zinc-500 dark:text-zinc-400">Total:<span className="font-bold text-black dark:text-white">${Number(selectedOrder.total).toLocaleString('es-AR')}</span></p>
-              <p className="text-zinc-500 dark:text-zinc-400 mt-1">Dirección: <span className="font-medium text-black dark:text-white">{selectedOrder.shipping_address?.street} {selectedOrder.shipping_address?.number}</span></p>
+            </div>
+
+            {/* Detalle de la compra */}
+            <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
+              <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Package className="w-3.5 h-3.5" /> Tu compra</h4>
+              <ul className="space-y-1.5">
+                {(selectedOrder.items || []).map(item => {
+                  const unitPrice = item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price;
+                  return (
+                    <li key={item.id} className="flex justify-between gap-3">
+                      <span className="text-black dark:text-white min-w-0">{item.quantity} × {item.name}</span>
+                      <span className="text-zinc-500 dark:text-zinc-400 shrink-0">${Number(unitPrice * item.quantity).toLocaleString('es-AR')}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="flex justify-between gap-3 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10">
+                <span className="text-zinc-500 dark:text-zinc-400">Total{selectedOrder.payment_method ? ` · ${selectedOrder.payment_method}` : ''}</span>
+                <span className="font-bold text-black dark:text-white">${Number(selectedOrder.total).toLocaleString('es-AR')}</span>
+              </div>
+            </div>
+
+            {/* Informar un problema */}
+            <div className="mt-4 p-4 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
+              <h4 className="font-bold text-black dark:text-white mb-1">¿Tuviste un problema con tu pedido?</h4>
+              <p className="text-zinc-500 dark:text-zinc-400 mb-3">Escribinos con tu número de pedido y lo resolvemos.</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <a
+                  href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(supportMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-black dark:bg-white text-white dark:text-black font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition"
+                >
+                  <MessageCircle className="w-4 h-4" /> WhatsApp
+                </a>
+                {SUPPORT_EMAIL && (
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Problema con el pedido #${shortOrderId}`)}&body=${encodeURIComponent(supportMessage)}`}
+                    className="flex-1 border border-zinc-200 dark:border-white/10 text-black dark:text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:border-black dark:hover:border-white transition"
+                  >
+                    <Mail className="w-4 h-4" /> Email
+                  </a>
+                )}
+              </div>
             </div>
 
             <button onClick={() => { setSelectedOrder(null); setOrders([]); }} className="mt-6 text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white uppercase tracking-widest text-center w-full transition">
