@@ -1,8 +1,44 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark, .dark *));
+
+:root {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
 
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* El color-scheme fuerza que las barras de scroll nativas se vean oscuras */
 }
+
+/* Scrollbar personalizada minimalista */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.3);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
