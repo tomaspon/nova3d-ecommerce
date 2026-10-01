@@ -5,15 +5,30 @@ import { Plus, Tag, Trash2 } from 'lucide-react';
 export default function CategoriesPage() {
   const { categories, products, addCategory, deleteCategory } = useStore();
   const [newName, setNewName] = useState('');
+  const [error, setError] = useState(null);
 
   const trimmedName = newName.trim();
   const alreadyExists = categories.some(cat => cat.toLowerCase() === trimmedName.toLowerCase());
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (trimmedName === '' || alreadyExists) return;
-    addCategory(trimmedName);
-    setNewName('');
+    setError(null);
+    try {
+      await addCategory(trimmedName);
+      setNewName('');
+    } catch (err) {
+      setError(`No se pudo crear la categoría: ${err.message}`);
+    }
+  };
+
+  const handleDelete = async (name) => {
+    setError(null);
+    try {
+      await deleteCategory(name);
+    } catch (err) {
+      setError(`No se pudo eliminar la categoría: ${err.message}`);
+    }
   };
 
   return (
@@ -48,6 +63,10 @@ export default function CategoriesPage() {
         )}
       </form>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">{error}</div>
+      )}
+
       {/* ── LISTA DE CATEGORÍAS ── */}
       <div className="bg-black border border-white/10 rounded-2xl overflow-hidden shadow-xl divide-y divide-white/5">
         {categories.length === 0 ? (
@@ -67,7 +86,7 @@ export default function CategoriesPage() {
                   <div className="text-xs text-zinc-500">{count} {count === 1 ? 'producto' : 'productos'}</div>
                 </div>
                 <button
-                  onClick={() => deleteCategory(cat)}
+                  onClick={() => handleDelete(cat)}
                   disabled={count > 0}
                   aria-label={`Eliminar ${cat}`}
                   title={count > 0 ? 'Tiene productos asignados' : 'Eliminar categoría'}

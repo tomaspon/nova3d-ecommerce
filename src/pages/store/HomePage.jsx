@@ -2,7 +2,7 @@ import { ShoppingBag, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 
 export default function HomePage() {
-  const { products, addToCart } = useStore();
+  const { products, addToCart, isLoading, loadError } = useStore();
 
   // Filtrar solo los productos activos para la tienda pública
   const activeProducts = products.filter(p => p.isActive);
@@ -17,9 +17,11 @@ export default function HomePage() {
           <div>
             <div className="text-[11px] font-bold text-zinc-400 tracking-widest uppercase mb-2">Inicio / Catálogo</div>
             <h1 className="text-3xl md:text-[2.75rem] leading-none font-black text-zinc-900 mb-2 md:mb-3 tracking-tight">Sillones y Mesas</h1>
-            <p className="text-sm md:text-base text-zinc-500 font-medium">
-              Mostrando {activeProducts.length} {activeProducts.length === 1 ? 'producto' : 'productos'}
-            </p>
+            {!isLoading && !loadError && (
+              <p className="text-sm md:text-base text-zinc-500 font-medium">
+                Mostrando {activeProducts.length} {activeProducts.length === 1 ? 'producto' : 'productos'}
+              </p>
+            )}
           </div>
           <div className="hidden md:flex items-center gap-2 text-sm text-zinc-600 bg-white border border-zinc-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors">
             Ordenar por: <span className="font-bold text-black ml-1">Destacados</span>
@@ -28,7 +30,15 @@ export default function HomePage() {
         </div>
 
         {/* GRILLA DE PRODUCTOS */}
-        {activeProducts.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center px-6 py-16 md:py-20 bg-zinc-50 rounded-3xl border border-zinc-200 text-zinc-500">
+            Cargando productos...
+          </div>
+        ) : loadError ? (
+          <div className="text-center px-6 py-16 md:py-20 bg-zinc-50 rounded-3xl border border-zinc-200 text-zinc-500">
+            No pudimos cargar el catálogo. Probá de nuevo en unos minutos.
+          </div>
+        ) : activeProducts.length === 0 ? (
           <div className="text-center px-6 py-16 md:py-20 bg-zinc-50 rounded-3xl border border-zinc-200 text-zinc-500">
             No hay productos disponibles en este momento.
           </div>

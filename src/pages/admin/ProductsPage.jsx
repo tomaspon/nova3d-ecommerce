@@ -3,7 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { Plus, Search, Tag, EyeOff, Edit2, ArchiveRestore, Image as ImageIcon, Upload } from 'lucide-react';
 
 export default function ProductsPage() {
-  const { products, categories, addProduct, softDeleteProduct, restoreProduct, addCategory, updateProduct } = useStore();
+  const { products, categories, addProduct, softDeleteProduct, restoreProduct, addCategory, updateProduct, uploadImage } = useStore();
   
   // Estados para búsqueda y filtrado
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,7 +14,11 @@ export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const fileInputRef = useRef(null);
-  
+  const [imageFile, setImageFile] = useState(null); // Archivo elegido, se sube al guardar
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+
   // Estado del formulario
   const [formData, setFormData] = useState({
     name: '',
@@ -55,47 +59,68 @@ export default function ProductsPage() {
       setEditingId(null);
       setFormData({ name: '', description: '', price: '', discount: 0, category: categories[0] || '', newCategory: '', stock: 0, imageUrl: null });
     }
+    setImageFile(null);
+    setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Convertir la imagen a Base64 para guardarla en LocalStorage
+      setImageFile(file);
+      // Vista previa en Base64; la imagen definitiva se sube al guardar
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, imageUrl: reader.result });
+        setFormData(prev => ({ ...prev, imageUrl: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    let finalCategory = formData.category;
-    
-    // Creación de categoría "On the fly"
-    if (formData.newCategory.trim() !== '') {
-      addCategory(formData.newCategory.trim());
-      finalCategory = formData.newCategory.trim();
-    }
+    setFormError(null);
+    setIsSaving(true);
+    try {
+      let finalCategory = formData.category;
 
-    const payload = {
-      name: formData.name,
-      description: formData.description,
-      price: Number(formData.price),
-      discount: Number(formData.discount),
-      category: finalCategory,
-      stock: Number(formData.stock),
-      imageUrl: formData.imageUrl
-    };
+      // Creación de categoría "On the fly"
+      if (formData.newCategory.trim() !== '') {
+        await addCategory(formData.newCategory.trim());
+        finalCategory = formData.newCategory.trim();
+      }
 
-    if (editingId) {
-      updateProduct(editingId, payload);
-    } else {
-      addProduct(payload);
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        price: Number(formData.price),
+        discount: Number(formData.discount),
+        category: finalCategory,
+        stock: Number(formData.stock),
+        imageUrl: imageFile ? await uploadImage(imageFile) : formData.imageUrl
+      };
+
+      if (editingId) {
+        await updateProduct(editingId, payload);
+      } else {
+        await addProduct(payload);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      setFormError(`No se pudo guardar el producto: ${err.message}`);
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
+  };
+
+  // Ocultar / restaurar desde la lista
+  const runAction = async (action) => {
+    setActionError(null);
+    try {
+      await action();
+    } catch (err) {
+      setActionError(`No se pudo aplicar el cambio: ${err.message}`);
+    }
   };
 
   return (
@@ -147,6 +172,10 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {actionError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">{actionError}</div>
+      )}
+
       {/* ── LISTA DE PRODUCTOS (MÓVIL) ── */}
       <div className="md:hidden space-y-3">
         {filteredProducts.length === 0 ? (
@@ -188,12 +217,12 @@ export default function ProductsPage() {
                     <button onClick={() => openModal(p)} aria-label={`Editar ${p.name}`} className="p-3 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => softDeleteProduct(p.id)} aria-label={`Ocultar ${p.name}`} className="p-3 text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition">
+                    <button onClick={() => runAction(() => softDeleteProduct(p.id))} aria-label={`Ocultar ${p.name}`} className="p-3 text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition">
                       <EyeOff className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
-                  <button onClick={() => restoreProduct(p.id)} className="shrink-0 px-3 py-2.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition flex items-center gap-2">
+                  <button onClick={() => runAction(() => restoreProduct(p.id))} className="shrink-0 px-3 py-2.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition flex items-center gap-2">
                     <ArchiveRestore className="w-4 h-4" /> Restaurar
                   </button>
                 )}
@@ -262,12 +291,12 @@ export default function ProductsPage() {
                           <button onClick={() => openModal(p)} className="p-2 text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition border border-transparent hover:border-white/10" title="Editar">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => softDeleteProduct(p.id)} className="p-2 text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition border border-transparent hover:border-red-500/20" title="Ocultar (Borrado Lógico)">
+                          <button onClick={() => runAction(() => softDeleteProduct(p.id))} className="p-2 text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition border border-transparent hover:border-red-500/20" title="Ocultar (Borrado Lógico)">
                             <EyeOff className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => restoreProduct(p.id)} className="px-3 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition flex items-center gap-2 ml-auto">
+                        <button onClick={() => runAction(() => restoreProduct(p.id))} className="px-3 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition flex items-center gap-2 ml-auto">
                           <ArchiveRestore className="w-4 h-4" /> Restaurar
                         </button>
                       )}
@@ -366,10 +395,14 @@ export default function ProductsPage() {
 
               </div>
 
+              {formError && (
+                <div className="mt-5 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">{formError}</div>
+              )}
+
               <div className="pt-5 mt-5 md:pt-8 md:mt-6 border-t border-white/10 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-bold text-zinc-400 hover:text-white transition">Cancelar</button>
-                <button type="submit" className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-500/20">
-                  {editingId ? 'Guardar Cambios' : 'Publicar Producto'}
+                <button type="submit" disabled={isSaving} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-500/20 disabled:opacity-50">
+                  {isSaving ? 'Guardando...' : editingId ? 'Guardar Cambios' : 'Publicar Producto'}
                 </button>
               </div>
             </form>

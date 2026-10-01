@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Menu, X } from 'lucide-react';
+import { useStore } from '../context/StoreContext';
+import LoginPage from '../pages/admin/LoginPage';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const { isAuthReady, isAdmin } = useStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const menuItems = [
@@ -16,6 +19,12 @@ export default function AdminLayout() {
 
   const currentItem = menuItems.find(item => item.path === location.pathname);
   const closeSidebar = () => setIsSidebarOpen(false);
+
+  // Con Supabase conectado, el panel exige una sesión de administrador
+  if (!isAuthReady) {
+    return <div className="min-h-screen bg-zinc-950 text-zinc-500 font-sans flex items-center justify-center">Cargando...</div>;
+  }
+  if (!isAdmin) return <LoginPage />;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">

@@ -1,8 +1,8 @@
-import { HardDrive, Package, Tag } from 'lucide-react';
+import { Database, HardDrive, LogOut, Package, Tag } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 
 export default function SettingsPage() {
-  const { products, categories } = useStore();
+  const { products, categories, isSupabaseConfigured, session, signOut } = useStore();
 
   return (
     <div className="space-y-6">
@@ -12,19 +12,39 @@ export default function SettingsPage() {
       </div>
 
       {/* ── ALMACENAMIENTO ── */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 bg-yellow-500/20 text-yellow-400 rounded-lg flex items-center justify-center shrink-0">
-            <HardDrive className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-bold text-white mb-1">Datos guardados en este navegador</div>
-            <p className="text-sm text-zinc-400">
-              Los productos y categorías se guardan solo en este dispositivo. Otros visitantes no los ven hasta que la tienda se conecte a una base de datos.
-            </p>
+      {isSupabaseConfigured ? (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-bold text-white mb-1">Conectada a Supabase</div>
+              <p className="text-sm text-zinc-400 break-words">
+                Los productos y categorías se guardan en la base de datos y los ven todos los visitantes.
+                {session && <> Sesión iniciada como {session.user.email}.</>}
+              </p>
+              <button onClick={() => signOut()} className="mt-4 px-4 py-2.5 text-sm font-bold text-white bg-white/10 hover:bg-white/15 rounded-lg transition flex items-center gap-2">
+                <LogOut className="w-4 h-4" /> Cerrar sesión
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 bg-yellow-500/20 text-yellow-400 rounded-lg flex items-center justify-center shrink-0">
+              <HardDrive className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-white mb-1">Datos guardados en este navegador</div>
+              <p className="text-sm text-zinc-400">
+                Los productos y categorías se guardan solo en este dispositivo. Otros visitantes no los ven hasta que la tienda se conecte a una base de datos.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── RESUMEN DE DATOS ── */}
       <div className="grid grid-cols-2 gap-3 md:gap-6">
