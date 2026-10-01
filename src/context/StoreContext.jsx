@@ -107,10 +107,16 @@ export function StoreProvider({ children }) {
       if (newSettings.campaign_image_url !== undefined) payload.campaign_image_url = newSettings.campaign_image_url;
 
       if (Object.keys(payload).length > 0) {
-        await supabase.from('store_settings').update(payload).eq('id', 1);
+        // .select() permite detectar cuando la base no actualizó ninguna fila
+        const { data, error } = await supabase.from('store_settings').update(payload).eq('id', 1).select();
+        if (error) throw error;
+        if (!data || data.length === 0) throw new Error('store_settings no se actualizó');
       }
+      return true;
     } catch (error) {
       console.error('Error updating settings:', error);
+      fetchStoreSettings(); // Volver al estado real de la base
+      return false;
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { supabase } from '../../supabaseClient';
 import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin } from 'lucide-react';
@@ -10,10 +10,10 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('campaigns'); // 'general', 'shipping', 'campaigns'
 
   // States for Settings
-  const [campaignActive, setCampaignActive] = useState(storeSettings?.campaignActive || false);
-  const [campaignName, setCampaignName] = useState(storeSettings?.campaignName || '');
-  const [campaignImageUrl, setCampaignImageUrl] = useState(storeSettings?.campaignImageUrl || '');
-  const [allowBackorders, setAllowBackorders] = useState(storeSettings?.allowBackorders || false);
+  const [campaignActive, setCampaignActive] = useState(storeSettings?.campaign_active || false);
+  const [campaignName, setCampaignName] = useState(storeSettings?.campaign_name || '');
+  const [campaignImageUrl, setCampaignImageUrl] = useState(storeSettings?.campaign_image_url || '');
+  const [allowBackorders, setAllowBackorders] = useState(storeSettings?.allow_backorders || false);
   const [storeName, setStoreName] = useState(storeSettings?.storeName || 'Nova3D');
   const [storeEmail, setStoreEmail] = useState(storeSettings?.storeEmail || 'contacto@nova3d.com');
   const [shippingCost, setShippingCost] = useState(storeSettings?.shippingCost || 5000);
@@ -21,18 +21,29 @@ export default function SettingsPage() {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // La configuración llega de Supabase después del primer render: sincronizar el formulario cuando carga
+  useEffect(() => {
+    setCampaignActive(storeSettings.campaign_active || false);
+    setCampaignName(storeSettings.campaign_name || '');
+    setCampaignImageUrl(storeSettings.campaign_image_url || '');
+  }, [storeSettings.campaign_active, storeSettings.campaign_name, storeSettings.campaign_image_url]);
+
   const handleSave = async () => {
     setIsSaving(true);
-    await updateStoreSettings({ 
-      campaignActive, 
-      campaignName, 
-      campaignImageUrl, 
-      allowBackorders,
+    const ok = await updateStoreSettings({
+      campaign_active: campaignActive,
+      campaign_name: campaignName,
+      campaign_image_url: campaignImageUrl,
+      allow_backorders: allowBackorders,
       storeName,
       storeEmail,
       shippingCost
     });
     setIsSaving(false);
+    if (!ok) {
+      alert('No se pudieron guardar los cambios');
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
