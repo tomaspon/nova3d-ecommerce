@@ -58,6 +58,10 @@ export function StoreProvider({ children }) {
     }
   };
 
+  const deleteCategory = (name) => {
+    setCategories(categories.filter(cat => cat !== name));
+  };
+
   const addProduct = (productData) => {
     const newProduct = {
       ...productData,
@@ -96,6 +100,7 @@ export function StoreProvider({ children }) {
       removeFromCart,
       updateQuantity,
       addCategory,
+      deleteCategory,
       addProduct,
       updateProduct,
       softDeleteProduct,
