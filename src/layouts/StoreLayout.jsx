@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Outlet, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Search, User, ShoppingBag, X, Moon, Sun } from 'lucide-react';
+import { Search, User, ShoppingBag, X, Moon, Sun, Menu } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import CartDrawer from '../components/CartDrawer';
 
 export default function StoreLayout() {
   const { cart, toggleCart, user, isDarkMode, toggleDarkMode } = useStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const searchInputRef = useRef(null);
   
   const navigate = useNavigate();
@@ -41,13 +42,21 @@ export default function StoreLayout() {
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
       <CartDrawer />
 
-      <header className="h-16 md:h-24 bg-[#FAFAFA]/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-4 md:px-8 lg:px-12 sticky top-0 z-40 transition-colors duration-300">
-        
-        {/* LOGO */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-7 h-7 md:w-9 md:h-9 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">M</div>
-            <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white">MINIMAL.</span>
+      <header className="h-16 md:h-24 bg-[#FAFAFA]/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-2 md:px-8 lg:px-12 sticky top-0 z-40 transition-colors duration-300">
+
+        {/* MENÚ (móvil) + LOGO */}
+        <div className="flex items-center min-w-0">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
+            aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={isMenuOpen}
+          >
+            {isMenuOpen ? <X className="w-5 h-5" strokeWidth={2} /> : <Menu className="w-5 h-5" strokeWidth={2} />}
+          </button>
+          <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 md:gap-3 group min-w-0">
+            <div className="w-7 h-7 md:w-9 md:h-9 shrink-0 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">M</div>
+            <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden">MINIMAL.</span>
           </Link>
         </div>
         
@@ -77,10 +86,10 @@ export default function StoreLayout() {
         </nav>
 
         {/* ICONS & SEARCH BAR */}
-        <div className="flex items-center gap-6 text-zinc-700 dark:text-zinc-400 shrink-0">
-          
-          {/* THEME TOGGLE */}
-          <button onClick={toggleDarkMode} className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:text-black dark:hover:text-white transition-colors" title="Alternar tema">
+        <div className="flex items-center md:gap-6 text-zinc-700 dark:text-zinc-400 shrink-0">
+
+          {/* THEME TOGGLE (en móvil está dentro del menú) */}
+          <button onClick={toggleDarkMode} className="hidden md:flex p-2 min-w-[44px] min-h-[44px] items-center justify-center hover:text-black dark:hover:text-white transition-colors" title="Alternar tema">
             {isDarkMode ? <Sun className="w-5 h-5" strokeWidth={2} /> : <Moon className="w-5 h-5" strokeWidth={2} />}
           </button>
 
@@ -89,19 +98,46 @@ export default function StoreLayout() {
             <Search className="w-5 h-5" strokeWidth={2} />
           </button>
 
-          <Link to={user ? "/perfil" : "/login"} className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:text-black dark:hover:text-white transition-colors">
+          <Link to={user ? "/perfil" : "/login"} onClick={() => setIsMenuOpen(false)} className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:text-black dark:hover:text-white transition-colors" aria-label={user ? 'Mi perfil' : 'Iniciar sesión'}>
             <User className="w-5 h-5" strokeWidth={2} />
           </Link>
-          
-          <div className="relative cursor-pointer group p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={toggleCart}>
+
+          <button onClick={toggleCart} className="relative group p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Abrir carrito">
             <ShoppingBag className="w-5 h-5 group-hover:text-black dark:group-hover:text-white transition-colors" strokeWidth={2} />
             {cartItemsCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+              <span className="absolute top-1 right-0.5 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center">
                 {cartItemsCount}
               </span>
             )}
-          </div>
+          </button>
         </div>
+
+        {/* MENÚ DESPLEGABLE (móvil) */}
+        {isMenuOpen && (
+          <nav className="md:hidden absolute top-full left-0 w-full bg-[#FAFAFA] dark:bg-[#121212] border-b border-zinc-200 dark:border-white/5 px-4 py-2 flex flex-col text-[15px] font-bold shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+            {[
+              { to: '/', label: 'Catálogo' },
+              { to: '/nosotros', label: 'Nosotros' },
+              { to: '/seguimiento', label: 'Seguimiento' }
+            ].map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setIsMenuOpen(false)}
+                className={`py-3 transition-colors ${isActive(link.to) ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500'}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <button
+              onClick={toggleDarkMode}
+              className="py-3 mt-1 border-t border-zinc-200 dark:border-white/5 flex items-center gap-3 text-zinc-500 dark:text-zinc-400"
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" strokeWidth={2} /> : <Moon className="w-5 h-5" strokeWidth={2} />}
+              {isDarkMode ? 'Modo claro' : 'Modo oscuro'}
+            </button>
+          </nav>
+        )}
 
       </header>
 

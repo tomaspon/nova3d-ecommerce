@@ -175,7 +175,7 @@ export default function HomePage() {
             <h1 className="text-3xl font-black text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight transition-colors">
               {searchQuery ? `Resultados para "${searchQuery}"` : categoryFilter !== 'all' ? categoryFilter : 'Catálogo General'}
             </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Mostrando {activeProducts.length} productos disponibles</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Mostrando {activeProducts.length} {activeProducts.length === 1 ? 'producto disponible' : 'productos disponibles'}</p>
           </div>
           
           <div className="relative" ref={sortRef}>
