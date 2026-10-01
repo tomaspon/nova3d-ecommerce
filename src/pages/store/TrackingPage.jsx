@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar } from 'lucide-react';
+import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+
+// La orden todavía no tiene el pago acreditado
+const isAwaitingPayment = (status) => {
+  const s = (status || '').toLowerCase();
+  return s.startsWith('reservado') || s.startsWith('pendiente');
+};
 
 export default function TrackingPage() {
   const [document, setDocument] = useState('');
@@ -9,35 +15,70 @@ export default function TrackingPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Resultado del checkout cuando se vuelve de Mercado Pago: 'success' | 'pending' | 'failure'
+  const [paymentReturn, setPaymentReturn] = useState(null);
+
   // Auto-load si viene de Mercado Pago
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const orderIdParam = searchParams.get('order');
+    const paymentIdParam = searchParams.get('payment_id') || searchParams.get('collection_id');
+    let cancelled = false;
+
+    const loadFromCheckout = async () => {
+      setPaymentReturn(searchParams.get('payment'));
+
+      // Confirmar el pago contra Mercado Pago sin esperar al webhook
+      if (paymentIdParam && /^\d+$/.test(paymentIdParam)) {
+        try {
+          await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: paymentIdParam })
+          });
+        } catch (err) {
+          console.error('No se pudo verificar el pago:', err);
+        }
+      }
+
+      let order = await fetchOrderByID(orderIdParam);
+
+      // Si el pago salió bien pero la orden todavía no figura pagada, reintentar unos segundos
+      for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
+        if (!order || searchParams.get('payment') !== 'success' || !isAwaitingPayment(order.status)) break;
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        if (!cancelled) order = await fetchOrderByID(orderIdParam, { silent: true });
+      }
+    };
 
     if (orderIdParam) {
-      fetchOrderByID(orderIdParam);
+      loadFromCheckout();
     } else {
       setIsLoading(false);
     }
+    return () => { cancelled = true; };
   }, []);
 
-  const fetchOrderByID = async (id) => {
-    setIsLoading(true);
+  const fetchOrderByID = async (id, { silent = false } = {}) => {
+    if (!silent) setIsLoading(true);
     try {
+      // El id es un uuid: se compara exacto (ilike no existe para uuid en Postgres)
       const { data, error: fetchError } = await supabase
         .from('orders')
         .select('*')
-        .ilike('id', `${id}%`)
-        .single();
+        .eq('id', id)
+        .maybeSingle();
 
       if (fetchError || !data) {
         throw new Error('No pudimos encontrar los detalles de este pedido.');
       }
       setSelectedOrder(data);
+      return data;
     } catch (err) {
-      setError(err.message);
+      if (!silent) setError(err.message);
+      return null;
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -74,18 +115,21 @@ export default function TrackingPage() {
     }
   };
 
+  // Recién comprado (pago pendiente o ya pagado) queda en "Ordenado" hasta que el vendedor lo prepare o despache
   const getStatusStep = (status) => {
-    if (!status) return 0;
+    if (!status) return 1;
     const s = status.toLowerCase();
-    if (s.includes('pendiente')) return 1;
-    if (s.includes('pagado') || s.includes('preparando')) return 2;
-    if (s.includes('enviado') || s.includes('despachado')) return 3;
     if (s.includes('entregado')) return 4;
-    return 0;
+    if (s.includes('enviado') || s.includes('despachado')) return 3;
+    if (s.includes('preparando')) return 2;
+    return 1;
   };
 
   const step = selectedOrder ? getStatusStep(selectedOrder.status) : 0;
   const isCanceled = selectedOrder?.status.toLowerCase().includes('cancelado');
+  const isPaid = selectedOrder ? !isCanceled && !isAwaitingPayment(selectedOrder.status) : false;
+  const isConfirmingPayment = !isPaid && !isCanceled && paymentReturn === 'success';
+  const shippingLabel = ['', 'Pendiente de despacho', 'En preparación', 'En camino', 'Entregado'][step];
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] py-12 px-4 sm:px-6 flex flex-col items-center">
@@ -158,6 +202,18 @@ export default function TrackingPage() {
         {/* Detalle de una orden */}
         {selectedOrder && (
           <div className="animate-in fade-in slide-in-from-bottom-4">
+            {paymentReturn === 'success' && !isCanceled && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl flex items-center gap-3 mb-6">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-bold">¡Gracias por tu compra! Ya recibimos tu pedido.</p>
+              </div>
+            )}
+            {paymentReturn === 'failure' && !isPaid && !isCanceled && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-center gap-3 mb-6">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-bold">El pago no se completó. Tu pedido queda reservado unos minutos por si querés reintentar.</p>
+              </div>
+            )}
             <div className="text-center mb-6">
               <h2 className="text-2xl font-black text-black dark:text-white font-mono uppercase tracking-tight">#{selectedOrder.id.split('-')[0]}</h2>
               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{new Date(selectedOrder.created_at).toLocaleDateString()}</p>
@@ -165,7 +221,7 @@ export default function TrackingPage() {
             
             <div className="border-t border-zinc-200 dark:border-white/10 pt-8">
               <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 text-center">
-                Estado Actual: <span className="text-indigo-500 dark:text-indigo-400">{selectedOrder.status}</span>
+                Estado Actual: <span className="text-indigo-500 dark:text-indigo-400">{isConfirmingPayment ? 'Confirmando pago' : selectedOrder.status}</span>
               </h3>
               
               {isCanceled ? (
@@ -185,7 +241,7 @@ export default function TrackingPage() {
                   {/* Paso 1: Pendiente */}
                   <div className="relative z-10 flex flex-col items-center gap-2">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 1 ? 'bg-black dark:bg-white text-white dark:text-black border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
-                      <Loader2 className="w-5 h-5" />
+                      <ClipboardCheck className="w-5 h-5" />
                     </div>
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${step >= 1 ? 'text-black dark:text-white' : 'text-zinc-400'}`}>Ordenado</span>
                   </div>
@@ -218,7 +274,22 @@ export default function TrackingPage() {
             </div>
             
             <div className="mt-8 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
-              <p className="text-zinc-500 dark:text-zinc-400">Total: <span className="font-bold text-black dark:text-white">${Number(selectedOrder.total).toLocaleString('es-AR')}</span></p>
+              {!isCanceled && (
+                <>
+                  <p className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                    Pago:
+                    {isPaid ? (
+                      <span className="font-bold text-emerald-500">Confirmado</span>
+                    ) : isConfirmingPayment ? (
+                      <span className="font-bold text-black dark:text-white flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Confirmando...</span>
+                    ) : (
+                      <span className="font-bold text-amber-500">Pendiente</span>
+                    )}
+                  </p>
+                  <p className="text-zinc-500 dark:text-zinc-400 mt-1 mb-1">Envío: <span className="font-bold text-black dark:text-white">{shippingLabel}</span></p>
+                </>
+              )}
+              <p className="text-zinc-500 dark:text-zinc-400">Total:<span className="font-bold text-black dark:text-white">${Number(selectedOrder.total).toLocaleString('es-AR')}</span></p>
               <p className="text-zinc-500 dark:text-zinc-400 mt-1">Dirección: <span className="font-medium text-black dark:text-white">{selectedOrder.shipping_address?.street} {selectedOrder.shipping_address?.number}</span></p>
             </div>
 
