@@ -4,7 +4,10 @@ import { Resend } from 'resend';
 
 // Los clientes se crean dentro de la función: construirlos al cargar el módulo
 // tira la función entera si falta una variable de entorno (Resend y Supabase lanzan con claves vacías).
-function getSupabase() {
+// Minutos que dura la reserva de stock de una orden sin pagar (igual que en StoreContext)
+export const RESERVATION_MINUTES = 10;
+
+export function getSupabase() {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
   if (!supabaseUrl || !supabaseKey) {
@@ -116,6 +119,13 @@ export async function processPayment(paymentId) {
   if (!isAwaitingPayment(order.status)) {
     console.log(`La orden ${orderId} ya estaba en estado: ${order.status}.`);
     return { orderId, paymentStatus, orderStatus: order.status };
+  }
+
+  // El importe acreditado tiene que cubrir el total de la orden (con un peso de tolerancia por redondeo)
+  const paidAmount = Number(paymentInfo.transaction_amount);
+  if (!(paidAmount + 1 >= Number(order.total))) {
+    console.error(`Pago ${paymentId} por ${paidAmount} no cubre el total ${order.total} de la orden ${orderId}.`);
+    return { orderId, paymentStatus: 'amount_mismatch', orderStatus: order.status };
   }
 
   // 1. Actualizar estado a pagado. El filtro por estado evita descontar stock dos veces

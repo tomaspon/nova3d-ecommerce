@@ -238,7 +238,7 @@ export default function ProductsPage() {
 
   const handleHardDelete = async () => {
     if (!editingId) return;
-    const confirmStr = window.prompt("Para eliminar permanentemente este producto, escribe la palabra ELIMINAR en may�sculas:");
+    const confirmStr = window.prompt("Para eliminar permanentemente este producto, escribe la palabra ELIMINAR en mayúsculas:");
     if (confirmStr === 'ELIMINAR') {
       await supabase.from('products').delete().eq('id', editingId);
       setIsModalOpen(false);
@@ -374,7 +374,7 @@ export default function ProductsPage() {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
   }
   
-  // Ordenar alfab�ticamente por nombre
+  // Ordenar alfabéticamente por nombre
   filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
   const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
   return (
@@ -399,7 +399,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* FILTROS Y B�SQUEDA */}
+      {/* FILTROS Y BÚSQUEDA */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-black border border-white/5 p-4 rounded-2xl">
         <div className="flex gap-2 w-full md:w-auto overflow-x-auto hide-scrollbar px-1 pb-2 md:pb-0 snap-x">
           <button onClick={() => setFilterTab('all')} className={`shrink-0 snap-center px-4 py-2 rounded-xl whitespace-nowrap font-bold text-sm transition ${filterTab === 'all' ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}>Todos</button>
@@ -440,7 +440,7 @@ export default function ProductsPage() {
           
           <div className="flex-1 w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             
-            {/* BOT�N CREAR NUEVO (Tarjeta 1) */}
+            {/* BOTÓN CREAR NUEVO (Tarjeta 1) */}
             <div 
               onClick={() => openModal()} 
               className="aspect-[4/5] bg-zinc-900 border-2 border-dashed border-white/10 hover:border-indigo-500/50 rounded-2xl flex flex-col items-center justify-center cursor-pointer group transition-colors shadow-sm"
@@ -498,7 +498,7 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* MODAL PRINCIPAL (Detalle & Edici�n & Historial) */}
+      {/* MODAL PRINCIPAL (Detalle & Edición & Historial) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-zinc-950 border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
@@ -507,7 +507,7 @@ export default function ProductsPage() {
             <div className="p-4 border-b border-white/10 bg-zinc-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-20">
               <div>
                 <h2 className="text-2xl font-black text-white">{editingId ? 'Detalle del Producto' : 'Crear Nuevo Producto'}</h2>
-                <p className="text-sm text-zinc-400">{editingId ? 'Modifica la Información, ajusta el stock o revisa su historial.' : 'Completa los datos para publicar en el cat�logo.'}</p>
+                <p className="text-sm text-zinc-400">{editingId ? 'Modifica la Información, ajusta el stock o revisa su historial.' : 'Completa los datos para publicar en el catálogo.'}</p>
               </div>
               
               <div className="flex items-center gap-2">
@@ -515,7 +515,7 @@ export default function ProductsPage() {
                   <>
                     <button type="button" onClick={() => toggleStatus(editingProductData.is_active)} className={`px-4 py-2 rounded-xl text-[10px] font-bold transition flex items-center gap-2 ${editingProductData.is_active ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'}`}>
                       {editingProductData.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                      {editingProductData.is_active ? 'Pausar Publicaci�n' : 'Activar Publicaci�n'}
+                      {editingProductData.is_active ? 'Pausar Publicación' : 'Activar Publicación'}
                     </button>
                     <button type="button" onClick={handleHardDelete} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition" title="Eliminar Producto">
                       <Trash2 className="w-5 h-5" />
@@ -612,7 +612,7 @@ export default function ProductsPage() {
 
                 <div className="h-px w-full bg-white/5 my-4"></div>
 
-                {/* GESTI�N DE INVENTARIO Y TABLA */}
+                {/* GESTIÓN DE INVENTARIO Y TABLA */}
                   <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-2xl flex flex-col">
                     {editingId ? (
                       <>

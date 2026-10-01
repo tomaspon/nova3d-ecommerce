@@ -44,6 +44,8 @@ export default function HomePage() {
   let activeProducts = products.filter(p => p.is_active);
   
   const campaignProducts = activeProducts.filter(p => p.in_campaign);
+  // En la tienda solo se muestran las categorías que tienen productos a la venta
+  const storeCategories = categories.filter(cat => activeProducts.some(p => p.category === cat));
   const campaignBanner = parseBannerUrl(storeSettings?.campaign_image_url);
 
   if (categoryFilter !== 'all') {
@@ -70,7 +72,7 @@ export default function HomePage() {
           {/* Banner Hero (Opcional) */}
           {storeSettings.campaign_image_url && (
             <div className="w-full h-40 md:h-64 lg:h-80 relative">
-              <img fetchpriority="high" src={campaignBanner.src} alt="Campaña promocional" className="w-full h-full object-cover" style={{ objectPosition: `50% ${campaignBanner.y}%` }} />
+              <img fetchPriority="high" src={campaignBanner.src} alt="Campaña promocional" className="w-full h-full object-cover" style={{ objectPosition: `50% ${campaignBanner.y}%` }} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
               <div className="absolute bottom-0 left-0 p-6 w-full max-w-screen-2xl mx-auto">
                 <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white drop-shadow-lg">
@@ -131,7 +133,7 @@ export default function HomePage() {
       <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-6 lg:pt-8">
         
         {/* Filtros de Categoría (Pills) */}
-        {categories.length > 0 && (
+        {storeCategories.length > 0 && (
           <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-6 pb-1">
             <button
               onClick={() => {
@@ -148,7 +150,7 @@ export default function HomePage() {
             >
               Ver Todo
             </button>
-            {categories.map(cat => (
+            {storeCategories.map(cat => (
               <button
                 key={cat}
                 onClick={() => {

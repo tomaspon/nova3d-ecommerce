@@ -109,7 +109,7 @@ export default function CartDrawer() {
               <CheckCircle2 className="w-20 h-20 text-emerald-500 mb-6" />
               <h3 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 transition-colors">¡Orden #{orderInfo?.id?.split('-')[0]} Confirmada!</h3>
               <p className="text-zinc-500 dark:text-zinc-400 transition-colors mb-8">
-                Te enviamos el detalle de la compra a {formData.email}.
+                Guardá tu número de pedido: lo podés seguir desde la sección Seguimiento con tu DNI.
               </p>
               
               {orderInfo?.method === 'Transferencia' ? (
@@ -244,7 +244,7 @@ export default function CartDrawer() {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
-                      <div className="text-sm font-black text-zinc-900 dark:text-white mt-1 transition-colors">${finalPrice.toFixed(0)}</div>
+                      <div className="text-sm font-black text-zinc-900 dark:text-white mt-1 transition-colors">${Math.round(finalPrice).toLocaleString('es-AR')}</div>
                     </div>
                     
                     <div className="flex items-center gap-3 mt-3">
@@ -270,7 +270,7 @@ export default function CartDrawer() {
           <div className="border-t border-zinc-100 dark:border-white/10 p-6 bg-[#fafafa] dark:bg-[#121212] transition-colors">
             <div className="flex justify-between items-center mb-6">
               <span className="text-zinc-500 dark:text-zinc-400 font-medium transition-colors">Total a pagar</span>
-              <span className="text-2xl font-black text-zinc-900 dark:text-white transition-colors">${total.toFixed(0)}</span>
+              <span className="text-2xl font-black text-zinc-900 dark:text-white transition-colors">${Math.round(total).toLocaleString('es-AR')}</span>
             </div>
             
             {checkoutStep === 'cart' ? (

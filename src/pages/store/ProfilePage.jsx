@@ -86,7 +86,7 @@ export default function ProfilePage() {
       const { data } = await supabase
         .from('orders')
         .select('*')
-        .eq('user_email', user.email)
+        .eq('customer_email', user.email)
         .order('created_at', { ascending: false });
 
       if (data) setOrders(data);

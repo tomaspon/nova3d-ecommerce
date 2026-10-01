@@ -4,6 +4,9 @@ import { ArrowRight, Lock, Loader2, LogIn, Mail } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 
+// El botón de Google se muestra recién cuando el proveedor está configurado en Supabase (VITE_GOOGLE_LOGIN=true en Vercel)
+const GOOGLE_LOGIN_ENABLED = import.meta.env.VITE_GOOGLE_LOGIN === 'true';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,11 +21,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      if (user.email.includes('admin')) {
-        navigate('/admin');
-      } else {
-        navigate('/perfil');
-      }
+      navigate('/perfil');
     }
   }, [user, navigate]);
 
@@ -71,12 +70,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-6rem)] bg-zinc-50 flex items-center justify-center p-8">
-      <div className="max-w-md w-full bg-white rounded-3xl border border-zinc-200 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="min-h-[calc(100vh-6rem)] bg-zinc-50 dark:bg-[#121212] flex items-center justify-center p-8">
+      <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/10 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
         
-        <div className="p-8 text-center border-b border-zinc-100 bg-[#f4f4f5]">
-          <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white font-serif font-bold italic mx-auto mb-4 shadow-sm">M</div>
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">
+        <div className="p-8 text-center border-b border-zinc-100 dark:border-white/10 bg-[#f4f4f5] dark:bg-zinc-950">
+          <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic mx-auto mb-4 shadow-sm">M</div>
+          <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
             {isResetting ? 'Restablecer Clave' : isRegistering ? 'Creá tu cuenta' : 'Bienvenido de vuelta'}
           </h2>
           <p className="text-sm text-zinc-500 font-medium mt-1">
@@ -86,12 +85,12 @@ export default function LoginPage() {
 
         <div className="p-8 space-y-6">
           
-          {!isResetting && (
+          {!isResetting && GOOGLE_LOGIN_ENABLED && (
             <>
-              <button 
+              <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-800 font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-3 shadow-sm"
+                className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-800 dark:text-white font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-3 shadow-sm"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -103,8 +102,8 @@ export default function LoginPage() {
               </button>
 
               <div className="relative">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-200"></div></div>
-                <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-zinc-400 font-bold text-xs uppercase tracking-widest">O con correo</span></div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-200 dark:border-white/10"></div></div>
+                <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-zinc-900 text-zinc-400 font-bold text-xs uppercase tracking-widest">O con correo</span></div>
               </div>
             </>
           )}
@@ -112,12 +111,12 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             
             {errorMsg && (
-              <div className="bg-red-50 text-red-600 text-sm font-bold p-3 rounded-lg border border-red-100">
+              <div className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold p-3 rounded-lg border border-red-100 dark:border-red-500/20">
                 {errorMsg}
               </div>
             )}
             {successMsg && (
-              <div className="bg-green-50 text-green-600 text-sm font-bold p-3 rounded-lg border border-green-100">
+              <div className="bg-green-50 dark:bg-emerald-500/10 text-green-600 dark:text-emerald-400 text-sm font-bold p-3 rounded-lg border border-green-100 dark:border-emerald-500/20">
                 {successMsg}
               </div>
             )}
@@ -129,7 +128,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ejemplo@correo.com"
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3.5 text-zinc-900 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition"
+                className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition"
                 required
               />
             </div>
@@ -149,7 +148,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3.5 text-zinc-900 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition"
+                  className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition"
                   required
                 />
               </div>
@@ -157,7 +156,7 @@ export default function LoginPage() {
 
             <button 
               disabled={isLoading}
-              className="w-full bg-black hover:bg-zinc-800 text-white font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
+              className="w-full bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
@@ -174,7 +173,7 @@ export default function LoginPage() {
               <button 
                 type="button"
                 onClick={() => setIsResetting(false)}
-                className="w-full text-zinc-500 font-bold py-2 hover:text-black transition-colors text-sm"
+                className="w-full text-zinc-500 font-bold py-2 hover:text-black dark:hover:text-white transition-colors text-sm"
               >
                 Volver a Iniciar Sesión
               </button>
@@ -183,10 +182,10 @@ export default function LoginPage() {
         </div>
 
         {!isResetting && (
-          <div className="p-6 bg-zinc-50 border-t border-zinc-100 text-center">
+          <div className="p-6 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-100 dark:border-white/10 text-center">
             <p className="text-sm text-zinc-500 font-medium">
               {isRegistering ? '¿Ya tenés cuenta?' : '¿No tenés cuenta?'}
-              <button onClick={() => setIsRegistering(!isRegistering)} className="text-black font-bold border-b border-black pb-0.5 ml-2 hover:text-[#5c4ce5] hover:border-[#5c4ce5] transition-colors">
+              <button onClick={() => setIsRegistering(!isRegistering)} className="text-black dark:text-white font-bold border-b border-black dark:border-white pb-0.5 ml-2 hover:text-[#5c4ce5] hover:border-[#5c4ce5] transition-colors">
                 {isRegistering ? 'Iniciá sesión' : 'Crear cuenta'}
               </button>
             </p>

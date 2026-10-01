@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck } from 'lucide-react';
 
@@ -77,7 +78,10 @@ export default function AdminLayout() {
         {/* Zona de renderizado dinámica */}
         <div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
-            <Outlet />
+            {/* Cada sección del panel se descarga al abrirla */}
+            <Suspense fallback={null}>
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </main>

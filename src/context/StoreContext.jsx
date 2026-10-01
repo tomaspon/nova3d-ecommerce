@@ -1,9 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 const StoreContext = createContext();
 
+const RESERVATION_MINUTES = 10;
+const TRANSFER_RESERVATION_HOURS = 48;
+
 export function StoreProvider({ children }) {
+  const hasLoadedProductsRef = useRef(false);
+
   // ESTADO BASE
   const [categories, setCategories] = useState(() => {
     const saved = localStorage.getItem('store_categories');
@@ -131,18 +136,32 @@ export function StoreProvider({ children }) {
   };
 
   
+  // Una reserva sin pagar se libera a los 10 minutos (lo que dura el link de MercadoPago).
+  // Las transferencias se confirman a mano, así que tienen 48 horas.
   const releaseExpiredReservations = async () => {
     try {
-      const tenMinsAgo = new Date(Date.now() - 10 * 60000).toISOString();
+      const tenMinsAgo = new Date(Date.now() - RESERVATION_MINUTES * 60000).toISOString();
+      const transferLimit = new Date(Date.now() - TRANSFER_RESERVATION_HOURS * 3600000).toISOString();
+
       const { data: expiredOrders } = await supabase
         .from('orders')
         .update({ status: 'cancelado (tiempo agotado)' })
         .in('status', ['reservado', 'pendiente'])
+        .neq('payment_method', 'Transferencia')
         .lt('created_at', tenMinsAgo)
         .select();
 
-      if (expiredOrders && expiredOrders.length > 0) {
-        console.log(`Se liberaron reservas de ${expiredOrders.length} ordenes expiradas.`);
+      const { data: expiredTransfers } = await supabase
+        .from('orders')
+        .update({ status: 'cancelado (tiempo agotado)' })
+        .in('status', ['reservado', 'pendiente'])
+        .eq('payment_method', 'Transferencia')
+        .lt('created_at', transferLimit)
+        .select();
+
+      const released = (expiredOrders?.length || 0) + (expiredTransfers?.length || 0);
+      if (released > 0) {
+        console.log(`Se liberaron reservas de ${released} ordenes expiradas.`);
       }
     } catch (err) {
       console.error('Error liberando reservas:', err);
@@ -150,9 +169,8 @@ export function StoreProvider({ children }) {
   };
 
   const fetchProducts = async () => {
-
-    
-    setIsLoading(true);
+    // El indicador de carga solo en la primera carga: las recargas automáticas no deben tapar el catálogo
+    if (!hasLoadedProductsRef.current) setIsLoading(true);
     await releaseExpiredReservations();
     try {
 
@@ -160,8 +178,10 @@ export function StoreProvider({ children }) {
       if (error) throw error;
 
       // Calculamos reservas
-        const tenMinsAgo = new Date(Date.now() - 10 * 60000).toISOString();
-        const { data: pendingOrders } = await supabase.from('orders').select('items').in('status', ['reservado', 'pendiente']).gt('created_at', tenMinsAgo);
+        const tenMinsAgo = new Date(Date.now() - RESERVATION_MINUTES * 60000).toISOString();
+        const transferLimit = new Date(Date.now() - TRANSFER_RESERVATION_HOURS * 3600000).toISOString();
+        const { data: openOrders } = await supabase.from('orders').select('items, payment_method, created_at').in('status', ['reservado', 'pendiente']).gt('created_at', transferLimit);
+        const pendingOrders = (openOrders || []).filter(o => o.payment_method === 'Transferencia' || o.created_at > tenMinsAgo);
         const reservedMap = {};
         if (pendingOrders) {
           pendingOrders.forEach(o => {
@@ -197,11 +217,13 @@ export function StoreProvider({ children }) {
           };
         });
       
-      const uniqueCats = [...new Set(mappedProducts.map(p => p.category).filter(Boolean))];
-      if (uniqueCats.length > 0) {
-        setCategories(uniqueCats);
+      // Sumar las categorías de los productos sin pisar las creadas a mano que todavía no tienen productos
+      const productCats = mappedProducts.map(p => p.category).filter(Boolean);
+      if (productCats.length > 0) {
+        setCategories(prev => [...new Set([...productCats, ...prev])]);
       }
       setProducts(mappedProducts);
+      hasLoadedProductsRef.current = true;
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
