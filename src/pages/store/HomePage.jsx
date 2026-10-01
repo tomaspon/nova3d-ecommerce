@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingBag, ChevronDown, Image as ImageIcon, SearchX, Heart, Plus } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { parseBannerUrl } from '../../bannerPosition';
 
 export default function HomePage() {
   const { products, addToCart, favorites, toggleFavorite, storeSettings, categories, isLoading } = useStore();
@@ -43,6 +44,7 @@ export default function HomePage() {
   let activeProducts = products.filter(p => p.is_active);
   
   const campaignProducts = activeProducts.filter(p => p.in_campaign);
+  const campaignBanner = parseBannerUrl(storeSettings?.campaign_image_url);
 
   if (categoryFilter !== 'all') {
     activeProducts = activeProducts.filter(p => p.category === categoryFilter);
@@ -68,7 +70,7 @@ export default function HomePage() {
           {/* Banner Hero (Opcional) */}
           {storeSettings.campaign_image_url && (
             <div className="w-full h-40 md:h-64 lg:h-80 relative">
-              <img fetchpriority="high" src={storeSettings.campaign_image_url} alt="Campaña promocional" className="w-full h-full object-cover" />
+              <img fetchpriority="high" src={campaignBanner.src} alt="Campaña promocional" className="w-full h-full object-cover" style={{ objectPosition: `50% ${campaignBanner.y}%` }} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
               <div className="absolute bottom-0 left-0 p-6 w-full max-w-screen-2xl mx-auto">
                 <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white drop-shadow-lg">

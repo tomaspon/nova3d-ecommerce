@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { supabase } from '../../supabaseClient';
-import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin } from 'lucide-react';
+import { parseBannerUrl, buildBannerUrl, DEFAULT_BANNER_Y } from '../../bannerPosition';
+import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
 
 export default function SettingsPage() {
   const { storeSettings, updateStoreSettings, products, toggleProductCampaign } = useStore();
@@ -12,28 +13,58 @@ export default function SettingsPage() {
   // States for Settings
   const [campaignActive, setCampaignActive] = useState(storeSettings?.campaign_active || false);
   const [campaignName, setCampaignName] = useState(storeSettings?.campaign_name || '');
-  const [campaignImageUrl, setCampaignImageUrl] = useState(storeSettings?.campaign_image_url || '');
+  // La URL guardada incluye el encuadre vertical (#y=NN); acá se manejan por separado
+  const [campaignImageUrl, setCampaignImageUrl] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).src);
+  const [campaignImageY, setCampaignImageY] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).y);
   const [allowBackorders, setAllowBackorders] = useState(storeSettings?.allow_backorders || false);
   const [storeName, setStoreName] = useState(storeSettings?.storeName || 'Nova3D');
   const [storeEmail, setStoreEmail] = useState(storeSettings?.storeEmail || 'contacto@nova3d.com');
   const [shippingCost, setShippingCost] = useState(storeSettings?.shippingCost || 5000);
 
   const fileInputRef = useRef(null);
+  const bannerImgRef = useRef(null);
+  const bannerDragRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // La configuración llega de Supabase después del primer render: sincronizar el formulario cuando carga
   useEffect(() => {
     setCampaignActive(storeSettings.campaign_active || false);
     setCampaignName(storeSettings.campaign_name || '');
-    setCampaignImageUrl(storeSettings.campaign_image_url || '');
+    const banner = parseBannerUrl(storeSettings.campaign_image_url);
+    setCampaignImageUrl(banner.src);
+    setCampaignImageY(banner.y);
   }, [storeSettings.campaign_active, storeSettings.campaign_name, storeSettings.campaign_image_url]);
+
+  // Arrastrar el banner hacia arriba o abajo para elegir qué franja de la imagen se ve
+  const handleBannerPointerDown = (e) => {
+    if (isUploading || !bannerImgRef.current) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    bannerDragRef.current = { startClientY: e.clientY, startY: campaignImageY };
+  };
+
+  const handleBannerPointerMove = (e) => {
+    const drag = bannerDragRef.current;
+    const img = bannerImgRef.current;
+    if (!drag || !img || !img.naturalWidth) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    // object-cover: la imagen se escala hasta cubrir la caja; lo que sobra en alto es lo que se puede desplazar
+    const scale = Math.max(box.width / img.naturalWidth, box.height / img.naturalHeight);
+    const overflow = img.naturalHeight * scale - box.height;
+    if (overflow <= 0) return;
+    const nextY = drag.startY - ((e.clientY - drag.startClientY) / overflow) * 100;
+    setCampaignImageY(Math.min(100, Math.max(0, nextY)));
+  };
+
+  const handleBannerPointerUp = () => {
+    bannerDragRef.current = null;
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
     const ok = await updateStoreSettings({
       campaign_active: campaignActive,
       campaign_name: campaignName,
-      campaign_image_url: campaignImageUrl,
+      campaign_image_url: buildBannerUrl(campaignImageUrl, campaignImageY),
       allow_backorders: allowBackorders,
       storeName,
       storeEmail,
@@ -69,6 +100,7 @@ export default function SettingsPage() {
         .getPublicUrl(filePath);
 
       setCampaignImageUrl(data.publicUrl);
+      setCampaignImageY(DEFAULT_BANNER_Y);
     } catch (err) {
       console.error('Error subiendo banner:', err);
       alert('Error subiendo imagen');
@@ -235,30 +267,68 @@ export default function SettingsPage() {
 
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Imagen de Portada (Banner)</label>
-                      <div 
-                        onClick={() => !isUploading && fileInputRef.current?.click()}
-                        className={`w-full h-40 rounded-xl border-2 border-dashed ${campaignImageUrl ? 'border-indigo-500/30' : 'border-white/10 hover:border-indigo-500/50'} flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition group bg-black/50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {isUploading ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                            <span className="text-xs font-bold text-indigo-300">Subiendo a la nube...</span>
-                          </div>
-                        ) : campaignImageUrl ? (
-                          <>
-                            <img src={campaignImageUrl} alt="Banner Preview" className="w-full h-full object-cover opacity-90 group-hover:opacity-50 transition" />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                              <span className="bg-black/80 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md">Cambiar Portada</span>
+                      {campaignImageUrl && !isUploading ? (
+                        <>
+                          {/* Con imagen cargada, la caja sirve para encuadrar: se arrastra en vertical.
+                              Usa la proporción del banner en escritorio, que es donde más se recorta. */}
+                          <div
+                            onPointerDown={handleBannerPointerDown}
+                            onPointerMove={handleBannerPointerMove}
+                            onPointerUp={handleBannerPointerUp}
+                            onPointerCancel={handleBannerPointerUp}
+                            className="w-full aspect-[9/2] rounded-xl border-2 border-indigo-500/30 relative overflow-hidden bg-black/50 cursor-grab active:cursor-grabbing touch-none select-none group"
+                          >
+                            <img
+                              ref={bannerImgRef}
+                              src={campaignImageUrl}
+                              alt="Banner Preview"
+                              draggable={false}
+                              className="w-full h-full object-cover pointer-events-none"
+                              style={{ objectPosition: `50% ${campaignImageY}%` }}
+                            />
+                            <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+                              <span className="bg-black/70 text-white text-[11px] font-bold px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5">
+                                <MoveVertical className="w-3.5 h-3.5" /> Arrastrá para encuadrar
+                              </span>
                             </div>
-                          </>
-                        ) : (
-                          <div className="text-center p-4">
-                            <Upload className="w-8 h-8 text-zinc-600 mx-auto mb-3 group-hover:text-indigo-400 transition" />
-                            <span className="text-sm font-bold text-zinc-400 group-hover:text-indigo-300">Subir nueva portada</span>
                           </div>
-                        )}
-                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" disabled={isUploading} />
-                      </div>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setCampaignImageY(DEFAULT_BANNER_Y)}
+                              disabled={Math.round(campaignImageY) === DEFAULT_BANNER_Y}
+                              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/15 rounded-lg transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <AlignVerticalJustifyCenter className="w-3.5 h-3.5" /> Centrar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/15 rounded-lg transition flex items-center gap-1.5"
+                            >
+                              <Upload className="w-3.5 h-3.5" /> Cambiar Portada
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div
+                          onClick={() => !isUploading && fileInputRef.current?.click()}
+                          className={`w-full h-40 rounded-xl border-2 border-dashed border-white/10 hover:border-indigo-500/50 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition group bg-black/50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {isUploading ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                              <span className="text-xs font-bold text-indigo-300">Subiendo a la nube...</span>
+                            </div>
+                          ) : (
+                            <div className="text-center p-4">
+                              <Upload className="w-8 h-8 text-zinc-600 mx-auto mb-3 group-hover:text-indigo-400 transition" />
+                              <span className="text-sm font-bold text-zinc-400 group-hover:text-indigo-300">Subir nueva portada</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" disabled={isUploading} />
                     </div>
 
                     <div className="pt-4 border-t border-white/5">
