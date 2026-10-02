@@ -139,7 +139,10 @@ export default function DashboardPage() {
   const filteredLogs = filterByDate(inventoryLogs);
 
   // Cálculos Reales
-  const validOrders = filteredOrders.filter(o => o.status === 'pagado' || o.status === 'pagado (reserva)' || o.status === 'reservado' || o.status === 'pendiente (reserva)');
+  // Una venta cuenta como ingreso desde que se paga y sigue contando mientras avanza el envío.
+  // Las reservas sin pagar y las canceladas no suman.
+  const PAID_STATUSES = ['pagado', 'preparando', 'enviado', 'despachado', 'entregado'];
+  const validOrders = filteredOrders.filter(o => PAID_STATUSES.some(s => (o.status || '').toLowerCase().startsWith(s)));
   const reservedOrdersCount = orders.filter(o => o.status === 'pagado (reserva)').length; // Always total, or filtered? Let's leave total for current status. Wait, the screenshot says "Pedidos (S/Stock) 0". If they want stats for a timeframe, maybe it's "orders placed that needed stock". We'll use filteredOrders for this.
   const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
   const totalSalesCount = validOrders.length;

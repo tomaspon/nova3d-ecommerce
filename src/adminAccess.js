@@ -2,6 +2,3 @@
 // app_metadata solo se puede cambiar desde Supabase (SQL o panel), nunca desde el navegador,
 // a diferencia de user_metadata, que el propio usuario puede editar.
 export const isAdminUser = (user) => user?.app_metadata?.role === 'admin';
-
-// Marca del acceso anterior con contraseña maestra (transitorio)
-export const LEGACY_ADMIN_TOKEN_KEY = 'nova3d_admin_token';

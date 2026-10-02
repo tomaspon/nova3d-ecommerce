@@ -2,13 +2,11 @@ import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { LEGACY_ADMIN_TOKEN_KEY } from '../adminAccess';
 
 export default function AdminLayout() {
   const location = useLocation();
 
   const handleLogout = async () => {
-    localStorage.removeItem(LEGACY_ADMIN_TOKEN_KEY);
     await supabase.auth.signOut();
     window.location.href = '/';
   };

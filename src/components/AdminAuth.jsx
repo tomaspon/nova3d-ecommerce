@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { isAdminUser, LEGACY_ADMIN_TOKEN_KEY } from '../adminAccess';
+import { isAdminUser } from '../adminAccess';
 
 export default function AdminAuth({ children }) {
   // session: undefined = todavía verificando, null = sin sesión
@@ -12,13 +12,6 @@ export default function AdminAuth({ children }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ACCESO ANTERIOR (transitorio): contraseña maestra validada en el navegador.
-  // Se elimina cuando el usuario administrador de Supabase esté creado y probado.
-  const LEGACY_PASS = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
-  const [legacyAuthenticated, setLegacyAuthenticated] = useState(() => localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) === 'authenticated');
-  const [showLegacy, setShowLegacy] = useState(false);
-  const [legacyPassword, setLegacyPassword] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -50,22 +43,11 @@ export default function AdminAuth({ children }) {
     setIsSubmitting(false);
   };
 
-  const handleLegacyLogin = (e) => {
-    e.preventDefault();
-    if (legacyPassword === LEGACY_PASS) {
-      localStorage.setItem(LEGACY_ADMIN_TOKEN_KEY, 'authenticated');
-      setLegacyAuthenticated(true);
-      setError('');
-    } else {
-      setError('Contraseña incorrecta');
-    }
-  };
-
-  if (session === undefined || (needsRoleRefresh && !legacyAuthenticated)) {
+  if (session === undefined || needsRoleRefresh) {
     return <div className="min-h-screen bg-zinc-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div>;
   }
 
-  if (isAdminUser(session?.user) || legacyAuthenticated) {
+  if (isAdminUser(session?.user)) {
     return children;
   }
 
@@ -135,7 +117,7 @@ export default function AdminAuth({ children }) {
                 </button>
               </div>
 
-              {error && !showLegacy && <p className="text-xs font-bold text-red-500 text-center">{error}</p>}
+              {error && <p className="text-xs font-bold text-red-500 text-center">{error}</p>}
 
               <button
                 type="submit"
@@ -148,33 +130,6 @@ export default function AdminAuth({ children }) {
             </form>
           </>
         )}
-
-        {/* Acceso anterior, hasta completar la migración */}
-        <div className="mt-6 pt-6 border-t border-white/5 relative z-10">
-          {showLegacy ? (
-            <form onSubmit={handleLegacyLogin} className="space-y-3">
-              <input
-                type="password"
-                placeholder="Contraseña Maestra"
-                value={legacyPassword}
-                onChange={(e) => setLegacyPassword(e.target.value)}
-                className={`${inputClass} text-center font-mono tracking-widest`}
-              />
-              {error && <p className="text-xs font-bold text-red-500 text-center">{error}</p>}
-              <button type="submit" className="w-full bg-white/10 hover:bg-white/15 text-white font-bold py-3 rounded-xl transition-all uppercase tracking-widest text-xs">
-                Entrar con contraseña maestra
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={() => { setShowLegacy(true); setError(''); }}
-              className="w-full text-xs font-bold text-zinc-600 hover:text-zinc-400 transition-colors"
-            >
-              Usar la contraseña maestra anterior
-            </button>
-          )}
-        </div>
       </div>
 
       <Link to="/" className="mt-6 text-sm text-zinc-500 hover:text-white transition-colors">Volver a la tienda</Link>
