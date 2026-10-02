@@ -26,6 +26,17 @@ export default function AdminAuth({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // El rol viaja dentro del token de la sesión. Si se asignó en Supabase después de iniciar sesión,
+  // el token guardado todavía no lo tiene: se pide uno nuevo una vez antes de rechazar la cuenta.
+  const [refreshedFor, setRefreshedFor] = useState(null);
+  const userId = session?.user?.id ?? null;
+  const needsRoleRefresh = !!session && !isAdminUser(session.user) && refreshedFor !== userId;
+
+  useEffect(() => {
+    if (!needsRoleRefresh) return;
+    supabase.auth.refreshSession().finally(() => setRefreshedFor(userId));
+  }, [needsRoleRefresh, userId]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -50,7 +61,7 @@ export default function AdminAuth({ children }) {
     }
   };
 
-  if (session === undefined) {
+  if (session === undefined || (needsRoleRefresh && !legacyAuthenticated)) {
     return <div className="min-h-screen bg-zinc-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div>;
   }
 
