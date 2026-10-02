@@ -477,7 +477,7 @@ export function StoreProvider({ children }) {
 
       const payload = {
         customer_name: checkoutData.name,
-        customer_email: checkoutData.email,
+        customer_email: user?.email || checkoutData.email,
         customer_phone: checkoutData.phone,
         customer_document: checkoutData.document,
         shipping_address: checkoutData.address,

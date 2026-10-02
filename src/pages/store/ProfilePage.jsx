@@ -83,11 +83,14 @@ export default function ProfilePage() {
     }
 
     const fetchOrders = async () => {
-      const { data } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('customer_email', user.email)
-        .order('created_at', { ascending: false });
+      // Pedidos hechos con el email de la cuenta, o con el DNI guardado en "Mis Datos"
+      // (cubre compras donde se escribió otro email en el formulario)
+      const savedDocument = String(user.user_metadata?.shipping?.document || '').replace(/["\\,()]/g, '').trim();
+      let query = supabase.from('orders').select('*');
+      query = savedDocument
+        ? query.or(`customer_email.eq."${user.email}",customer_document.eq."${savedDocument}"`)
+        : query.eq('customer_email', user.email);
+      const { data } = await query.order('created_at', { ascending: false });
 
       if (data) setOrders(data);
       setIsLoading(false);

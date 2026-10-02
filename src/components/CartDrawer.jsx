@@ -19,10 +19,12 @@ export default function CartDrawer() {
   });
 
   React.useEffect(() => {
-    if (user?.user_metadata?.shipping && isCartOpen) {
+    if (user && isCartOpen) {
+      // Con sesión iniciada el pedido va siempre con el email de la cuenta, para que aparezca en "Mis pedidos"
       setFormData(prev => ({
         ...prev,
-        ...user.user_metadata.shipping
+        ...(user.user_metadata?.shipping || {}),
+        email: user.email
       }));
     }
   }, [user, isCartOpen]);
@@ -160,7 +162,7 @@ export default function CartDrawer() {
                     <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Teléfono" disabled={checkoutStep === 'loading'} />
                   </div>
                   
-                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Correo Electrónico (para el recibo)" disabled={checkoutStep === 'loading'} />
+                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Correo Electrónico (para el recibo)" disabled={checkoutStep === 'loading'} readOnly={!!user} title={user ? 'Es el email de tu cuenta' : undefined} />
                 </div>
               </div>
 
