@@ -84,7 +84,8 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] transition-colors pb-32 lg:pb-12">
       
       {/* HEADER NAVEGACION (MOBILE & DESKTOP) */}
-      <div className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 transition-colors">
+      {/* Se pega debajo del header de la tienda (16/24) y por debajo de su menú */}
+      <div className="sticky top-16 md:top-24 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 transition-colors">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white transition-colors group">
             <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

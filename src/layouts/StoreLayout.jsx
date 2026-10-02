@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Search, User, ShoppingBag, X, Moon, Sun, Menu } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
@@ -38,9 +38,19 @@ export default function StoreLayout() {
 
   const isActive = (path) => location.pathname === path;
 
+  // El menú móvil se cierra al cambiar de página, venga de donde venga la navegación
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname, location.search]);
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
       <CartDrawer />
+
+      {/* Con el menú móvil abierto, tocar fuera de él lo cierra */}
+      {isMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[35] bg-black/20" onClick={() => setIsMenuOpen(false)} />
+      )}
 
       <header className="h-16 md:h-24 bg-[#FAFAFA]/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-2 md:px-8 lg:px-12 sticky top-0 z-40 transition-colors duration-300">
 
