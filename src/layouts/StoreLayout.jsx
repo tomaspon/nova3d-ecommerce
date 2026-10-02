@@ -147,7 +147,7 @@ export default function StoreLayout() {
       
       {/* Footer Minimalista */}
       <footer className="border-t border-zinc-200 dark:border-white/5 py-12 px-4 md:px-8 lg:px-12 mt-auto flex flex-col md:flex-row items-center justify-between text-sm font-bold text-zinc-400 dark:text-zinc-600">
-        <div>© 2026 Nova3D. Todos los derechos reservados.</div>
+        <div>© 2026 MINIMAL. Todos los derechos reservados.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <Link to="#" className="hover:text-black dark:hover:text-white transition">Instagram</Link>
           <Link to="#" className="hover:text-black dark:hover:text-white transition">Términos</Link>

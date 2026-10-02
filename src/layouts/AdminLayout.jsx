@@ -1,9 +1,17 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store } from 'lucide-react';
+import { supabase } from '../supabaseClient';
+import { LEGACY_ADMIN_TOKEN_KEY } from '../adminAccess';
 
 export default function AdminLayout() {
   const location = useLocation();
+
+  const handleLogout = async () => {
+    localStorage.removeItem(LEGACY_ADMIN_TOKEN_KEY);
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
 
   const menuItems = [
     { name: 'Resumen', path: '/admin', icon: LayoutDashboard },
@@ -20,9 +28,9 @@ export default function AdminLayout() {
       <aside className="w-60 border-r border-white/5 bg-black flex flex-col hidden md:flex shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-white/5">
           <Link to="/admin" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">N</div>
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">M</div>
             <div>
-              <span className="font-black text-white tracking-tight text-sm leading-none block">Nova3D</span>
+              <span className="font-black text-white tracking-tight text-sm leading-none block">MINIMAL.</span>
               <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Admin Panel</span>
             </div>
           </Link>
@@ -49,9 +57,13 @@ export default function AdminLayout() {
 
         <div className="p-3 border-t border-white/5">
           <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
-            <LogOut className="w-4 h-4" />
+            <Store className="w-4 h-4" />
             Ver la Tienda
           </Link>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-all text-sm font-medium">
+            <LogOut className="w-4 h-4" />
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
@@ -60,8 +72,8 @@ export default function AdminLayout() {
         {/* Topbar */}
         <header className="h-16 border-b border-white/5 bg-black/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-30">
           <div className="flex items-center gap-3 md:hidden">
-            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-xs">N</div>
-            <span className="font-black text-white text-sm">Nova3D Admin</span>
+            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-xs">M</div>
+            <span className="font-black text-white text-sm">MINIMAL. Admin</span>
           </div>
           <div className="hidden md:flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -72,6 +84,9 @@ export default function AdminLayout() {
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500/20 to-indigo-700/20 border border-indigo-500/30 rounded-full flex items-center justify-center text-xs font-black text-indigo-400">
               A
             </div>
+            <button onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión" className="md:hidden p-2.5 -mr-2.5 text-zinc-500 hover:text-red-400 transition-colors">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 

@@ -1,11 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock, Loader2, LogIn, Mail } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Lock, Loader2, LogIn, Mail, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 
 // El botón de Google se muestra recién cuando el proveedor está configurado en Supabase (VITE_GOOGLE_LOGIN=true en Vercel)
 const GOOGLE_LOGIN_ENABLED = import.meta.env.VITE_GOOGLE_LOGIN === 'true';
+
+const MIN_PASSWORD_LENGTH = 8;
+
+// Supabase devuelve los errores en inglés
+const translateAuthError = (error) => {
+  const msg = (error?.message || '').toLowerCase();
+  if (msg.includes('invalid login credentials')) return 'Email o contraseña incorrectos.';
+  if (msg.includes('email not confirmed')) return 'Todavía no confirmaste tu email. Revisá tu casilla y tocá el enlace que te enviamos.';
+  if (msg.includes('already registered')) return 'Ya existe una cuenta con ese email. Iniciá sesión o restablecé tu clave.';
+  if (msg.includes('password should be') || msg.includes('weak')) return `La contraseña es muy débil. Usá al menos ${MIN_PASSWORD_LENGTH} caracteres.`;
+  if (msg.includes('rate limit') || msg.includes('security purposes')) return 'Demasiados intentos. Esperá un minuto y probá de nuevo.';
+  if (msg.includes('failed to fetch') || msg.includes('network')) return 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
+  return 'No pudimos completar la operación. Intentá de nuevo.';
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,12 +30,21 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   
-  const navigate = useNavigate();
-  const { user } = useStore();
+  const [showPassword, setShowPassword] = useState(false);
 
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, toggleCart } = useStore();
+
+  // Al iniciar sesión se vuelve a donde estaba el cliente: el carrito si venía de comprar, si no el perfil
   useEffect(() => {
     if (user) {
-      navigate('/perfil');
+      if (searchParams.get('redirect') === 'carrito') {
+        navigate('/');
+        toggleCart();
+      } else {
+        navigate('/perfil');
+      }
     }
   }, [user, navigate]);
 
@@ -40,16 +63,21 @@ export default function LoginPage() {
         setSuccessMsg("Te enviamos un correo con las instrucciones para restablecer tu contraseña.");
         setIsResetting(false);
       } else if (isRegistering) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setSuccessMsg("¡Cuenta creada! Por favor revisá tu mail para confirmar.");
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          // Supabase no devuelve error si el email ya existe; lo indica con identities vacío
+          setErrorMsg('Ya existe una cuenta con ese email. Iniciá sesión o restablecé tu clave.');
+        } else if (!data.session) {
+          setSuccessMsg("¡Cuenta creada! Revisá tu mail y tocá el enlace para confirmarla.");
+        }
         setIsRegistering(false);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (error) {
-      setErrorMsg(error.message);
+      setErrorMsg(translateAuthError(error));
     } finally {
       setIsLoading(false);
     }
@@ -128,6 +156,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ejemplo@correo.com"
+                autoComplete="email"
                 className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition"
                 required
               />
@@ -143,14 +172,29 @@ export default function LoginPage() {
                     </button>
                   )}
                 </div>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete={isRegistering ? 'new-password' : 'current-password'}
+                    minLength={isRegistering ? MIN_PASSWORD_LENGTH : undefined}
+                    className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-zinc-900 dark:text-white text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-3 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {isRegistering && (
+                  <p className="text-xs text-zinc-400 mt-2">Mínimo {MIN_PASSWORD_LENGTH} caracteres.</p>
+                )}
               </div>
             )}
 

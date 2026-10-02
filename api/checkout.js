@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       expires: true,
       expiration_date_to: expirationDate,
       notification_url: `${baseUrl}/api/webhook`,
-      statement_descriptor: 'NOVA 3D',
+      statement_descriptor: 'MINIMAL',
     };
 
     const response = await preference.create({ body });

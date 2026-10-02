@@ -162,7 +162,24 @@ export default function CartDrawer() {
                     <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Teléfono" disabled={checkoutStep === 'loading'} />
                   </div>
                   
-                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Correo Electrónico (para el recibo)" disabled={checkoutStep === 'loading'} readOnly={!!user} title={user ? 'Es el email de tu cuenta' : undefined} />
+                  {user ? (
+                    // Con cuenta: el pedido queda asociado a su email y aparece en "Mis pedidos"
+                    <div className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Comprando con tu cuenta</div>
+                      <div className="font-bold text-zinc-900 dark:text-white break-all">{user.email}</div>
+                    </div>
+                  ) : (
+                    <>
+                      <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Correo Electrónico" disabled={checkoutStep === 'loading'} />
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Podés comprar sin cuenta.{' '}
+                        <button type="button" onClick={() => { toggleCart(); navigate('/login?redirect=carrito'); }} className="font-bold text-black dark:text-white underline underline-offset-2">
+                          Iniciá sesión
+                        </button>{' '}
+                        para guardar tus datos y ver tus pedidos.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 

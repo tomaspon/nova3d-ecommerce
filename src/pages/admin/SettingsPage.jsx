@@ -17,8 +17,8 @@ export default function SettingsPage() {
   const [campaignImageUrl, setCampaignImageUrl] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).src);
   const [campaignImageY, setCampaignImageY] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).y);
   const [allowBackorders, setAllowBackorders] = useState(storeSettings?.allow_backorders || false);
-  const [storeName, setStoreName] = useState(storeSettings?.storeName || 'Nova3D');
-  const [storeEmail, setStoreEmail] = useState(storeSettings?.storeEmail || 'contacto@nova3d.com');
+  const [storeName, setStoreName] = useState(storeSettings?.storeName || 'MINIMAL.');
+  const [storeEmail, setStoreEmail] = useState(storeSettings?.storeEmail || '');
   const [shippingCost, setShippingCost] = useState(storeSettings?.shippingCost || 5000);
 
   const fileInputRef = useRef(null);

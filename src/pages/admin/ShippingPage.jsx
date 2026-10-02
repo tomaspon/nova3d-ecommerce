@@ -73,7 +73,7 @@ export default function ShippingPage() {
         </head>
         <body onload="window.print();">
           <div class="header">
-            <div class="logo">NOVA3D</div>
+            <div class="logo">MINIMAL.</div>
             <div class="title">Comprobante de Orden</div>
           </div>
           
@@ -120,7 +120,7 @@ export default function ShippingPage() {
           </div>
 
           <div class="footer">
-            Documento Digital de Operación - Nova3D
+            Documento Digital de Operación - MINIMAL.
           </div>
         </body>
       </html>
