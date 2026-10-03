@@ -25,3 +25,7 @@ dist-ssr
 
 .vercel
 .env*
+
+# Archivos de trabajo locales
+scratch/
+lighthouse.json

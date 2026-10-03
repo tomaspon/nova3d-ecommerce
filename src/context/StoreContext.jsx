@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
+import { mapProduct } from '../productMapping';
+import { itemsTotal } from '../pricing';
+import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 
 const StoreContext = createContext();
-
-const RESERVATION_MINUTES = 10;
-const TRANSFER_RESERVATION_HOURS = 48;
 
 export function StoreProvider({ children }) {
   const hasLoadedProductsRef = useRef(false);
@@ -22,8 +23,7 @@ export function StoreProvider({ children }) {
   const [storeSettings, setStoreSettings] = useState({
     campaign_active: false,
     campaign_name: 'Ofertas Especiales',
-    campaign_image_url: '',
-    allow_backorders: localStorage.getItem('allow_backorders') === 'true' // Guardado localmente
+    campaign_image_url: ''
   });
 
   // ESTADO AUTH Y PERFIL
@@ -58,8 +58,7 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('store_categories', JSON.stringify(categories));
     localStorage.setItem('store_cart', JSON.stringify(cart));
-    localStorage.setItem('allow_backorders', storeSettings.allow_backorders);
-  }, [categories, cart, storeSettings.allow_backorders]);
+  }, [categories, cart]);
 
   // INICIO: CARGAR DATOS
   useEffect(() => {
@@ -72,8 +71,10 @@ export function StoreProvider({ children }) {
     });
 
     fetchProducts();
-    const interval = setInterval(() => { fetchProducts(); }, 60000);
-    // attached interval to context
+    // Refresco de stock cada minuto, solo mientras la pestaña está a la vista
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchProducts();
+    }, 60000);
     fetchStoreSettings();
 
     return () => {
@@ -136,87 +137,21 @@ export function StoreProvider({ children }) {
   };
 
   
-  // Una reserva sin pagar se libera a los 10 minutos (lo que dura el link de MercadoPago).
-  // Las transferencias se confirman a mano, así que tienen 48 horas.
-  const releaseExpiredReservations = async () => {
-    try {
-      const tenMinsAgo = new Date(Date.now() - RESERVATION_MINUTES * 60000).toISOString();
-      const transferLimit = new Date(Date.now() - TRANSFER_RESERVATION_HOURS * 3600000).toISOString();
-
-      const { data: expiredOrders } = await supabase
-        .from('orders')
-        .update({ status: 'cancelado (tiempo agotado)' })
-        .in('status', ['reservado', 'pendiente'])
-        .neq('payment_method', 'Transferencia')
-        .lt('created_at', tenMinsAgo)
-        .select();
-
-      const { data: expiredTransfers } = await supabase
-        .from('orders')
-        .update({ status: 'cancelado (tiempo agotado)' })
-        .in('status', ['reservado', 'pendiente'])
-        .eq('payment_method', 'Transferencia')
-        .lt('created_at', transferLimit)
-        .select();
-
-      const released = (expiredOrders?.length || 0) + (expiredTransfers?.length || 0);
-      if (released > 0) {
-        console.log(`Se liberaron reservas de ${released} ordenes expiradas.`);
-      }
-    } catch (err) {
-      console.error('Error liberando reservas:', err);
-    }
-  };
-
   const fetchProducts = async () => {
     // El indicador de carga solo en la primera carga: las recargas automáticas no deben tapar el catálogo
     if (!hasLoadedProductsRef.current) setIsLoading(true);
-    await releaseExpiredReservations();
     try {
+      // Liberar vencidas no hace falta esperarlo: las reservas ya se cuentan por plazo
+      releaseExpiredReservations().catch(err => console.error('Error liberando reservas:', err));
 
-      const { data, error } = await supabase.from('products').select('*');
-      if (error) throw error;
+      const [productsRes, reservedMap] = await Promise.all([
+        supabase.from('products').select('*'),
+        fetchReservedMap()
+      ]);
+      if (productsRes.error) throw productsRes.error;
 
-      // Calculamos reservas
-        const tenMinsAgo = new Date(Date.now() - RESERVATION_MINUTES * 60000).toISOString();
-        const transferLimit = new Date(Date.now() - TRANSFER_RESERVATION_HOURS * 3600000).toISOString();
-        const { data: openOrders } = await supabase.from('orders').select('items, payment_method, created_at').in('status', ['reservado', 'pendiente']).gt('created_at', transferLimit);
-        const pendingOrders = (openOrders || []).filter(o => o.payment_method === 'Transferencia' || o.created_at > tenMinsAgo);
-        const reservedMap = {};
-        if (pendingOrders) {
-          pendingOrders.forEach(o => {
-            if(o.items) {
-              o.items.forEach(item => {
-                reservedMap[item.id] = (reservedMap[item.id] || 0) + item.quantity;
-              });
-            }
-          });
-        }
+      const mappedProducts = productsRes.data.map(row => mapProduct(row, reservedMap));
 
-        const mappedProducts = data.map(p => {
-          let parsedImages = [];
-          if (p.image_url) {
-            try {
-              if (p.image_url.startsWith('[')) {
-                parsedImages = JSON.parse(p.image_url);
-              } else {
-                parsedImages = [p.image_url];
-              }
-            } catch (e) {
-              parsedImages = [p.image_url];
-            }
-          }
-          const reserved = reservedMap[p.id] || 0;
-          return {
-            ...p,
-            imageUrl: parsedImages[0] || null,
-            images: parsedImages,
-            isActive: p.is_active,
-            reserved_stock: reserved,
-            available_stock: p.stock - reserved
-          };
-        });
-      
       // Sumar las categorías de los productos sin pisar las creadas a mano que todavía no tienen productos
       const productCats = mappedProducts.map(p => p.category).filter(Boolean);
       if (productCats.length > 0) {
@@ -265,24 +200,15 @@ export function StoreProvider({ children }) {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       
+      // Nunca más unidades que las disponibles (stock físico menos lo reservado por otros)
       if (existing) {
-        let newQty = existing.quantity + quantityToAdd;
-        if (!storeSettings.allow_backorders && newQty > product.available_stock) {
-          newQty = product.available_stock;
-        }
+        const newQty = Math.min(existing.quantity + quantityToAdd, product.available_stock);
         return prev.map(item => item.id === product.id ? { ...item, quantity: newQty } : item);
       }
-      
-      let initialQty = quantityToAdd;
-      if (!storeSettings.allow_backorders && initialQty > product.available_stock) {
-        initialQty = product.available_stock;
-      }
-      
-      if (!storeSettings.allow_backorders && product.available_stock < 1) {
-        return prev;
-      }
-      
-      return [...prev, { ...product, quantity: initialQty }];
+
+      if (product.available_stock < 1) return prev;
+
+      return [...prev, { ...product, quantity: Math.min(quantityToAdd, product.available_stock) }];
     });
     setIsCartOpen(true);
   };
@@ -293,10 +219,8 @@ export function StoreProvider({ children }) {
     if (quantity < 1) return removeFromCart(productId);
     
     const productInStore = products.find(p => p.id === productId);
-    let newQty = quantity;
-    if (!storeSettings.allow_backorders && productInStore && newQty > productInStore.available_stock) {
-       newQty = productInStore.available_stock;
-    }
+    const newQty = productInStore ? Math.min(quantity, productInStore.available_stock) : quantity;
+    if (newQty < 1) return removeFromCart(productId);
     setCart(prev => prev.map(item => item.id === productId ? { ...item, quantity: newQty } : item));
   };
 
@@ -340,41 +264,41 @@ export function StoreProvider({ children }) {
       const { data, error } = await supabase.from('products').insert([payload]).select();
       if (error) throw error;
       
-      if (data && data[0]) {
+      if (data && data[0] && productData.stock > 0) {
         await logInventoryChange(data[0].id, productData.stock, productData.stock, 'Ingreso', 'Carga inicial del producto');
       }
       await fetchProducts();
+      return { success: true };
     } catch (error) {
       console.error('Error adding product:', error);
+      return { success: false, error: error.message };
     }
   };
 
-  const updateProduct = async (id, updatedData, changeReason = 'Ajuste Manual', changeNote = '') => {
+  // Edita los datos del producto. El stock no se toca acá: cambia solo con ventas o ajustes
+  // de inventario, así una edición no pisa una venta que entró mientras el formulario estaba abierto.
+  const updateProduct = async (id, updatedData) => {
     try {
-      // Calcular diferencia de stock para el log
-      const oldProduct = products.find(p => p.id === id);
-      const stockDiff = updatedData.stock - (oldProduct?.stock || 0);
-
       const payload = {
         name: updatedData.name,
         description: updatedData.description,
         price: updatedData.price,
         discount: updatedData.discount,
         category: updatedData.category,
-        stock: updatedData.stock,
-        image_url: updatedData.images && updatedData.images.length > 0 ? JSON.stringify(updatedData.images) : (updatedData.imageUrl || null),
-        features: updatedData.features || [],
-        barcode: updatedData.barcode || null
+        image_url: updatedData.images && updatedData.images.length > 0 ? JSON.stringify(updatedData.images) : (updatedData.imageUrl || null)
       };
+      // Solo se tocan si el formulario los envía; si no, quedan como están en la base
+      if (updatedData.features !== undefined) payload.features = updatedData.features;
+      if (updatedData.barcode !== undefined) payload.barcode = updatedData.barcode || null;
+
       const { error } = await supabase.from('products').update(payload).eq('id', id);
       if (error) throw error;
-      
-      if (stockDiff !== 0) {
-        await logInventoryChange(id, stockDiff, updatedData.stock, changeReason, changeNote);
-      }
+
       await fetchProducts();
+      return { success: true };
     } catch (error) {
       console.error('Error updating product:', error);
+      return { success: false, error: error.message };
     }
   };
 
@@ -403,7 +327,8 @@ export function StoreProvider({ children }) {
     try {
       const confirmStatuses = ['pagado', 'preparando', 'enviado', 'entregado'];
       
-      if ((order.status === 'reservado' || order.status === 'pendiente') && confirmStatuses.includes(newStatus)) {
+      // Al confirmar el pago, lo reservado pasa a ser una venta: se descuenta del stock físico
+      if (isAwaitingPayment(order.status) && confirmStatuses.includes(newStatus)) {
         for (const item of order.items) {
           const { data: prod } = await supabase.from('products').select('stock').eq('id', item.id).single();
           if (prod) {
@@ -445,35 +370,28 @@ export function StoreProvider({ children }) {
   const checkoutOrder = async (checkoutData) => {
     try {
       const productIds = cart.map(item => item.id);
-      const { data: currentStockData, error: stockError } = await supabase
-        .from('products').select('id, name, stock').in('id', productIds);
-        
-      if (stockError) throw stockError;
+      await releaseExpiredReservations();
+      const [stockRes, reservedMap] = await Promise.all([
+        supabase.from('products').select('id, name, stock').in('id', productIds),
+        fetchReservedMap()
+      ]);
+      if (stockRes.error) throw stockRes.error;
 
-      // 1. Validar Stock (A menos que Backorders esté activo)
-      if (!storeSettings.allow_backorders) {
-        for (const cartItem of cart) {
-          const dbProduct = currentStockData.find(p => p.id === cartItem.id);
-          if (!dbProduct || dbProduct.stock < cartItem.quantity) {
-            throw new Error(`Ups. Alguien acaba de comprar "${cartItem.name}". No hay suficiente stock para cubrir tu pedido.`);
-          }
+      // 1. Validar contra lo disponible: stock físico menos lo que otros clientes tienen reservado
+      for (const cartItem of cart) {
+        const dbProduct = stockRes.data.find(p => p.id === cartItem.id);
+        const available = dbProduct ? dbProduct.stock - (reservedMap[dbProduct.id] || 0) : 0;
+        if (available < cartItem.quantity) {
+          throw new Error(
+            available > 0
+              ? `Solo quedan ${available} unidades disponibles de "${cartItem.name}". Ajustá la cantidad para continuar.`
+              : `"${cartItem.name}" ya no está disponible: otro cliente lo está comprando en este momento.`
+          );
         }
       }
 
       // 2. Procesar Pedido
-      const total = cart.reduce((sum, item) => {
-        const finalPrice = item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price;
-        return sum + (finalPrice * item.quantity);
-      }, 0);
-
-      // Si algún producto quedó en negativo, marcamos como reserva interna
-      let isBackorder = false;
-      if (storeSettings.allow_backorders) {
-        isBackorder = cart.some(item => {
-          const dbp = currentStockData.find(p => p.id === item.id);
-          return (dbp.stock - item.quantity) < 0;
-        });
-      }
+      const total = itemsTotal(cart);
 
       const payload = {
         customer_name: checkoutData.name,
@@ -484,7 +402,7 @@ export function StoreProvider({ children }) {
         payment_method: checkoutData.paymentMethod,
         total: total,
         items: cart,
-        status: isBackorder ? 'pendiente (reserva)' : 'reservado'
+        status: ORDER_STATUS.RESERVED
       };
 
       // 3. Crear Orden Primero para obtener su ID

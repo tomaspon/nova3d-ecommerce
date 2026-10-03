@@ -1,6 +1,8 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { escapeHtml } from '../../src/escapeHtml.js';
+import { lineTotal, formatMoney } from '../../src/pricing.js';
 
 // Los clientes se crean dentro de la función: construirlos al cargar el módulo
 // tira la función entera si falta una variable de entorno (Resend y Supabase lanzan con claves vacías).
@@ -33,11 +35,12 @@ async function sendReceiptEmail(order, orderId) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const shortId = orderId.split('-')[0].toUpperCase();
 
+    // Los nombres vienen de la base, pero igual se escapan antes de entrar al HTML del email
     const itemsHtml = order.items.map(item => `
       <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${Number(item.price * item.quantity).toLocaleString('es-AR')}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${escapeHtml(item.name)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${escapeHtml(item.quantity)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${escapeHtml(formatMoney(lineTotal(item)))}</td>
       </tr>
     `).join('');
 

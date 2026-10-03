@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
+import { Link } from 'react-router-dom';
+import { isPaid, isCanceled, holdsReservation } from '../../orderStatus';
 import { ChevronRight, User, TrendingUp, Package, ShoppingBag, DollarSign, X, Clock, CheckCircle2, CreditCard, AlertTriangle, ChevronDown } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -141,9 +143,9 @@ export default function DashboardPage() {
   // Cálculos Reales
   // Una venta cuenta como ingreso desde que se paga y sigue contando mientras avanza el envío.
   // Las reservas sin pagar y las canceladas no suman.
-  const PAID_STATUSES = ['pagado', 'preparando', 'enviado', 'despachado', 'entregado'];
-  const validOrders = filteredOrders.filter(o => PAID_STATUSES.some(s => (o.status || '').toLowerCase().startsWith(s)));
-  const reservedOrdersCount = orders.filter(o => o.status === 'pagado (reserva)').length; // Always total, or filtered? Let's leave total for current status. Wait, the screenshot says "Pedidos (S/Stock) 0". If they want stats for a timeframe, maybe it's "orders placed that needed stock". We'll use filteredOrders for this.
+  const validOrders = filteredOrders.filter(o => isPaid(o.status));
+  // Órdenes que esperan pago y todavía retienen stock (estado actual, sin filtro de fecha)
+  const reservedOrdersCount = orders.filter(o => holdsReservation(o)).length;
   const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
   const totalSalesCount = validOrders.length;
   const activeProductsCount = products.filter(p => p.is_active || p.isActive).length; // Keep global
@@ -236,7 +238,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Card: Reservas / Backorders */}
+            {/* Card: órdenes sin pagar que todavía retienen stock */}
             <div className="bg-black border border-white/10 rounded-2xl p-4 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition group-hover:bg-blue-500/20"></div>
               <div className="flex justify-between items-start mb-4 relative z-10">
@@ -245,7 +247,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="relative z-10">
-                <h3 className="text-zinc-400 text-sm font-medium mb-1">Pedidos (S/Stock)</h3>
+                <h3 className="text-zinc-400 text-sm font-medium mb-1">Reservas Activas</h3>
                 <div className="text-xl sm:text-2xl font-black text-white truncate">{reservedOrdersCount}</div>
               </div>
             </div>
@@ -291,7 +293,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-4">
                     {firstItem?.imageUrl ? (
                       <div className="relative">
-                        <img src={firstItem.imageUrl} alt={firstItem.name} className="w-12 h-12 rounded-xl object-cover border border-white/10" />
+                        <img loading="lazy" decoding="async" src={firstItem.imageUrl} alt={firstItem.name} className="w-12 h-12 rounded-xl object-cover border border-white/10" />
                         {moreItemsCount > 0 && (
                           <div className="absolute -top-2 -right-2 bg-zinc-800 text-xs font-bold text-white w-5 h-5 rounded-full flex items-center justify-center border border-zinc-950">+{moreItemsCount}</div>
                         )}
@@ -437,7 +439,7 @@ export default function DashboardPage() {
                         title="Ver detalle del producto en nueva pestaña"
                       >
                         <div className="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center p-1 overflow-hidden shrink-0">
-                          {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain" /> : <Package className="w-5 h-5 text-zinc-600" />}
+                          {item.imageUrl ? <img loading="lazy" decoding="async" src={item.imageUrl} alt={item.name} className="w-full h-full object-contain" /> : <Package className="w-5 h-5 text-zinc-600" />}
                         </div>
                         <div className="flex-1">
                           <div className="text-sm font-bold text-white group-hover:text-emerald-400 leading-tight transition-colors">{item.name}</div>
@@ -465,13 +467,14 @@ export default function DashboardPage() {
                 <span className="text-sm text-zinc-400 font-bold uppercase tracking-widest block mb-1">Total Cobrado</span>
                 <span className="text-2xl font-black text-emerald-400">${Number(selectedOrder.total).toLocaleString('es-AR')}</span>
               </div>
-              {!selectedOrder.status?.includes('cancelado') && (
-                <button 
-                  onClick={() => handleCancelOrder(selectedOrder)}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-6 py-3 rounded-xl font-bold transition w-full sm:w-auto"
+              {/* La cancelación y la devolución se gestionan en Pedidos, donde está el flujo completo */}
+              {!isCanceled(selectedOrder.status) && (
+                <Link
+                  to="/admin/orders"
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-6 py-3 rounded-xl font-bold transition w-full sm:w-auto text-center"
                 >
                   Gestionar Devolución / Cancelar
-                </button>
+                </Link>
               )}
             </div>
 

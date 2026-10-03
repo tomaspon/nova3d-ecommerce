@@ -134,8 +134,7 @@ export default function OrdersPage() {
       
       const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
       if (data) setOrders(data);
-      
-      setSelectedOrder(null);
+
       alert("Orden cancelada exitosamente.");
     } catch (error) {
       console.error(error);
@@ -352,7 +351,7 @@ export default function OrdersPage() {
                               <a href={`/producto/${item.id}`} target="_blank" rel="noopener noreferrer" key={item.id} className="group flex items-center gap-4 border-b border-white/5 pb-3 last:border-0 last:pb-0 hover:bg-white/[0.02] transition p-2 rounded-lg -mx-2 cursor-pointer">
                                 <div className="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center overflow-hidden">
                                   {item.imageUrl ? (
-                                    <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain" />
+                                    <img loading="lazy" decoding="async" src={item.imageUrl} alt={item.name} className="w-full h-full object-contain" />
                                   ) : (
                                     <Package className="w-5 h-5 text-zinc-600" />
                                   )}

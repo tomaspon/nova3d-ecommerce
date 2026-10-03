@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Clases animate-in / fade-in / slide-in-from-* / zoom-in que usan menús, modales y avisos */
+@import "tw-animate-css";
 @custom-variant dark (&:is(.dark, .dark *));
 
 :root {
@@ -38,6 +40,18 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
+}
+
+/* Deja libre la franja inferior de los iPhone (barra de gestos) en la navegación fija del panel */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Quien pide menos movimiento en su sistema no ve animaciones */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }

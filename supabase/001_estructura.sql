@@ -10,8 +10,7 @@
 alter table public.store_settings
   add column if not exists store_name text,
   add column if not exists store_email text,
-  add column if not exists shipping_cost numeric not null default 0,
-  add column if not exists allow_backorders boolean not null default false;
+  add column if not exists shipping_cost numeric not null default 0;
 
 alter table public.orders
   add column if not exists user_id uuid references auth.users (id) on delete set null,
@@ -109,7 +108,6 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_allow_backorders boolean := false;
   v_shipping numeric := 0;
   v_item jsonb;
   v_product public.products%rowtype;
@@ -118,7 +116,6 @@ declare
   v_unit numeric;
   v_subtotal numeric := 0;
   v_items jsonb := '[]'::jsonb;
-  v_backorder boolean := false;
   v_email text;
   v_order_id uuid;
   v_total numeric;
@@ -139,11 +136,9 @@ begin
     raise exception 'Falta el email.';
   end if;
 
-  select coalesce(s.allow_backorders, false), coalesce(s.shipping_cost, 0)
-  into v_allow_backorders, v_shipping
+  select coalesce(s.shipping_cost, 0) into v_shipping
   from public.store_settings s
   where s.id = 1;
-  v_allow_backorders := coalesce(v_allow_backorders, false);
   v_shipping := coalesce(v_shipping, 0);
 
   perform public.release_expired_reservations();
@@ -176,12 +171,9 @@ begin
       )
       and (i ->> 'id')::uuid = v_product.id;
 
+    -- Disponible = stock físico menos lo que otros clientes tienen reservado
     if v_product.stock - v_reserved < v_qty then
-      if v_allow_backorders then
-        v_backorder := true;
-      else
-        raise exception 'No hay suficiente stock de "%".', v_product.name;
-      end if;
+      raise exception 'No hay suficiente stock de "%".', v_product.name;
     end if;
 
     v_unit := round(
@@ -215,7 +207,7 @@ begin
   ) values (
     trim(p_name), v_email, p_phone, trim(p_document),
     p_address, p_payment_method, v_items, v_total, v_shipping,
-    case when v_backorder then 'pendiente (reserva)' else 'reservado' end,
+    'reservado',
     auth.uid()
   )
   returning id into v_order_id;
@@ -238,7 +230,6 @@ declare
   v_order public.orders%rowtype;
   v_item jsonb;
   v_stock numeric;
-  v_new_status text;
 begin
   if not public.is_trusted_caller() then
     raise exception 'No autorizado.';
@@ -280,9 +271,44 @@ begin
     end if;
   end loop;
 
-  v_new_status := case when v_order.status = 'pendiente (reserva)' then 'pagado (reserva)' else 'pagado' end;
-  update public.orders o set status = v_new_status where o.id = p_order_id;
-  return v_new_status;
+  update public.orders o set status = 'pagado' where o.id = p_order_id;
+  return 'pagado';
+end;
+$$;
+
+-- ── Ajuste manual de inventario ─────────────────────────────────────────────
+-- Solo administradores. Suma o resta sobre el stock que hay en ese instante
+-- (no sobre el que mostraba la pantalla) y deja el movimiento registrado.
+
+create or replace function public.adjust_stock(p_product_id uuid, p_delta integer, p_reason text, p_note text default '')
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_before numeric;
+  v_after numeric;
+begin
+  if not public.is_admin() then
+    raise exception 'No autorizado.';
+  end if;
+  if p_delta is null or p_delta = 0 then
+    raise exception 'La cantidad del ajuste no puede ser cero.';
+  end if;
+
+  select p.stock into v_before from public.products p where p.id = p_product_id for update;
+  if not found then
+    raise exception 'Producto no encontrado.';
+  end if;
+
+  v_after := greatest(v_before + p_delta, 0);
+  update public.products p set stock = v_after where p.id = p_product_id;
+
+  insert into public.inventory_logs (product_id, change_amount, stock_after, reason, note)
+  values (p_product_id, v_after - v_before, v_after, coalesce(nullif(trim(p_reason), ''), 'Ajuste Manual'), coalesce(p_note, ''));
+
+  return v_after;
 end;
 $$;
 
@@ -354,8 +380,10 @@ grant execute on function public.get_reserved_stock() to anon, authenticated, se
 grant execute on function public.create_order(text, text, text, text, jsonb, text, jsonb) to anon, authenticated, service_role;
 grant execute on function public.get_order_public(uuid) to anon, authenticated, service_role;
 grant execute on function public.track_orders_by_document(text) to anon, authenticated, service_role;
--- mark_order_paid además verifica adentro que sea un administrador o el servidor
+-- mark_order_paid y adjust_stock además verifican adentro quién las llama
 grant execute on function public.mark_order_paid(uuid, numeric) to authenticated, service_role;
+revoke all on function public.adjust_stock(uuid, integer, text, text) from public;
+grant execute on function public.adjust_stock(uuid, integer, text, text) to authenticated;
 
 -- Aviso a la API para que tome las columnas y funciones nuevas
 notify pgrst, 'reload schema';

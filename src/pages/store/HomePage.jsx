@@ -263,11 +263,12 @@ export default function HomePage() {
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (product.stock > 0 || storeSettings.allow_backorders) {
+                        if (product.available_stock > 0) {
                           addToCart(product);
                         }
                       }}
-                      disabled={product.stock <= 0 && !storeSettings.allow_backorders}
+                      disabled={product.available_stock <= 0}
+                      aria-label={`Agregar ${product.name} al carrito`}
                       className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
                     >
                       <Plus className="w-6 h-6" />

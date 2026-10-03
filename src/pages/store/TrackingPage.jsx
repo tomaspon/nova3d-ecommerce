@@ -2,12 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck, MapPin, MessageCircle, Mail } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../storeContact';
-
-// La orden todavía no tiene el pago acreditado
-const isAwaitingPayment = (status) => {
-  const s = (status || '').toLowerCase();
-  return s.startsWith('reservado') || s.startsWith('pendiente');
-};
+import { isAwaitingPayment, isPaid as isOrderPaid, isCanceled as isOrderCanceled, trackingStep } from '../../orderStatus';
+import { lineTotal, formatMoney } from '../../pricing';
 
 export default function TrackingPage() {
   const [document, setDocument] = useState('');
@@ -117,18 +113,9 @@ export default function TrackingPage() {
   };
 
   // Recién comprado (pago pendiente o ya pagado) queda en "Ordenado" hasta que el vendedor lo prepare o despache
-  const getStatusStep = (status) => {
-    if (!status) return 1;
-    const s = status.toLowerCase();
-    if (s.includes('entregado')) return 4;
-    if (s.includes('enviado') || s.includes('despachado')) return 3;
-    if (s.includes('preparando')) return 2;
-    return 1;
-  };
-
-  const step = selectedOrder ? getStatusStep(selectedOrder.status) : 0;
-  const isCanceled = selectedOrder?.status.toLowerCase().includes('cancelado');
-  const isPaid = selectedOrder ? !isCanceled && !isAwaitingPayment(selectedOrder.status) : false;
+  const step = selectedOrder ? trackingStep(selectedOrder.status) : 0;
+  const isCanceled = isOrderCanceled(selectedOrder?.status);
+  const isPaid = isOrderPaid(selectedOrder?.status);
   const isConfirmingPayment = !isPaid && !isCanceled && paymentReturn === 'success';
   const shippingLabel = ['', 'Pendiente de despacho', 'En preparación', 'En camino', 'Entregado'][step];
   const nextStepMessage = [
@@ -320,15 +307,12 @@ export default function TrackingPage() {
             <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
               <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Package className="w-3.5 h-3.5" /> Tu compra</h4>
               <ul className="space-y-1.5">
-                {(selectedOrder.items || []).map(item => {
-                  const unitPrice = item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price;
-                  return (
-                    <li key={item.id} className="flex justify-between gap-3">
-                      <span className="text-black dark:text-white min-w-0">{item.quantity} × {item.name}</span>
-                      <span className="text-zinc-500 dark:text-zinc-400 shrink-0">${Number(unitPrice * item.quantity).toLocaleString('es-AR')}</span>
-                    </li>
-                  );
-                })}
+                {(selectedOrder.items || []).map(item => (
+                  <li key={item.id} className="flex justify-between gap-3">
+                    <span className="text-black dark:text-white min-w-0">{item.quantity} × {item.name}</span>
+                    <span className="text-zinc-500 dark:text-zinc-400 shrink-0">{formatMoney(lineTotal(item))}</span>
+                  </li>
+                ))}
               </ul>
               <div className="flex justify-between gap-3 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10">
                 <span className="text-zinc-500 dark:text-zinc-400">Total{selectedOrder.payment_method ? ` · ${selectedOrder.payment_method}` : ''}</span>

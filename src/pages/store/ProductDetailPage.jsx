@@ -26,7 +26,7 @@ const Accordion = ({ title, children, defaultOpen = false }) => {
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, addToCart, favorites, toggleFavorite, storeSettings } = useStore();
+  const { products, addToCart, favorites, toggleFavorite } = useStore();
   const [copied, setCopied] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -109,8 +109,9 @@ export default function ProductDetailPage() {
 
               {images.length > 0 ? (
                 <>
-                  <img 
-                    src={images[currentImageIndex]} 
+                  {/* Imagen principal: es lo primero que se ve, se carga con prioridad */}
+                  <img fetchPriority="high" decoding="async"
+                    src={images[currentImageIndex]}
                     alt={product.name} 
                     className="w-full h-full object-contain animate-in fade-in zoom-in-95 duration-700" 
                   />
@@ -148,7 +149,7 @@ export default function ProductDetailPage() {
                     onClick={() => setCurrentImageIndex(idx)}
                     className={`w-20 h-20 shrink-0 bg-[#f4f4f5] dark:bg-zinc-900 rounded-xl border-2 transition-all overflow-hidden ${idx === currentImageIndex ? 'border-black dark:border-white' : 'border-transparent opacity-50 hover:opacity-100'}`}
                   >
-                    <img src={img} className="w-full h-full object-contain" />
+                    <img loading="lazy" decoding="async" src={img} className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>
@@ -203,10 +204,7 @@ export default function ProductDetailPage() {
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="w-12 text-center font-bold text-zinc-900 dark:text-white text-lg">{quantity}</span>
-                  <button onClick={() => {
-                      const maxQty = (!storeSettings.allow_backorders) ? product.available_stock : 9999;
-                      setQuantity(Math.min(maxQty, quantity + 1));
-                    }} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                  <button onClick={() => setQuantity(Math.min(product.available_stock, quantity + 1))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
@@ -285,7 +283,7 @@ export default function ProductDetailPage() {
                 return (
                   <div key={p.id} className="group cursor-pointer" onClick={() => navigate(`/producto/${p.id}`)}>
                     <div className="relative aspect-[4/5] bg-[#f4f4f5] dark:bg-zinc-900 rounded-2xl overflow-hidden mb-4">
-                      {p.imageUrl && <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />}
+                      {p.imageUrl && <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />}
                       {p.discount > 0 && <span className="absolute top-3 left-3 bg-black/60 dark:bg-white/20 backdrop-blur-md border border-white/10 text-white text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-widest">{p.discount}%</span>}
                     </div>
                     <div>

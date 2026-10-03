@@ -16,7 +16,6 @@ export default function SettingsPage() {
   // La URL guardada incluye el encuadre vertical (#y=NN); acá se manejan por separado
   const [campaignImageUrl, setCampaignImageUrl] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).src);
   const [campaignImageY, setCampaignImageY] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).y);
-  const [allowBackorders, setAllowBackorders] = useState(storeSettings?.allow_backorders || false);
   const [storeName, setStoreName] = useState(storeSettings?.storeName || 'MINIMAL.');
   const [storeEmail, setStoreEmail] = useState(storeSettings?.storeEmail || '');
   const [shippingCost, setShippingCost] = useState(storeSettings?.shippingCost || 5000);
@@ -65,7 +64,6 @@ export default function SettingsPage() {
       campaign_active: campaignActive,
       campaign_name: campaignName,
       campaign_image_url: buildBannerUrl(campaignImageUrl, campaignImageY),
-      allow_backorders: allowBackorders,
       storeName,
       storeEmail,
       shippingCost
@@ -343,7 +341,7 @@ export default function SettingsPage() {
                               className="w-5 h-5 rounded border-white/10 bg-black text-indigo-500 focus:ring-indigo-500 focus:ring-offset-black"
                             />
                             <div className="w-10 h-10 bg-zinc-900 rounded overflow-hidden shrink-0">
-                              {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 m-3 text-zinc-700" />}
+                              {p.imageUrl ? <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 m-3 text-zinc-700" />}
                             </div>
                             <div className="flex-1">
                               <div className="text-sm font-bold text-white">{p.name}</div>
@@ -355,21 +353,6 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-2">
-                <h2 className="text-xl font-bold text-white mb-2">Backorders & Reservas</h2>
-                <p className="text-zinc-400 text-sm mb-6 border-b border-white/10 pb-4">Estrategia de ventas en negativo (SEO).</p>
-                
-                <label className="flex items-center justify-between cursor-pointer p-4 hover:bg-white/5 rounded-xl transition border border-transparent hover:border-white/5" onClick={() => setAllowBackorders(!allowBackorders)}>
-                  <div>
-                    <div className="text-white font-bold mb-1">Permitir Reservas (Sin Stock)</div>
-                    <div className="text-zinc-400 text-sm">Los clientes podrán comprar aunque el stock físico sea 0.</div>
-                  </div>
-                  <div className={`w-12 h-6 rounded-full relative transition-colors shrink-0 ${allowBackorders ? 'bg-indigo-500' : 'bg-zinc-800'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${allowBackorders ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
-                  </div>
-                </label>
               </div>
             </>
           )}

@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { Plus, Trash2, Power, PowerOff, Image as ImageIcon, ArchiveRestore, Upload, Loader2, Search, Download, AlertTriangle, Minus, X, Activity, ScanBarcode, ChevronDown } from 'lucide-react';
-import BarcodeScanner from '../../components/BarcodeScanner';
+import { fetchReservedMap } from '../../reservations';
+import { mapProduct } from '../../productMapping';
+
+// El lector de códigos pesa ~400 kB: se descarga recién al abrirlo
+const BarcodeScanner = lazy(() => import('../../components/BarcodeScanner'));
 
 export default function ProductsPage() {
   const { addProduct, updateProduct, categories } = useStore();
@@ -58,16 +62,21 @@ export default function ProductsPage() {
 
   const handleQuickAdjustment = async () => {
     if (!editingId) return;
-    const currentStock = formData.stock;
     const qty = parseInt(adjustForm.qty);
     if (!qty || qty <= 0) return;
 
-    const changeAmount = adjustForm.type === 'inc' ? qty : -qty;
-    const newStock = Math.max(0, currentStock + changeAmount);
-
     try {
-      await supabase.from('products').update({ stock: newStock }).eq('id', editingId);
-      
+      // Se parte del stock que hay ahora en la base, no del que tenía el formulario al abrirse:
+      // si entró una venta mientras tanto, el ajuste no la pisa.
+      const { data: current, error: readError } = await supabase.from('products').select('stock').eq('id', editingId).single();
+      if (readError) throw readError;
+
+      const newStock = Math.max(0, Number(current.stock) + (adjustForm.type === 'inc' ? qty : -qty));
+      const changeAmount = newStock - Number(current.stock);
+
+      const { error: updateError } = await supabase.from('products').update({ stock: newStock }).eq('id', editingId);
+      if (updateError) throw updateError;
+
       const { error } = await supabase.from('inventory_logs').insert([{
         product_id: editingId,
         change_amount: changeAmount,
@@ -93,48 +102,23 @@ export default function ProductsPage() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    
-    // Calculamos reservas para que aparezcan en el panel de admin
-    const fiveMinsAgo = new Date(Date.now() - 5 * 60000).toISOString();
-    const { data: pendingOrders } = await supabase.from('orders').select('items').eq('status', 'pendiente').gt('created_at', fiveMinsAgo);
-    
-    const reservedMap = {};
-    if (pendingOrders) {
-      pendingOrders.forEach(o => {
-        if(o.items) {
-          o.items.forEach(item => {
-            reservedMap[item.id] = (reservedMap[item.id] || 0) + item.quantity;
-          });
-        }
-      });
-    }
+    try {
+      // Mismas reglas de reserva que usa la tienda (reservations.js)
+      const [prodRes, reservedMap] = await Promise.all([
+        supabase.from('products').select('*').order('created_at', { ascending: false }),
+        fetchReservedMap()
+      ]);
+      if (prodRes.error) throw prodRes.error;
 
-    if (prodRes.data) {
-      const prodsWithReservations = prodRes.data.map(p => {
-          let parsedImages = [];
-          if (p.image_url) {
-            try {
-              if (p.image_url.startsWith('[')) {
-                parsedImages = JSON.parse(p.image_url);
-              } else {
-                parsedImages = [p.image_url];
-              }
-            } catch (e) {
-              parsedImages = [p.image_url];
-            }
-          }
-          return {
-            ...p,
-            imageUrl: parsedImages[0] || null,
-            image_url: parsedImages[0] || null,
-            images: parsedImages,
-            reserved_stock: reservedMap[p.id] || 0
-          };
-        });
-      setProducts(prodsWithReservations);
+      setProducts(prodRes.data.map(row => {
+        const product = mapProduct(row, reservedMap);
+        return { ...product, image_url: product.imageUrl };
+      }));
+    } catch (error) {
+      console.error('Error cargando inventario:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -167,7 +151,7 @@ export default function ProductsPage() {
       }));
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('Error subiendo imǭgenes.');
+      alert('Error subiendo imágenes.');
     } finally {
       setIsUploading(false);
     }
@@ -212,17 +196,19 @@ export default function ProductsPage() {
     
     
 
+    // El stock no viaja en la edición: se maneja con los ajustes de inventario
     const payload = {
       name: formData.name, description: formData.description, price: Number(formData.price),
-      discount: Number(formData.discount), stock: editingId ? formData.stock : 0, category: finalCategory,
-      imageUrl: formData.images?.[0] || null, images: formData.images
+      discount: Number(formData.discount), stock: 0, category: finalCategory,
+      imageUrl: formData.images?.[0] || null, images: formData.images,
+      features: formData.features, barcode: formData.barcode
     };
 
-    if (editingId) {
-      // El stock se maneja independientemente ahora, pero igual lo mandamos. No mandamos logs vacios.
-      await updateProduct(editingId, payload, '', '');
-    } else {
-      await addProduct(payload);
+    const result = editingId ? await updateProduct(editingId, payload) : await addProduct(payload);
+    if (!result.success) {
+      // El formulario queda abierto para no perder lo cargado
+      alert(`No se pudo guardar el producto: ${result.error}`);
+      return;
     }
 
     setIsModalOpen(false);
@@ -231,7 +217,11 @@ export default function ProductsPage() {
 
   const toggleStatus = async (currentStatus) => {
     if (!editingId) return;
-    await supabase.from('products').update({ is_active: !currentStatus }).eq('id', editingId);
+    const { error } = await supabase.from('products').update({ is_active: !currentStatus }).eq('id', editingId);
+    if (error) {
+      alert(`No se pudo cambiar el estado de la publicación: ${error.message}`);
+      return;
+    }
     fetchData();
     setIsModalOpen(false);
   };
@@ -240,7 +230,11 @@ export default function ProductsPage() {
     if (!editingId) return;
     const confirmStr = window.prompt("Para eliminar permanentemente este producto, escribe la palabra ELIMINAR en mayúsculas:");
     if (confirmStr === 'ELIMINAR') {
-      await supabase.from('products').delete().eq('id', editingId);
+      const { error } = await supabase.from('products').delete().eq('id', editingId);
+      if (error) {
+        alert(`No se pudo eliminar el producto: ${error.message}`);
+        return;
+      }
       setIsModalOpen(false);
       fetchData();
     }
@@ -478,7 +472,7 @@ export default function ProductsPage() {
                   </div>
 
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-700 ease-out mix-blend-lighten" />
+                    <img loading="lazy" decoding="async" src={product.image_url} alt={product.name} className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-700 ease-out mix-blend-lighten" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ImageIcon className="w-8 h-8 text-zinc-700" />
@@ -542,7 +536,7 @@ export default function ProductsPage() {
                       <div className={`grid ${formData.images?.length > 0 ? 'grid-cols-2 gap-2' : 'grid-cols-1'}`}>
                         {formData.images?.map((url, idx) => (
                           <div key={idx} className="relative aspect-square bg-black border border-white/10 rounded-xl overflow-hidden group">
-                            <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-contain p-1" />
+                            <img loading="lazy" decoding="async" src={url} alt={`Preview ${idx}`} className="w-full h-full object-contain p-1" />
                             <button 
                               type="button"
                               onClick={() => removeImage(idx)}
@@ -748,10 +742,12 @@ export default function ProductsPage() {
       )}
 
       {isScannerOpen && (
-        <BarcodeScanner 
-          onScan={handleBarcodeScan} 
-          onClose={() => setIsScannerOpen(false)} 
-        />
+        <Suspense fallback={null}>
+          <BarcodeScanner
+            onScan={(code) => { setFormData(prev => ({ ...prev, barcode: code })); setIsScannerOpen(false); }}
+            onClose={() => setIsScannerOpen(false)}
+          />
+        </Suspense>
       )}
     </div></>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { itemsTotal } from '../pricing';
 import { useStore } from '../context/StoreContext';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2, Loader2, MapPin, Phone, User, Mail, CreditCard, Landmark } from 'lucide-react';
 
@@ -30,10 +31,7 @@ export default function CartDrawer() {
   }, [user, isCartOpen]);
 
 
-  const total = cart.reduce((sum, item) => {
-    const finalPrice = item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price;
-    return sum + (finalPrice * item.quantity);
-  }, 0);
+  const total = itemsTotal(cart);
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
@@ -249,7 +247,7 @@ export default function CartDrawer() {
                 <div key={item.id} className="flex gap-4 group">
                   <div className="w-20 h-24 bg-[#f4f4f5] dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-2 group-hover:border-zinc-300 dark:group-hover:border-white/20 transition-colors">
                     {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-300" />
+                      <img loading="lazy" decoding="async" src={item.imageUrl} alt={item.name} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <ShoppingBag className="w-6 h-6 text-zinc-300 dark:text-zinc-600" />
                     )}

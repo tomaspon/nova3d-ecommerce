@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { Search, Truck, Clock, CheckCircle2, User, SearchX, Calendar, X, Printer } from 'lucide-react';
+import { printReceipt } from '../../printReceipt';
+import { lineTotal, formatMoney } from '../../pricing';
 
 export default function ShippingPage() {
   const { updateOrderStatus } = useStore();
@@ -35,98 +37,7 @@ export default function ShippingPage() {
       fetchOrders();
     }, [activeTab]);
 
-  const handlePrintReceipt = (order) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    const itemsHtml = (order?.items || []).map(item => `
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #eee;">${item.name}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${Number(item.price * item.quantity).toLocaleString('es-AR')}</td>
-      </tr>
-    `).join('');
-
-    const statusDate = new Date(order?.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Comprobante de Pago #${order?.id?.split('-')?.[0] || '...'}</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; }
-            .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #111; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: 900; font-style: italic; letter-spacing: -1px; }
-            .title { font-size: 14px; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 2px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
-            .info-col p { margin: 5px 0; font-size: 14px; }
-            .label { font-weight: bold; font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; display: block; margin-bottom: 4px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px; }
-            th { text-align: left; padding: 10px 0; border-bottom: 2px solid #111; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;}
-            .total-row { font-size: 20px; font-weight: 900; }
-            .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 12px; color: #888; }
-            @media print { 
-              @page { margin: 0; }
-              body { margin: 1.6cm; }
-            }
-          </style>
-        </head>
-        <body onload="window.print();">
-          <div class="header">
-            <div class="logo">MINIMAL.</div>
-            <div class="title">Comprobante de Orden</div>
-          </div>
-          
-          <div class="info-grid">
-            <div class="info-col">
-              <span class="label">Datos del Cliente</span>
-              <p><strong>${order.customer_name}</strong></p>
-              ${order.customer_document ? `<p>DNI: ${order.customer_document}</p>` : ''}
-              <p>${order.customer_email}</p>
-              ${order.customer_phone ? `<p>Tel: ${order.customer_phone}</p>` : ''}
-            </div>
-            <div class="info-col">
-              <span class="label">Detalle Operación</span>
-              <p>ID Orden: ${order.id}</p>
-              <p>Fecha: ${statusDate}</p>
-              <p>Estado: ${order.status.toUpperCase()}</p>
-              <p>Método de Pago: ${order.payment_method || 'MercadoPago'}</p>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 40px;">
-             <span class="label">Destino de Entrega</span>
-             <p>${order.shipping_address ? `${order.shipping_address.street} ${order.shipping_address.number}, ${order.shipping_address.city} (${order.shipping_address.zip}), ${order.shipping_address.state}` : 'Retiro en Local / A Coordinar'}</p>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Artículo</th>
-                <th style="text-align: center;">Cant.</th>
-                <th style="text-align: right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #111; padding-top: 20px;">
-            <div></div>
-            <div style="text-align: right;">
-              <div class="total-row">Total Pagado: ${Number(order.total).toLocaleString('es-AR')}</div>
-            </div>
-          </div>
-
-          <div class="footer">
-            Documento Digital de Operación - MINIMAL.
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
+  const handlePrintReceipt = (order) => printReceipt(order, { showCustomerDetails: true });
 
   const filteredOrders = orders.filter(order => {
     const q = searchQuery.toLowerCase();
@@ -301,7 +212,7 @@ export default function ShippingPage() {
                               <span className="text-zinc-500 font-mono mt-0.5">{item.quantity}x</span>
                               <span className="text-zinc-300 leading-tight pr-2">{item.name}</span>
                             </div>
-                            <div className="text-emerald-400 font-medium shrink-0">${Number(item.price * item.quantity).toLocaleString('es-AR')}</div>
+                            <div className="text-emerald-400 font-medium shrink-0">{formatMoney(lineTotal(item))}</div>
                           </div>
                         ))}
                       </div>

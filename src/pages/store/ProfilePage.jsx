@@ -3,6 +3,8 @@ import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { useNavigate } from 'react-router-dom';
 import { Package, Heart, LogOut, Settings, Save, Key, User, MapPin, Loader2, ChevronRight, Printer } from 'lucide-react';
+import { printReceipt } from '../../printReceipt';
+import { lineTotal, formatMoney } from '../../pricing';
 
 const getStatusColor = (status) => {
   if (!status) return 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500';
@@ -107,96 +109,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   
-  const handlePrintReceipt = (order) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    const itemsHtml = (order?.items || []).map(item => `
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #eee;">${item.name}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">${Number(item.price * item.quantity).toLocaleString('es-AR')}</td>
-      </tr>
-    `).join('');
-
-    const statusDate = new Date(order?.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Comprobante de Pago #${order?.id?.split('-')?.[0] || '...'}</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; }
-            .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #111; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: 900; font-style: italic; letter-spacing: -1px; }
-            .title { font-size: 14px; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 2px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
-            .info-col p { margin: 5px 0; font-size: 14px; }
-            .label { font-weight: bold; font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; display: block; margin-bottom: 4px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px; }
-            th { text-align: left; padding: 10px 0; border-bottom: 2px solid #111; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;}
-            .total-row { font-size: 20px; font-weight: 900; }
-            .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 12px; color: #888; }
-            @media print { 
-              @page { margin: 0; }
-              body { margin: 1.6cm; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="logo">MINIMAL.</div>
-            <div class="title">Comprobante de Compra</div>
-          </div>
-          
-          <div class="info-grid">
-            <div class="info-col">
-              <span class="label">Orden Número</span>
-              <p>#${order?.id?.split('-')?.[0] || '...'.toUpperCase()}</p>
-              <br/>
-              <span class="label">Fecha</span>
-              <p>${statusDate}</p>
-            </div>
-            <div class="info-col">
-              <span class="label">Cliente</span>
-              <p>${order.user_email}</p>
-              <br/>
-              <span class="label">Estado</span>
-              <p style="text-transform: capitalize;">${order.status}</p>
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th style="text-align: center;">Cant.</th>
-                <th style="text-align: right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <div style="display: flex; justify-content: flex-end;">
-            <div style="text-align: right; min-width: 200px;">
-              <span class="label">Total Pagado</span>
-              <div class="total-row">${Number(order?.total || 0).toLocaleString('es-AR')}</div>
-            </div>
-          </div>
-
-          <div class="footer">
-            Este documento es un comprobante válido de su compra en MINIMAL.<br/>
-            Gracias por confiar en nosotros.
-          </div>
-          <script>setTimeout(() => window.print(), 500);</script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-  };
+  const handlePrintReceipt = (order) => printReceipt(order);
 
   const favoriteProducts = (products || []).filter(p => (favorites || []).includes(p.id));
 
@@ -303,7 +216,7 @@ export default function ProfilePage() {
                           <div key={item.id} onClick={() => navigate(`/producto/${item.id}`)} className="flex items-center gap-5 cursor-pointer group p-3 -mx-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl overflow-hidden flex items-center justify-center border border-zinc-200 dark:border-white/5 group-hover:border-zinc-300 dark:group-hover:border-white/20 transition-colors shrink-0">
                               {item.imageUrl ? (
-                                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <img loading="lazy" decoding="async" src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                               ) : (
                                 <Package className="w-6 h-6 text-zinc-300 dark:text-zinc-700" />
                               )}
@@ -313,7 +226,7 @@ export default function ProfilePage() {
                               <p className="text-xs text-zinc-500 mt-1 font-medium">{item.quantity} unidad{item.quantity > 1 ? 'es' : ''}</p>
                             </div>
                             <div className="text-right shrink-0">
-                              <div className="text-sm font-black text-zinc-900 dark:text-white">${Number(item.price * item.quantity).toLocaleString('es-AR')}</div>
+                              <div className="text-sm font-black text-zinc-900 dark:text-white">{formatMoney(lineTotal(item))}</div>
                               {item.quantity > 1 && <div className="text-[10px] text-zinc-400 font-medium mt-0.5">${Number(item.price).toLocaleString('es-AR')} c/u</div>}
                             </div>
                           </div>
@@ -401,7 +314,7 @@ export default function ProfilePage() {
                       <div key={p.id} className="flex flex-col group cursor-pointer" onClick={() => navigate(`/producto/${p.id}`)}>
                         <div className="aspect-[4/5] bg-zinc-100 dark:bg-zinc-900 rounded-3xl relative overflow-hidden mb-5 border border-zinc-200 dark:border-white/5">
                           {p.imageUrl ? (
-                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                            <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-zinc-50 dark:bg-black/20"><span className="text-zinc-300 text-xs font-bold uppercase tracking-widest">Sin foto</span></div>
                           )}
