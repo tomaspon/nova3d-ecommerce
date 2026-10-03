@@ -66,25 +66,15 @@ export default function ProductsPage() {
     if (!qty || qty <= 0) return;
 
     try {
-      // Se parte del stock que hay ahora en la base, no del que tenía el formulario al abrirse:
-      // si entró una venta mientras tanto, el ajuste no la pisa.
-      const { data: current, error: readError } = await supabase.from('products').select('stock').eq('id', editingId).single();
-      if (readError) throw readError;
-
-      const newStock = Math.max(0, Number(current.stock) + (adjustForm.type === 'inc' ? qty : -qty));
-      const changeAmount = newStock - Number(current.stock);
-
-      const { error: updateError } = await supabase.from('products').update({ stock: newStock }).eq('id', editingId);
-      if (updateError) throw updateError;
-
-      const { error } = await supabase.from('inventory_logs').insert([{
-        product_id: editingId,
-        change_amount: changeAmount,
-        stock_after: newStock,
-        reason: adjustForm.reason,
-        note: adjustForm.note
-      }]);
-      if(error) console.error(error);
+      // La base aplica el ajuste sobre el stock que hay en ese instante (no el que mostraba el
+      // formulario) y registra el movimiento, todo en una sola operación.
+      const { data: newStock, error } = await supabase.rpc('adjust_stock', {
+        p_product_id: editingId,
+        p_delta: adjustForm.type === 'inc' ? qty : -qty,
+        p_reason: adjustForm.reason,
+        p_note: adjustForm.note
+      });
+      if (error) throw error;
 
       setFormData(prev => ({ ...prev, stock: newStock }));
       setAdjustForm({ type: 'inc', qty: '', reason: 'Ingreso', note: '' });

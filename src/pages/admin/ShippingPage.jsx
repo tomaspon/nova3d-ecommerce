@@ -13,6 +13,7 @@ export default function ShippingPage() {
   const [dateFilter, setDateFilter] = useState('');
   const [activeTab, setActiveTab] = useState('pendientes');
   const [confirmOrder, setConfirmOrder] = useState(null);
+  const [shipment, setShipment] = useState({ carrier: '', trackingCode: '' });
 
       const fetchOrders = async () => {
       try {
@@ -258,10 +259,28 @@ export default function ShippingPage() {
               <h3 className="text-xl font-bold text-white">Confirmar Despacho</h3>
             </div>
             
-            <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
+            <p className="text-zinc-400 text-sm mb-4 leading-relaxed">
               ¿Estás seguro que querés marcar el pedido de <strong className="text-white">{confirmOrder.customer_name}</strong> como enviado? Esta acción moverá el pedido al historial.
             </p>
-            
+
+            {/* El cliente ve estos datos en Seguimiento. Son opcionales (por ejemplo, entrega en mano). */}
+            <div className="space-y-3 mb-6">
+              <input
+                type="text"
+                placeholder="Transportista (ej. Correo Argentino)"
+                value={shipment.carrier}
+                onChange={e => setShipment(prev => ({ ...prev, carrier: e.target.value }))}
+                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-base text-white focus:outline-none focus:border-indigo-500 transition"
+              />
+              <input
+                type="text"
+                placeholder="Código de seguimiento"
+                value={shipment.trackingCode}
+                onChange={e => setShipment(prev => ({ ...prev, trackingCode: e.target.value }))}
+                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-base text-white font-mono focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
+
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setConfirmOrder(null)}
@@ -272,9 +291,21 @@ export default function ShippingPage() {
               <button 
                 onClick={async () => {
                   const orderToProcess = confirmOrder;
+                  const shipmentData = shipment;
                   setConfirmOrder(null); // close modal immediately
+                  setShipment({ carrier: '', trackingCode: '' });
                   const res = await updateOrderStatus(orderToProcess, 'enviado');
-                  if (res.success) fetchOrders();
+                  if (!res.success) {
+                    alert(`No se pudo marcar el pedido como enviado: ${res.error}`);
+                    return;
+                  }
+                  const { error: shipError } = await supabase.from('orders').update({
+                    carrier: shipmentData.carrier.trim() || null,
+                    tracking_code: shipmentData.trackingCode.trim() || null,
+                    shipped_at: new Date().toISOString()
+                  }).eq('id', orderToProcess.id);
+                  if (shipError) alert(`El pedido quedó como enviado, pero no se guardaron los datos del envío: ${shipError.message}`);
+                  fetchOrders();
                 }}
                 className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition-colors flex items-center gap-2"
               >

@@ -9,13 +9,18 @@ import { lineTotal, formatMoney } from '../../src/pricing.js';
 // Minutos que dura la reserva de stock de una orden sin pagar (igual que en StoreContext)
 export const RESERVATION_MINUTES = 10;
 
+// Con la service role key el servidor actúa como parte de confianza: puede leer órdenes
+// y confirmar pagos aunque la base esté cerrada al público.
+export const hasServiceKey = () => Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 export function getSupabase() {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Faltan las variables de Supabase en Vercel.');
   }
-  return createClient(supabaseUrl, supabaseKey);
+  return createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 // Estados desde los que un pago aprobado convierte la orden en "pagado".
@@ -130,6 +135,21 @@ export async function processPayment(paymentId) {
     console.error(`Pago ${paymentId} por ${paidAmount} no cubre el total ${order.total} de la orden ${orderId}.`);
     return { orderId, paymentStatus: 'amount_mismatch', orderStatus: order.status };
   }
+
+  // Camino normal: la base marca el pago y descuenta el stock en una sola operación
+  // (mark_order_paid bloquea la orden, así el webhook y la verificación no descuentan dos veces).
+  if (hasServiceKey()) {
+    const { data: newStatus, error: paidError } = await supabase.rpc('mark_order_paid', {
+      p_order_id: orderId,
+      p_paid_amount: paidAmount
+    });
+    if (paidError) throw paidError;
+    console.log(`Orden ${orderId} marcada como ${newStatus}.`);
+    await sendReceiptEmail(order, orderId);
+    return { orderId, paymentStatus, orderStatus: newStatus };
+  }
+
+  // Camino anterior, solo mientras falte SUPABASE_SERVICE_ROLE_KEY en Vercel
 
   // 1. Actualizar estado a pagado. El filtro por estado evita descontar stock dos veces
   //    si el webhook y la verificación llegan al mismo tiempo.

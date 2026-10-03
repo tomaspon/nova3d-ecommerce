@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { supabase } from '../supabaseClient';
 import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
 import { mapProduct } from '../productMapping';
-import { itemsTotal } from '../pricing';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 
 const StoreContext = createContext();
@@ -23,7 +22,10 @@ export function StoreProvider({ children }) {
   const [storeSettings, setStoreSettings] = useState({
     campaign_active: false,
     campaign_name: 'Ofertas Especiales',
-    campaign_image_url: ''
+    campaign_image_url: '',
+    store_name: '',
+    store_email: '',
+    shipping_cost: 0
   });
 
   // ESTADO AUTH Y PERFIL
@@ -95,7 +97,10 @@ export function StoreProvider({ children }) {
           ...prev,
           campaign_active: data.campaign_active,
           campaign_name: data.campaign_name,
-          campaign_image_url: data.campaign_image_url || ''
+          campaign_image_url: data.campaign_image_url || '',
+          store_name: data.store_name || '',
+          store_email: data.store_email || '',
+          shipping_cost: Number(data.shipping_cost) || 0
         }));
       }
     } catch (error) {
@@ -111,6 +116,9 @@ export function StoreProvider({ children }) {
       if (newSettings.campaign_name !== undefined) payload.campaign_name = newSettings.campaign_name;
       if (newSettings.campaign_active !== undefined) payload.campaign_active = newSettings.campaign_active;
       if (newSettings.campaign_image_url !== undefined) payload.campaign_image_url = newSettings.campaign_image_url;
+      if (newSettings.store_name !== undefined) payload.store_name = newSettings.store_name;
+      if (newSettings.store_email !== undefined) payload.store_email = newSettings.store_email;
+      if (newSettings.shipping_cost !== undefined) payload.shipping_cost = Math.max(0, Number(newSettings.shipping_cost) || 0);
 
       if (Object.keys(payload).length > 0) {
         // .select() permite detectar cuando la base no actualizó ninguna fila
@@ -326,28 +334,20 @@ export function StoreProvider({ children }) {
   const updateOrderStatus = async (order, newStatus) => {
     try {
       const confirmStatuses = ['pagado', 'preparando', 'enviado', 'entregado'];
-      
-      // Al confirmar el pago, lo reservado pasa a ser una venta: se descuenta del stock físico
-      if (isAwaitingPayment(order.status) && confirmStatuses.includes(newStatus)) {
-        for (const item of order.items) {
-          const { data: prod } = await supabase.from('products').select('stock').eq('id', item.id).single();
-          if (prod) {
-            const newStock = prod.stock - item.quantity;
-            await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
-            await supabase.from('inventory_logs').insert([{
-              product_id: item.id,
-              change_amount: -item.quantity,
-              stock_after: newStock,
-              reason: 'Venta',
-              note: `Venta confirmada - Orden #${order.id.split('-')[0]}`
-            }]);
-          }
-        }
+      const confirmsPayment = isAwaitingPayment(order.status) && confirmStatuses.includes(newStatus);
+
+      // Al confirmar el pago, lo reservado pasa a ser una venta. La base descuenta el stock
+      // y registra el movimiento en una sola operación (mark_order_paid).
+      if (confirmsPayment) {
+        const { error: paidError } = await supabase.rpc('mark_order_paid', { p_order_id: order.id });
+        if (paidError) throw paidError;
       }
 
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', order.id);
-      if (error) throw error;
-      
+      if (!(confirmsPayment && newStatus === ORDER_STATUS.PAID)) {
+        const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', order.id);
+        if (error) throw error;
+      }
+
       fetchProducts(); // refresh products to update UI
 
       return { success: true };
@@ -367,73 +367,45 @@ export function StoreProvider({ children }) {
     }
   };
 
+  // La orden se crea dentro de la base (create_order): ahí se validan el stock disponible,
+  // los precios y el envío, con el producto bloqueado para que dos compras no reserven la misma unidad.
   const checkoutOrder = async (checkoutData) => {
     try {
-      const productIds = cart.map(item => item.id);
-      await releaseExpiredReservations();
-      const [stockRes, reservedMap] = await Promise.all([
-        supabase.from('products').select('id, name, stock').in('id', productIds),
-        fetchReservedMap()
-      ]);
-      if (stockRes.error) throw stockRes.error;
+      const { data: created, error: orderError } = await supabase.rpc('create_order', {
+        p_name: checkoutData.name,
+        p_email: user?.email || checkoutData.email,
+        p_phone: checkoutData.phone,
+        p_document: checkoutData.document,
+        p_address: checkoutData.address,
+        p_payment_method: checkoutData.paymentMethod,
+        p_items: cart.map(item => ({ id: item.id, quantity: item.quantity }))
+      });
+      if (orderError) throw orderError;
 
-      // 1. Validar contra lo disponible: stock físico menos lo que otros clientes tienen reservado
-      for (const cartItem of cart) {
-        const dbProduct = stockRes.data.find(p => p.id === cartItem.id);
-        const available = dbProduct ? dbProduct.stock - (reservedMap[dbProduct.id] || 0) : 0;
-        if (available < cartItem.quantity) {
-          throw new Error(
-            available > 0
-              ? `Solo quedan ${available} unidades disponibles de "${cartItem.name}". Ajustá la cantidad para continuar.`
-              : `"${cartItem.name}" ya no está disponible: otro cliente lo está comprando en este momento.`
-          );
-        }
+      // Guardar los datos de envío en la cuenta para la próxima compra
+      if (user) {
+        await supabase.auth.updateUser({
+          data: {
+            shipping: {
+              name: checkoutData.name,
+              email: checkoutData.email,
+              phone: checkoutData.phone,
+              document: checkoutData.document,
+              address: checkoutData.address
+            }
+          }
+        });
       }
 
-      // 2. Procesar Pedido
-      const total = itemsTotal(cart);
-
-      const payload = {
-        customer_name: checkoutData.name,
-        customer_email: user?.email || checkoutData.email,
-        customer_phone: checkoutData.phone,
-        customer_document: checkoutData.document,
-        shipping_address: checkoutData.address,
-        payment_method: checkoutData.paymentMethod,
-        total: total,
-        items: cart,
-        status: ORDER_STATUS.RESERVED
-      };
-
-      // 3. Crear Orden Primero para obtener su ID
-      
-        const { data: orderData, error: orderError } = await supabase.from('orders').insert([payload]).select().single();
-        if (orderError) throw orderError;
-  
-        // Update user metadata if logged in
-        if (user) {
-          await supabase.auth.updateUser({
-            data: {
-              shipping: {
-                name: checkoutData.name,
-                email: checkoutData.email,
-                phone: checkoutData.phone,
-                document: checkoutData.document,
-                address: checkoutData.address
-              }
-            }
-          });
-        }
-
-
-      // 4. El stock NO se descuenta fsicamente aca. Queda como 'reservado' y pasa a ser 'reservado' dinamicamente.
+      // El stock físico no se descuenta acá: queda reservado hasta que se pague o venza
       setCart([]);
       setIsCartOpen(false);
       await fetchProducts();
 
-      return { success: true, orderId: orderData.id, total: total };
+      return { success: true, orderId: created.id, total: Number(created.total) };
     } catch (error) {
       console.error('Error processing checkout:', error);
+      fetchProducts(); // el stock disponible pudo haber cambiado
       return { success: false, errorMessage: error.message };
     }
   };

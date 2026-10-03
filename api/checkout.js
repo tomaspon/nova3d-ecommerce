@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, items, status')
+      .select('id, items, status, shipping_cost')
       .eq('id', orderId)
       .maybeSingle();
 
@@ -27,41 +27,28 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: 'Orden no encontrada' });
     }
 
-    const productIds = order.items.map(item => item.id);
-    const { data: dbProducts, error: productsError } = await supabase
-      .from('products')
-      .select('id, name, price, discount')
-      .in('id', productIds);
-
-    if (productsError) throw productsError;
-
+    // La orden la crea la función create_order de la base, que guarda en cada artículo
+    // el precio unitario ya calculado (unit_price) y el costo de envío en la orden.
     const mpItems = [];
-    let total = 0;
     for (const item of order.items) {
-      const product = dbProducts.find(p => p.id === item.id);
       const quantity = Number(item.quantity);
-      if (!product || !Number.isInteger(quantity) || quantity < 1) {
+      const unitPrice = Number(item.unit_price);
+      if (!Number.isInteger(quantity) || quantity < 1 || !(unitPrice >= 0) || item.unit_price == null) {
         return res.status(400).json({ message: 'Bad Request: la orden tiene artículos inválidos' });
       }
-
-      const hasDiscount = product.discount > 0;
-      const finalPrice = hasDiscount ? product.price * (1 - product.discount / 100) : Number(product.price);
-      const unitPrice = Number(finalPrice.toFixed(2));
-      total += unitPrice * quantity;
-
       mpItems.push({
-        id: product.id,
-        title: product.name,
+        id: item.id,
+        title: item.name,
         quantity,
         unit_price: unitPrice,
         currency_id: 'ARS',
       });
     }
 
-    // El total de la orden queda con el importe calculado acá; el pago se compara contra este valor
-    total = Number(total.toFixed(2));
-    const { error: totalError } = await supabase.from('orders').update({ total }).eq('id', orderId);
-    if (totalError) throw totalError;
+    const shippingCost = Number(order.shipping_cost) || 0;
+    if (shippingCost > 0) {
+      mpItems.push({ id: 'envio', title: 'Envío', quantity: 1, unit_price: shippingCost, currency_id: 'ARS' });
+    }
 
     const client = new MercadoPagoConfig({
       accessToken: process.env.MP_ACCESS_TOKEN || ''

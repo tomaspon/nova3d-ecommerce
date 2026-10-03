@@ -16,9 +16,9 @@ export default function SettingsPage() {
   // La URL guardada incluye el encuadre vertical (#y=NN); acá se manejan por separado
   const [campaignImageUrl, setCampaignImageUrl] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).src);
   const [campaignImageY, setCampaignImageY] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).y);
-  const [storeName, setStoreName] = useState(storeSettings?.storeName || 'MINIMAL.');
-  const [storeEmail, setStoreEmail] = useState(storeSettings?.storeEmail || '');
-  const [shippingCost, setShippingCost] = useState(storeSettings?.shippingCost || 5000);
+  const [storeName, setStoreName] = useState(storeSettings?.store_name || '');
+  const [storeEmail, setStoreEmail] = useState(storeSettings?.store_email || '');
+  const [shippingCost, setShippingCost] = useState(storeSettings?.shipping_cost || 0);
 
   const fileInputRef = useRef(null);
   const bannerImgRef = useRef(null);
@@ -32,7 +32,11 @@ export default function SettingsPage() {
     const banner = parseBannerUrl(storeSettings.campaign_image_url);
     setCampaignImageUrl(banner.src);
     setCampaignImageY(banner.y);
-  }, [storeSettings.campaign_active, storeSettings.campaign_name, storeSettings.campaign_image_url]);
+    setStoreName(storeSettings.store_name || '');
+    setStoreEmail(storeSettings.store_email || '');
+    setShippingCost(storeSettings.shipping_cost || 0);
+  }, [storeSettings.campaign_active, storeSettings.campaign_name, storeSettings.campaign_image_url,
+      storeSettings.store_name, storeSettings.store_email, storeSettings.shipping_cost]);
 
   // Arrastrar el banner hacia arriba o abajo para elegir qué franja de la imagen se ve
   const handleBannerPointerDown = (e) => {
@@ -64,9 +68,9 @@ export default function SettingsPage() {
       campaign_active: campaignActive,
       campaign_name: campaignName,
       campaign_image_url: buildBannerUrl(campaignImageUrl, campaignImageY),
-      storeName,
-      storeEmail,
-      shippingCost
+      store_name: storeName,
+      store_email: storeEmail,
+      shipping_cost: shippingCost
     });
     setIsSaving(false);
     if (!ok) {

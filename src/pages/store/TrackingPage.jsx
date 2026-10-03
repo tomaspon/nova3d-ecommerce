@@ -59,12 +59,9 @@ export default function TrackingPage() {
   const fetchOrderByID = async (id, { silent = false } = {}) => {
     if (!silent) setIsLoading(true);
     try {
-      // El id es un uuid: se compara exacto (ilike no existe para uuid en Postgres)
-      const { data, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      // El id completo de la orden funciona como clave: solo lo tiene quien hizo la compra,
+      // por eso este camino sí devuelve la dirección de entrega.
+      const { data, error: fetchError } = await supabase.rpc('get_order_public', { p_order_id: id });
 
       if (fetchError || !data) {
         throw new Error('No pudimos encontrar los detalles de este pedido.');
@@ -89,21 +86,19 @@ export default function TrackingPage() {
     setOrders([]);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('customer_document', document)
-      .not('status', 'ilike', 'cancelado%')
-        .order('created_at', { ascending: false });
+      // Por DNI la base devuelve solo estado, artículos y envío: sin dirección ni datos personales,
+      // y con el número corto de pedido en lugar del id completo.
+      const { data, error: fetchError } = await supabase.rpc('track_orders_by_document', { p_document: document.trim() });
 
       if (fetchError || !data || data.length === 0) {
         throw new Error('No encontramos pedidos asociados a este documento.');
       }
-      
-      if (data.length === 1) {
-        setSelectedOrder(data[0]);
+
+      const found = data.map(order => ({ ...order, id: order.short_id }));
+      if (found.length === 1) {
+        setSelectedOrder(found[0]);
       } else {
-        setOrders(data);
+        setOrders(found);
       }
     } catch (err) {
       setError(err.message);
@@ -128,6 +123,9 @@ export default function TrackingPage() {
     'Tu pedido fue entregado. ¡Gracias por tu compra!'
   ][step];
   const address = selectedOrder?.shipping_address;
+  // La búsqueda por DNI no trae la dirección; el enlace de la compra sí
+  const hasAddressData = selectedOrder ? 'shipping_address' in selectedOrder : false;
+  const shippingCost = Number(selectedOrder?.shipping_cost) || 0;
   const shortOrderId = selectedOrder ? selectedOrder.id.split('-')[0].toUpperCase() : '';
   const supportMessage = `Hola! Tengo un problema con mi pedido #${shortOrderId}: `;
 
@@ -286,6 +284,12 @@ export default function TrackingPage() {
                     )}
                   </p>
                   <p className="text-zinc-500 dark:text-zinc-400 mt-1">Envío: <span className="font-bold text-black dark:text-white">{shippingLabel}</span></p>
+                  {selectedOrder.carrier && (
+                    <p className="text-zinc-500 dark:text-zinc-400 mt-1">Transportista: <span className="font-bold text-black dark:text-white">{selectedOrder.carrier}</span></p>
+                  )}
+                  {selectedOrder.tracking_code && (
+                    <p className="text-zinc-500 dark:text-zinc-400 mt-1">Código de seguimiento: <span className="font-bold font-mono text-black dark:text-white break-all">{selectedOrder.tracking_code}</span></p>
+                  )}
                   <p className="text-zinc-500 dark:text-zinc-400 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10">{nextStepMessage}</p>
               </div>
             )}
@@ -293,7 +297,9 @@ export default function TrackingPage() {
             {/* Detalle de la entrega */}
             <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
               <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Entrega</h4>
-              {address?.street ? (
+              {!hasAddressData ? (
+                <p className="text-zinc-500 dark:text-zinc-400">Por seguridad, la dirección de entrega se muestra solo desde el enlace de tu compra o en tu perfil.</p>
+              ) : address?.street ? (
                 <p className="font-medium text-black dark:text-white leading-relaxed">
                   {address.street} {address.number}{address.apartment ? `, ${address.apartment}` : ''}<br />
                   {[address.city, address.state].filter(Boolean).join(', ')}{address.zip ? ` (CP ${address.zip})` : ''}
@@ -307,12 +313,18 @@ export default function TrackingPage() {
             <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
               <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Package className="w-3.5 h-3.5" /> Tu compra</h4>
               <ul className="space-y-1.5">
-                {(selectedOrder.items || []).map(item => (
-                  <li key={item.id} className="flex justify-between gap-3">
+                {(selectedOrder.items || []).map((item, index) => (
+                  <li key={`${item.name}-${index}`} className="flex justify-between gap-3">
                     <span className="text-black dark:text-white min-w-0">{item.quantity} × {item.name}</span>
                     <span className="text-zinc-500 dark:text-zinc-400 shrink-0">{formatMoney(lineTotal(item))}</span>
                   </li>
                 ))}
+                {shippingCost > 0 && (
+                  <li className="flex justify-between gap-3">
+                    <span className="text-black dark:text-white">Envío</span>
+                    <span className="text-zinc-500 dark:text-zinc-400 shrink-0">{formatMoney(shippingCost)}</span>
+                  </li>
+                )}
               </ul>
               <div className="flex justify-between gap-3 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10">
                 <span className="text-zinc-500 dark:text-zinc-400">Total{selectedOrder.payment_method ? ` · ${selectedOrder.payment_method}` : ''}</span>

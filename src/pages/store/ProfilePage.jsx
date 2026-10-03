@@ -85,14 +85,13 @@ export default function ProfilePage() {
     }
 
     const fetchOrders = async () => {
-      // Pedidos hechos con el email de la cuenta, o con el DNI guardado en "Mis Datos"
-      // (cubre compras donde se escribió otro email en el formulario)
-      const savedDocument = String(user.user_metadata?.shipping?.document || '').replace(/["\\,()]/g, '').trim();
-      let query = supabase.from('orders').select('*');
-      query = savedDocument
-        ? query.or(`customer_email.eq."${user.email}",customer_document.eq."${savedDocument}"`)
-        : query.eq('customer_email', user.email);
-      const { data } = await query.order('created_at', { ascending: false });
+      // Pedidos de la cuenta: los que se hicieron con la sesión iniciada (user_id)
+      // o con el mismo email. Son los mismos que la base permite leer a este usuario.
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .or(`user_id.eq.${user.id},customer_email.eq."${user.email}"`)
+        .order('created_at', { ascending: false });
 
       if (data) setOrders(data);
       setIsLoading(false);

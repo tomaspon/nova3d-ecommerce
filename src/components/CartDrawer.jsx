@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { itemsTotal } from '../pricing';
+import { itemsTotal, formatMoney } from '../pricing';
 import { useStore } from '../context/StoreContext';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2, Loader2, MapPin, Phone, User, Mail, CreditCard, Landmark } from 'lucide-react';
 
 export default function CartDrawer() {
   const navigate = useNavigate();
-  const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, checkoutOrder, user } = useStore();
+  const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, checkoutOrder, user, storeSettings } = useStore();
   const [checkoutStep, setCheckoutStep] = useState('cart'); // cart, form, loading, success
   const [orderInfo, setOrderInfo] = useState(null);
   
@@ -31,7 +31,10 @@ export default function CartDrawer() {
   }, [user, isCartOpen]);
 
 
-  const total = itemsTotal(cart);
+  // El envío es un costo fijo definido en Configuración; la base lo suma igual al crear la orden
+  const subtotal = itemsTotal(cart);
+  const shippingCost = Number(storeSettings?.shipping_cost) || 0;
+  const total = subtotal + shippingCost;
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
@@ -285,9 +288,15 @@ export default function CartDrawer() {
         {/* Footer */}
         {cart.length > 0 && checkoutStep !== 'success' && (
           <div className="border-t border-zinc-100 dark:border-white/10 p-6 bg-[#fafafa] dark:bg-[#121212] transition-colors">
+            {shippingCost > 0 && (
+              <div className="space-y-1 mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+                <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(subtotal)}</span></div>
+                <div className="flex justify-between"><span>Envío</span><span>{formatMoney(shippingCost)}</span></div>
+              </div>
+            )}
             <div className="flex justify-between items-center mb-6">
               <span className="text-zinc-500 dark:text-zinc-400 font-medium transition-colors">Total a pagar</span>
-              <span className="text-2xl font-black text-zinc-900 dark:text-white transition-colors">${Math.round(total).toLocaleString('es-AR')}</span>
+              <span className="text-2xl font-black text-zinc-900 dark:text-white transition-colors">{formatMoney(total)}</span>
             </div>
             
             {checkoutStep === 'cart' ? (
