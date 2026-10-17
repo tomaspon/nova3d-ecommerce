@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck, MapPin, MessageCircle, Mail } from 'lucide-react';
+import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck, MapPin, MessageCircle, Mail, User, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../storeContact';
 import { isAwaitingPayment, isPaid as isOrderPaid, isCanceled as isOrderCanceled, trackingStep } from '../../orderStatus';
 import { lineTotal, formatMoney } from '../../pricing';
+
+// Etapas que ve el cliente, en el mismo orden que la barra de progreso del detalle
+const TRACKING_STAGES = [
+  { icon: ClipboardCheck, title: 'Ordenado', description: 'Recibimos tu pedido y confirmamos el pago.' },
+  { icon: Package, title: 'Preparando', description: 'Armamos y embalamos tu compra.' },
+  { icon: Truck, title: 'Enviado', description: 'Sale con el transportista. Acá vas a ver el código de seguimiento.' },
+  { icon: CheckCircle2, title: 'Entregado', description: 'Llegó a destino. ¡Que lo disfrutes!' }
+];
 
 export default function TrackingPage() {
   const [document, setDocument] = useState('');
@@ -129,41 +138,137 @@ export default function TrackingPage() {
   const shortOrderId = selectedOrder ? selectedOrder.id.split('-')[0].toUpperCase() : '';
   const supportMessage = `Hola! Tengo un problema con mi pedido #${shortOrderId}: `;
 
+  // Pantalla de búsqueda: todavía no hay pedido ni lista. Si se entró con el enlace de la compra,
+  // mientras carga se muestra el indicador en lugar del buscador.
+  const isOpeningLink = isLoading && new URLSearchParams(window.location.search).has('order');
+  const isSearching = !selectedOrder && orders.length === 0 && !isOpeningLink;
+
+  if (isOpeningLink && !selectedOrder) {
+    return (
+      <div className="min-h-[60vh] bg-[#FAFAFA] dark:bg-[#121212] flex items-center justify-center" role="status" aria-live="polite">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <span className="sr-only">Cargando tu pedido</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] py-12 px-4 sm:px-6 flex flex-col items-center">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] py-10 sm:py-14 lg:py-16 px-4 sm:px-8 lg:px-12 flex flex-col items-center">
+      {isSearching ? (
+        /* ── Búsqueda: dos columnas en escritorio, apiladas en celular ── */
+        <div className="w-full max-w-6xl grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start lg:items-center lg:min-h-[calc(100vh-18rem)]">
+
+          {/* Columna izquierda: título y buscador */}
+          <section aria-labelledby="tracking-title">
+            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-4">Seguimiento de pedidos</p>
+            <h1 id="tracking-title" className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-900 dark:text-white tracking-tighter leading-[0.95] mb-5">
+              ¿Dónde está<br />tu pedido?
+            </h1>
+            <p className="text-zinc-600 dark:text-zinc-400 text-base sm:text-lg max-w-md mb-8">
+              Ingresá el DNI con el que hiciste la compra y te mostramos en qué etapa está.
+            </p>
+
+            <form onSubmit={handleSearch} className="max-w-xl">
+              <label htmlFor="tracking-document" className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-2 block">
+                DNI / Documento
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  id="tracking-document"
+                  required
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="Ej: 35123456"
+                  value={document}
+                  onChange={(e) => setDocument(e.target.value)}
+                  aria-describedby={error ? 'tracking-error' : undefined}
+                  className="flex-1 min-w-0 bg-white dark:bg-black border border-zinc-300 dark:border-white/15 rounded-xl px-4 py-4 text-base focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition font-mono text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="shrink-0 bg-black dark:bg-white text-white dark:text-black font-bold px-7 py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                  Buscar pedidos
+                </button>
+              </div>
+
+              {error && (
+                <div id="tracking-error" role="alert" className="mt-4 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-center gap-3 animate-in fade-in">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <p className="text-sm font-bold">{error}</p>
+                </div>
+              )}
+            </form>
+
+            <div className="mt-8 space-y-3 text-sm text-zinc-600 dark:text-zinc-400 max-w-xl">
+              <p className="flex items-start gap-2.5">
+                <User className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  ¿Compraste con tu cuenta?{' '}
+                  <Link to="/perfil" className="font-bold text-zinc-900 dark:text-white underline underline-offset-4 hover:opacity-70">
+                    Mirá todos tus pedidos en tu perfil
+                  </Link>
+                </span>
+              </p>
+              <p className="flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>Por tu seguridad, la búsqueda por DNI no muestra la dirección de entrega. La vas a ver desde el enlace de tu compra.</span>
+              </p>
+            </div>
+          </section>
+
+          {/* Columna derecha: qué significa cada etapa y ayuda */}
+          <aside aria-label="Cómo sigue tu pedido" className="space-y-4">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-3xl p-6 sm:p-8">
+              <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6">Cómo sigue tu pedido</h2>
+              <ol className="space-y-5">
+                {TRACKING_STAGES.map(({ icon: Icon, title, description }, index) => (
+                  <li key={title} className="flex gap-4">
+                    <div className="relative flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-900 dark:text-white shrink-0">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      {index < TRACKING_STAGES.length - 1 && (
+                        <div className="w-px flex-1 bg-zinc-200 dark:bg-white/10 mt-2 -mb-3" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="pt-2 pb-1">
+                      <p className="font-bold text-zinc-900 dark:text-white">{title}</p>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">{description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="bg-zinc-900 dark:bg-white text-white dark:text-black rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+              <div>
+                <p className="font-bold">¿Necesitás ayuda con tu compra?</p>
+                <p className="text-sm text-zinc-300 dark:text-zinc-600 mt-0.5">Escribinos y te respondemos a la brevedad.</p>
+              </div>
+              <a
+                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 bg-white dark:bg-black text-black dark:text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition"
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </a>
+            </div>
+          </aside>
+        </div>
+      ) : (
+      <>
       <div className="w-full max-w-lg mb-8 text-center">
         <h1 className="text-3xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter mb-2">Seguimiento</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm">Ingresá tu DNI para ver el estado de tus compras.</p>
       </div>
 
       <div className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-xl">
-        {!selectedOrder && orders.length === 0 && (
-          <form onSubmit={handleSearch} className="space-y-4 mb-8">
-            <div>
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2 block">DNI / Documento</label>
-              <input 
-                required
-                type="text" 
-                placeholder="Ej: 35123456"
-                value={document}
-                onChange={(e) => setDocument(e.target.value)}
-                className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-black dark:focus:border-white transition font-mono dark:text-white"
-              />
-            </div>
-            
-            <button 
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
-            >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-              BUSCAR PEDIDOS
-            </button>
-          </form>
-        )}
-
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-center gap-3 animate-in fade-in zoom-in mb-4">
+          <div role="alert" className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-center gap-3 animate-in fade-in zoom-in mb-4">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <p className="text-sm font-bold">{error}</p>
           </div>
@@ -356,12 +461,14 @@ export default function TrackingPage() {
               </div>
             </div>
 
-            <button onClick={() => { setSelectedOrder(null); setOrders([]); }} className="mt-6 text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white uppercase tracking-widest text-center w-full transition">
+            <button onClick={() => { setSelectedOrder(null); setOrders([]); setError(''); }} className="mt-6 text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white uppercase tracking-widest text-center w-full transition">
               Volver a buscar
             </button>
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
