@@ -156,19 +156,20 @@ export default function TrackingPage() {
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] py-10 sm:py-14 lg:py-16 px-4 sm:px-8 lg:px-12 flex flex-col items-center">
       {isSearching ? (
         /* ── Búsqueda: dos columnas en escritorio, apiladas en celular ── */
-        <div className="w-full max-w-6xl grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start lg:items-center lg:min-h-[calc(100vh-18rem)]">
+        // Mismo contenedor que el catálogo (max-w-screen-2xl + px-12): las páginas de la tienda
+        // comparten bordes. Las dos columnas alineadas arriba.
+        <div className="w-full max-w-screen-2xl lg:px-12 grid lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_30rem] gap-12 lg:gap-20 xl:gap-28 items-start lg:pt-8 xl:pt-14">
 
           {/* Columna izquierda: título y buscador */}
           <section aria-labelledby="tracking-title">
-            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-4">Seguimiento de pedidos</p>
-            <h1 id="tracking-title" className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-900 dark:text-white tracking-tighter leading-[0.95] mb-5">
+            <h1 id="tracking-title" className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-zinc-900 dark:text-white tracking-tighter leading-[1.02] mb-6">
               ¿Dónde está<br />tu pedido?
             </h1>
-            <p className="text-zinc-600 dark:text-zinc-400 text-base sm:text-lg max-w-md mb-8">
+            <p className="text-zinc-600 dark:text-zinc-400 text-base sm:text-lg max-w-md mb-10 lg:mb-12">
               Ingresá el DNI con el que hiciste la compra y te mostramos en qué etapa está.
             </p>
 
-            <form onSubmit={handleSearch} className="max-w-xl">
+            <form onSubmit={handleSearch} className="max-w-2xl">
               <label htmlFor="tracking-document" className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-2 block">
                 DNI / Documento
               </label>
@@ -183,7 +184,7 @@ export default function TrackingPage() {
                   value={document}
                   onChange={(e) => setDocument(e.target.value)}
                   aria-describedby={error ? 'tracking-error' : undefined}
-                  className="flex-1 min-w-0 bg-white dark:bg-black border border-zinc-300 dark:border-white/15 rounded-xl px-4 py-4 text-base focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition font-mono text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                  className="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/20 hover:border-zinc-400 dark:hover:border-white/30 rounded-xl px-4 py-4 text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 transition text-zinc-900 dark:text-white placeholder:text-zinc-500"
                 />
                 <button
                   type="submit"
@@ -203,40 +204,41 @@ export default function TrackingPage() {
               )}
             </form>
 
-            <div className="mt-8 space-y-3 text-sm text-zinc-600 dark:text-zinc-400 max-w-xl">
+            <div className="mt-8 space-y-3 text-sm text-zinc-600 dark:text-zinc-400 max-w-2xl">
               <p className="flex items-start gap-2.5">
                 <User className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>
                   ¿Compraste con tu cuenta?{' '}
-                  <Link to="/perfil" className="font-bold text-zinc-900 dark:text-white underline underline-offset-4 hover:opacity-70">
+                  <Link to="/perfil" className="inline-block py-1 font-bold text-zinc-900 dark:text-white underline underline-offset-4 hover:opacity-70">
                     Mirá todos tus pedidos en tu perfil
                   </Link>
                 </span>
               </p>
               <p className="flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>Por tu seguridad, la búsqueda por DNI no muestra la dirección de entrega. La vas a ver desde el enlace de tu compra.</span>
+                <span>Por seguridad, la dirección solo se ve desde el enlace de tu compra.</span>
               </p>
             </div>
           </section>
 
           {/* Columna derecha: qué significa cada etapa y ayuda */}
           <aside aria-label="Cómo sigue tu pedido" className="space-y-4">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-3xl p-6 sm:p-8">
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6">Cómo sigue tu pedido</h2>
-              <ol className="space-y-5">
-                {TRACKING_STAGES.map(({ icon: Icon, title, description }, index) => (
+            {/* Etapas: información de contexto, por eso más compacta que el buscador */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-3xl p-6 sm:p-7">
+              <h2 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-5">Cómo sigue tu pedido</h2>
+              <ol className="space-y-4">
+                {TRACKING_STAGES.map(({ title, description }, index) => (
                   <li key={title} className="flex gap-4">
-                    <div className="relative flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-900 dark:text-white shrink-0">
-                        <Icon className="w-5 h-5" />
-                      </div>
+                    <div className="flex flex-col items-center">
+                      <span className="w-7 h-7 rounded-full border border-zinc-300 dark:border-white/20 flex items-center justify-center text-xs font-bold text-zinc-900 dark:text-white shrink-0">
+                        {index + 1}
+                      </span>
                       {index < TRACKING_STAGES.length - 1 && (
-                        <div className="w-px flex-1 bg-zinc-200 dark:bg-white/10 mt-2 -mb-3" aria-hidden="true" />
+                        <span className="w-px flex-1 bg-zinc-200 dark:bg-white/10 mt-1.5 -mb-2.5" aria-hidden="true" />
                       )}
                     </div>
-                    <div className="pt-2 pb-1">
-                      <p className="font-bold text-zinc-900 dark:text-white">{title}</p>
+                    <div className="pt-0.5">
+                      <p className="text-sm font-bold text-zinc-900 dark:text-white">{title}</p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">{description}</p>
                     </div>
                   </li>
@@ -244,16 +246,17 @@ export default function TrackingPage() {
               </ol>
             </div>
 
-            <div className="bg-zinc-900 dark:bg-white text-white dark:text-black rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+            {/* Ayuda: acción secundaria, sin competir en peso con "Buscar pedidos" */}
+            <div className="border border-zinc-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
               <div>
-                <p className="font-bold">¿Necesitás ayuda con tu compra?</p>
-                <p className="text-sm text-zinc-300 dark:text-zinc-600 mt-0.5">Escribinos y te respondemos a la brevedad.</p>
+                <p className="text-sm font-bold text-zinc-900 dark:text-white">¿Necesitás ayuda con tu compra?</p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">Escribinos y te respondemos a la brevedad.</p>
               </div>
               <a
                 href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 bg-white dark:bg-black text-black dark:text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition"
+                className="shrink-0 border border-zinc-300 dark:border-white/20 text-zinc-900 dark:text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-100 dark:hover:bg-white/5 transition"
               >
                 <MessageCircle className="w-4 h-4" /> WhatsApp
               </a>
