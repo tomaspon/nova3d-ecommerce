@@ -1,42 +1,223 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
-import { useNavigate } from 'react-router-dom';
-import { Package, Heart, LogOut, Settings, Save, Key, User, MapPin, Loader2, ChevronRight, Printer } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Package, Heart, LogOut, Save, Key, User, MapPin, Loader2, ChevronRight, Printer, Truck, CheckCircle2, Clock, XCircle, PackageCheck, RotateCcw } from 'lucide-react';
 import { printReceipt } from '../../printReceipt';
-import { lineTotal, formatMoney } from '../../pricing';
+import { unitPrice, lineTotal, formatMoney } from '../../pricing';
+import { isAwaitingPayment, isCanceled, isPaid, trackingStep } from '../../orderStatus';
 
-const getStatusColor = (status) => {
-  if (!status) return 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500';
-  const s = status.toLowerCase();
-  if (s.includes('cancelado')) return 'bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400 border border-red-500/20';
-  if (s.includes('pagado')) return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20';
-  if (s.includes('pendiente')) return 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-500/20';
-  return 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700';
+const TABS = [
+  { id: 'orders', label: 'Pedidos', icon: Package },
+  { id: 'favorites', label: 'Favoritos', icon: Heart },
+  { id: 'datos', label: 'Mis datos', icon: User }
+];
+
+const ORDER_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'active', label: 'En curso' },
+  { id: 'done', label: 'Entregados' },
+  { id: 'canceled', label: 'Cancelados' }
+];
+
+const TRACKING_STEPS = ['Pagado', 'Preparando', 'Enviado', 'Entregado'];
+
+// Cómo se le cuenta al cliente cada estado: título claro, una línea de contexto y un color.
+function describeStatus(order) {
+  const status = order.status;
+  if (isCanceled(status)) {
+    const expired = (status || '').toLowerCase().includes('tiempo');
+    return {
+      icon: XCircle, tone: 'red', title: 'Cancelado',
+      text: expired ? 'Venció el tiempo para pagar. No se te cobró nada.' : 'Este pedido fue cancelado.'
+    };
+  }
+  if (isAwaitingPayment(status)) {
+    return { icon: Clock, tone: 'amber', title: 'Esperando el pago', text: 'Cuando se acredite el pago empezamos a prepararlo.' };
+  }
+  const step = trackingStep(status);
+  if (step === 4) return { icon: PackageCheck, tone: 'emerald', title: 'Entregado', text: '¡Que lo disfrutes!' };
+  if (step === 3) return { icon: Truck, tone: 'sky', title: 'En camino', text: order.carrier ? `Lo lleva ${order.carrier}.` : 'Tu pedido ya salió.' };
+  if (step === 2) return { icon: Package, tone: 'sky', title: 'Preparando tu pedido', text: 'Lo estamos empaquetando.' };
+  return { icon: CheckCircle2, tone: 'emerald', title: 'Pago confirmado', text: 'En breve empezamos a prepararlo.' };
+}
+
+const TONES = {
+  red: 'text-red-600 dark:text-red-400 bg-red-500/10',
+  amber: 'text-amber-600 dark:text-amber-400 bg-amber-500/10',
+  emerald: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10',
+  sky: 'text-sky-600 dark:text-sky-400 bg-sky-500/10'
 };
 
+function matchesFilter(order, filter) {
+  if (filter === 'canceled') return isCanceled(order.status);
+  if (filter === 'done') return trackingStep(order.status) === 4 && isPaid(order.status);
+  if (filter === 'active') return !isCanceled(order.status) && !(isPaid(order.status) && trackingStep(order.status) === 4);
+  return true;
+}
+
+const inputClass = 'w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-base text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white transition';
+
+function Field({ label, className = '', ...props }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">{label}</span>
+      <input {...props} className={inputClass} />
+    </label>
+  );
+}
+
+function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
+  const items = order.items || [];
+  const status = describeStatus(order);
+  const StatusIcon = status.icon;
+  const canceled = isCanceled(order.status);
+  const showProgress = isPaid(order.status);
+  const step = trackingStep(order.status);
+  const date = new Date(order.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  return (
+    <article className="bg-white dark:bg-[#0c0c0c] border border-zinc-200 dark:border-white/10 rounded-2xl overflow-hidden">
+      {/* Resumen del pedido */}
+      <div className="grid grid-cols-2 sm:grid-cols-[repeat(3,auto)_1fr] gap-x-8 gap-y-3 px-5 sm:px-6 py-4 bg-zinc-50 dark:bg-white/[0.03] border-b border-zinc-200 dark:border-white/10 text-sm">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Fecha</p>
+          <p className="mt-0.5 font-medium text-zinc-900 dark:text-white">{date}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isPaid(order.status) ? 'Total pagado' : 'Total'}</p>
+          <p className="mt-0.5 font-bold text-zinc-900 dark:text-white">{formatMoney(order.total)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Pedido</p>
+          <p className="mt-0.5 font-mono text-zinc-900 dark:text-white">#{order.id.split('-')[0]}</p>
+        </div>
+        <div className="flex items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={() => onReceipt(order)}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white underline-offset-4 hover:underline"
+          >
+            <Printer className="w-4 h-4" /> Comprobante
+          </button>
+        </div>
+      </div>
+
+      <div className="px-5 sm:px-6 py-5">
+        {/* Estado */}
+        <div className="flex items-start gap-3">
+          <span className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${TONES[status.tone]}`}>
+            <StatusIcon className="w-[18px] h-[18px]" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="font-bold text-zinc-900 dark:text-white leading-tight">{status.title}</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{status.text}</p>
+          </div>
+        </div>
+
+        {showProgress && (
+          <div className="mt-5" aria-label={`Etapa ${step} de 4`}>
+            <div className="grid grid-cols-4 gap-1.5">
+              {TRACKING_STEPS.map((label, index) => (
+                <div key={label}>
+                  <div className={`h-1.5 rounded-full ${index < step ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-white/10'}`} />
+                  <p className={`mt-2 text-[11px] font-medium hidden sm:block ${index < step ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-600'}`}>{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Productos */}
+        <ul className="mt-5 divide-y divide-zinc-100 dark:divide-white/5 border-t border-zinc-100 dark:border-white/5">
+          {items.map(item => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => onOpenProduct(item.id)}
+                className="w-full flex items-center gap-4 py-4 text-left group"
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-zinc-100 dark:bg-zinc-900 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+                  {item.imageUrl ? (
+                    <img loading="lazy" decoding="async" src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <Package className="w-6 h-6 text-zinc-300 dark:text-zinc-700" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-zinc-900 dark:text-white truncate group-hover:underline underline-offset-4">{item.name}</p>
+                  <p className="text-sm text-zinc-500 mt-1">
+                    {item.quantity} × {formatMoney(unitPrice(item))}
+                  </p>
+                </div>
+                <p className="font-semibold text-zinc-900 dark:text-white shrink-0">{formatMoney(lineTotal(item))}</p>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {/* Acciones */}
+        <div className="flex flex-col sm:flex-row gap-2.5 pt-4 border-t border-zinc-100 dark:border-white/5">
+          {canceled ? (
+            <button
+              type="button"
+              onClick={() => onReorder(order)}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
+            >
+              <RotateCcw className="w-4 h-4" /> Volver a comprar
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onTrack(order)}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
+            >
+              <Truck className="w-4 h-4" /> Seguir pedido
+            </button>
+          )}
+          <Link
+            to="/seguimiento"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-white/15 text-zinc-900 dark:text-white text-sm font-semibold px-5 py-2.5 hover:bg-zinc-50 dark:hover:bg-white/5 transition"
+          >
+            Ayuda con este pedido
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function ProfilePage() {
-  
   const { user, products, favorites, toggleFavorite } = useStore();
-  
-  const [datosForm, setDatosForm] = React.useState({
-    name: user?.user_metadata?.shipping?.name || '',
-    phone: user?.user_metadata?.shipping?.phone || '',
-    document: user?.user_metadata?.shipping?.document || '',
+  const navigate = useNavigate();
+
+  const shipping = user?.user_metadata?.shipping || {};
+  const [datosForm, setDatosForm] = useState({
+    name: shipping.name || '',
+    phone: shipping.phone || '',
+    document: shipping.document || '',
     address: {
-      street: user?.user_metadata?.shipping?.address?.street || '',
-      number: user?.user_metadata?.shipping?.address?.number || '',
-      apartment: user?.user_metadata?.shipping?.address?.apartment || '',
-      zip: user?.user_metadata?.shipping?.address?.zip || '',
-      city: user?.user_metadata?.shipping?.address?.city || '',
-      state: user?.user_metadata?.shipping?.address?.state || '',
+      street: shipping.address?.street || '',
+      number: shipping.address?.number || '',
+      apartment: shipping.address?.apartment || '',
+      zip: shipping.address?.zip || '',
+      city: shipping.address?.city || '',
+      state: shipping.address?.state || ''
     }
   });
-  
-  const [newPassword, setNewPassword] = React.useState('');
-  const [isSavingDatos, setIsSavingDatos] = React.useState(false);
-  const [datosSuccess, setDatosSuccess] = React.useState('');
-  const [datosError, setDatosError] = React.useState('');
+
+  const [newPassword, setNewPassword] = useState('');
+  const [isSavingDatos, setIsSavingDatos] = useState(false);
+  const [datosSuccess, setDatosSuccess] = useState('');
+  const [datosError, setDatosError] = useState('');
+
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    return TABS.some(t => t.id === tab) ? tab : 'orders';
+  });
+  const [orderFilter, setOrderFilter] = useState('all');
 
   const handleSaveDatos = async (e) => {
     e.preventDefault();
@@ -48,12 +229,12 @@ export default function ProfilePage() {
         const { error: pwdErr } = await supabase.auth.updateUser({ password: newPassword });
         if (pwdErr) throw pwdErr;
       }
-      
+
       const { error: dataErr } = await supabase.auth.updateUser({
         data: { shipping: datosForm }
       });
       if (dataErr) throw dataErr;
-      
+
       setNewPassword('');
       setDatosSuccess('Datos actualizados correctamente.');
     } catch (err) {
@@ -62,21 +243,6 @@ export default function ProfilePage() {
       setIsSavingDatos(false);
     }
   };
-
-  
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab');
-    if (tab && ['orders', 'favorites', 'datos'].includes(tab)) {
-      setActiveTab(tab);
-    }
-  }, []);
-
-  const navigate = useNavigate();
-
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('orders');
 
   useEffect(() => {
     if (!user) {
@@ -107,243 +273,259 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  
-  const handlePrintReceipt = (order) => printReceipt(order);
+  const setAddress = (field, value) => setDatosForm({ ...datosForm, address: { ...datosForm.address, [field]: value } });
 
   const favoriteProducts = (products || []).filter(p => (favorites || []).includes(p.id));
+  const visibleOrders = orders.filter(order => matchesFilter(order, orderFilter));
+  const displayName = datosForm.name.trim() || user.email.split('@')[0];
+  const counts = { orders: orders.length, favorites: favoriteProducts.length };
 
-    return (
-    <div className="bg-zinc-50 dark:bg-[#050505] min-h-[calc(100vh-6rem)] py-6 px-4 md:px-8">
-      <div className="max-w-4xl mx-auto">
-        
-        
-        {/* ENCABEZADO MINIMALISTA */}
-        <div className="relative mb-10 flex flex-col items-center border-b border-zinc-200 dark:border-white/10 pb-6 pt-4">
-          
-          {/* Botón Salir flotante (arriba a la derecha) */}
-          <button 
-            onClick={handleLogout}
-            className="absolute top-4 right-0 text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-1.5 transition-colors"
-          >
-            Salir <LogOut className="w-3.5 h-3.5" />
-          </button>
-          
-          {/* Avatar & Info */}
-          <div className="w-20 h-20 bg-gradient-to-br from-zinc-800 to-black dark:from-zinc-100 dark:to-white rounded-full flex items-center justify-center text-white dark:text-black font-black text-3xl shadow-lg mb-4">
-            {user?.email?.charAt(0)?.toUpperCase() || 'U'}
+  const handleReorder = (order) => {
+    const first = (order.items || [])[0];
+    navigate(first ? `/producto/${first.id}` : '/');
+  };
+
+  return (
+    <div className="bg-zinc-50 dark:bg-[#050505] min-h-[calc(100vh-6rem)] px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-[260px_minmax(0,1fr)] gap-8 lg:gap-12">
+
+        {/* Lateral: cuenta + navegación */}
+        <aside className="lg:sticky lg:top-28 lg:self-start">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black flex items-center justify-center font-black text-lg shrink-0">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-zinc-900 dark:text-white truncate capitalize">{displayName}</p>
+              <p className="text-sm text-zinc-500 truncate">{user.email}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="lg:hidden p-2 -mr-2 text-zinc-500 hover:text-red-600"
+              aria-label="Cerrar sesión"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
-          <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mb-1">Mi Perfil</h2>
-          <p className="text-xs text-zinc-500 font-medium">{user?.email || ''}</p>
-        </div>
 
-        {/* NAVEGACIÓN (Subrayada tipo iOS) */}
-        <div className="flex items-center justify-between md:justify-start gap-0 md:gap-8 border-b border-zinc-200 dark:border-white/5 mb-8">
-          <button 
-            onClick={() => setActiveTab('orders')} 
-            className={`flex-1 md:flex-none text-center py-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'orders' ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`}
-          >
-            Pedidos
-          </button>
-          <button 
-            onClick={() => setActiveTab('favorites')} 
-            className={`flex-1 md:flex-none text-center py-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'favorites' ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`}
-          >
-            Favoritos
-          </button>
-          <button 
-            onClick={() => setActiveTab('datos')} 
-            className={`flex-1 md:flex-none text-center py-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'datos' ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`}
-          >
-            Mis Datos
-          </button>
-        </div>
+          <nav className="mt-6 flex lg:flex-col gap-1 overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 border-b lg:border-b-0 border-zinc-200 dark:border-white/10" aria-label="Secciones de la cuenta">
+            {TABS.map(({ id, label, icon: Icon }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveTab(id)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`shrink-0 flex items-center gap-3 text-sm font-semibold transition
+                    px-1 py-3 mr-5 border-b-2 lg:mr-0 lg:border-b-0 lg:px-3 lg:py-2.5 lg:rounded-xl
+                    ${active
+                      ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white lg:bg-white lg:dark:bg-white/10 lg:shadow-sm'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white lg:hover:bg-white/60 lg:dark:hover:bg-white/5'}`}
+                >
+                  <Icon className="w-4 h-4 hidden lg:block" />
+                  <span className="lg:flex-1 text-left">{label}</span>
+                  {counts[id] > 0 && (
+                    <span className="text-xs font-medium text-zinc-400 tabular-nums">{counts[id]}</span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
 
-        {/* CONTENIDO PRINCIPAL */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="hidden lg:flex mt-6 pt-6 w-full border-t border-zinc-200 dark:border-white/10 items-center gap-3 px-3 text-sm font-semibold text-zinc-500 hover:text-red-600 transition"
+          >
+            <LogOut className="w-4 h-4" /> Cerrar sesión
+          </button>
+        </aside>
 
-        <div className="w-full">
+        {/* Contenido */}
+        <main className="min-w-0">
 
           {activeTab === 'orders' && (
-            <div className="">
-              <h1 className="text-2xl font-black text-zinc-900 dark:text-white mb-6 tracking-tight">Historial de Pedidos</h1>
-              
-              {isLoading ? (
-                <div className="flex items-center gap-3 px-2 py-8"><div className="w-5 h-5 border-2 border-zinc-200 border-t-zinc-500 dark:border-zinc-800 dark:border-t-zinc-400 rounded-full animate-spin"></div><span className="text-zinc-400 font-bold animate-pulse">Cargando tus pedidos...</span></div>
-              ) : orders.length === 0 ? (
-                <div className="p-8 text-center flex flex-col items-center">
-                  <Package className="w-12 h-12 text-zinc-200 dark:text-zinc-800 mb-6" />
-                  <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-2">Aún no compraste nada</h3>
-                  <p className="text-zinc-500 mb-8 max-w-sm">Tu historial de pedidos aparecerá acá una vez que hagas tu primera compra en la tienda.</p>
-                  <button onClick={() => navigate('/')} className="bg-black dark:bg-white text-white dark:text-black font-bold py-4 px-10 rounded-full hover:scale-105 transition-transform shadow-lg">
-                    Ir a la tienda
-                  </button>
+            <section>
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Pedidos</h1>
+                  <p className="text-sm text-zinc-500 mt-1">Seguí tus compras, descargá comprobantes y volvé a comprar.</p>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {(orders || []).map(order => (
-                    <div key={order.id} className="bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                      
-                      {/* Cabecera del Pedido */}
-                      <div className="bg-zinc-50/50 dark:bg-white/[0.02] px-6 py-5 border-b border-zinc-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-md uppercase tracking-widest ${getStatusColor(order.status)}`}>
-                            {order.status}
-                          </span>
-                          <span className="text-zinc-500 text-xs font-medium bg-white dark:bg-black px-3 py-1.5 rounded-md border border-zinc-200 dark:border-white/10 shadow-sm">
-                            {new Date(order?.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </span>
-                          <span className="text-zinc-400 dark:text-zinc-500 text-xs font-mono px-2 hidden sm:block">#{order?.id?.split('-')?.[0] || '...'}</span>
-                        </div>
-                        
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="text-sm flex flex-col sm:items-end">
-                              <span className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-widest font-bold mb-0.5">Total Pagado</span>
-                              <span className="font-black text-zinc-900 dark:text-white text-lg leading-none">${Number(order?.total || 0).toLocaleString('es-AR')}</span>
-                            </div>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handlePrintReceipt(order); }}
-                              className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-500/20 shadow-sm hover:scale-105"
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                              Comprobante
-                            </button>
-                          </div>
-                      </div>
+                {orders.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Filtrar pedidos">
+                    {ORDER_FILTERS.map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setOrderFilter(f.id)}
+                        aria-pressed={orderFilter === f.id}
+                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold border transition ${orderFilter === f.id
+                          ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-black dark:border-white'
+                          : 'border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-white/30'}`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                      {/* Lista de Items */}
-                      <div className="p-6 flex flex-col gap-4">
-                        {(order?.items || []).map(item => (
-                          <div key={item.id} onClick={() => navigate(`/producto/${item.id}`)} className="flex items-center gap-5 cursor-pointer group p-3 -mx-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
-                            <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl overflow-hidden flex items-center justify-center border border-zinc-200 dark:border-white/5 group-hover:border-zinc-300 dark:group-hover:border-white/20 transition-colors shrink-0">
-                              {item.imageUrl ? (
-                                <img loading="lazy" decoding="async" src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                              ) : (
-                                <Package className="w-6 h-6 text-zinc-300 dark:text-zinc-700" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-sm text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate pr-4">{item.name}</h4>
-                              <p className="text-xs text-zinc-500 mt-1 font-medium">{item.quantity} unidad{item.quantity > 1 ? 'es' : ''}</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <div className="text-sm font-black text-zinc-900 dark:text-white">{formatMoney(lineTotal(item))}</div>
-                              {item.quantity > 1 && <div className="text-[10px] text-zinc-400 font-medium mt-0.5">${Number(item.price).toLocaleString('es-AR')} c/u</div>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                    </div>
+              {isLoading ? (
+                <div className="space-y-4" aria-busy="true">
+                  {[0, 1].map(i => (
+                    <div key={i} className="h-64 rounded-2xl bg-white dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 animate-pulse" />
+                  ))}
+                </div>
+              ) : orders.length === 0 ? (
+                <EmptyState
+                  icon={Package}
+                  title="Todavía no compraste nada"
+                  text="Cuando hagas tu primera compra, la vas a poder seguir desde acá."
+                  action="Ir a la tienda"
+                  onAction={() => navigate('/')}
+                />
+              ) : visibleOrders.length === 0 ? (
+                <p className="py-16 text-center text-sm text-zinc-500">No hay pedidos en esta categoría.</p>
+              ) : (
+                <div className="space-y-5">
+                  {visibleOrders.map(order => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      onTrack={(o) => navigate(`/seguimiento?order=${o.id}`)}
+                      onReceipt={printReceipt}
+                      onReorder={handleReorder}
+                      onOpenProduct={(id) => navigate(`/producto/${id}`)}
+                    />
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           )}
 
-          
-            {activeTab === 'datos' && (
-              <div className="">
-                <h1 className="text-2xl font-black text-zinc-900 dark:text-white mb-6 tracking-tight">Mis Datos</h1>
-                
-                <form onSubmit={handleSaveDatos} className="bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-white/5 rounded-[2rem] p-8 shadow-sm space-y-8">
-                  {datosSuccess && <div className="bg-green-50 text-green-700 p-4 rounded-xl font-bold text-sm border border-green-100">{datosSuccess}</div>}
-                  {datosError && <div className="bg-red-50 text-red-700 p-4 rounded-xl font-bold text-sm border border-red-100">{datosError}</div>}
-                  
-                  {/* Password Change */}
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2"><Key className="w-4 h-4" /> Seguridad</h3>
-                    <div className="space-y-3">
-                      <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nueva contraseña (dejar en blanco para no cambiar)" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                    </div>
-                  </div>
-
-                  {/* Personal Data */}
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Datos Personales</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input type="text" value={datosForm.name} onChange={e => setDatosForm({...datosForm, name: e.target.value})} placeholder="Nombre Completo" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                      <input type="text" value={datosForm.document} onChange={e => setDatosForm({...datosForm, document: e.target.value})} placeholder="DNI / Documento" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                      <input type="tel" value={datosForm.phone} onChange={e => setDatosForm({...datosForm, phone: e.target.value})} placeholder="Teléfono" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-sm md:col-span-2" />
-                    </div>
-                  </div>
-
-                  {/* Address */}
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2"><MapPin className="w-4 h-4" /> Dirección de Envío Predeterminada</h3>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-3">
-                        <input type="text" value={datosForm.address.street} onChange={e => setDatosForm({...datosForm, address: {...datosForm.address, street: e.target.value}})} placeholder="Calle" className="col-span-2 w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                        <input type="text" value={datosForm.address.number} onChange={e => setDatosForm({...datosForm, address: {...datosForm.address, number: e.target.value}})} placeholder="Número" className="col-span-1 w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="text" value={datosForm.address.apartment} onChange={e => setDatosForm({...datosForm, address: {...datosForm.address, apartment: e.target.value}})} placeholder="Depto / Piso (Opcional)" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                        <input type="text" value={datosForm.address.zip} onChange={e => setDatosForm({...datosForm, address: {...datosForm.address, zip: e.target.value}})} placeholder="Código Postal" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="text" value={datosForm.address.city} onChange={e => setDatosForm({...datosForm, address: {...datosForm.address, city: e.target.value}})} placeholder="Ciudad" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                        <input type="text" value={datosForm.address.state} onChange={e => setDatosForm({...datosForm, address: {...datosForm.address, state: e.target.value}})} placeholder="Provincia" className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <button disabled={isSavingDatos} type="submit" className="w-full bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-70">
-                    {isSavingDatos ? <><Loader2 className="w-5 h-5 animate-spin"/> Guardando...</> : <><Save className="w-5 h-5"/> Guardar Cambios</>}
-                  </button>
-                </form>
+          {activeTab === 'favorites' && (
+            <section>
+              <div className="mb-6">
+                <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Favoritos</h1>
+                <p className="text-sm text-zinc-500 mt-1">Los productos que guardaste para después.</p>
               </div>
-            )}
 
-            {activeTab === 'favorites' && (
-            <div className="">
-              <h1 className="text-2xl font-black text-zinc-900 dark:text-white mb-6 tracking-tight">Tus Favoritos</h1>
-              
               {favoriteProducts.length === 0 ? (
-                <div className="p-8 text-center flex flex-col items-center">
-                  <Heart className="w-12 h-12 text-zinc-200 dark:text-zinc-800 mb-6" />
-                  <h3 className="text-2xl font-black text-zinc-900 dark:text-white mb-3">No tenés favoritos</h3>
-                  <p className="text-zinc-500 mb-8 max-w-sm">Marcá el corazón en los productos que te gusten para guardarlos acá.</p>
-                  <button onClick={() => navigate('/')} className="bg-black dark:bg-white text-white dark:text-black font-bold py-4 px-10 rounded-full hover:scale-105 transition-transform shadow-lg">
-                    Explorar Catálogo
-                  </button>
-                </div>
+                <EmptyState
+                  icon={Heart}
+                  title="No tenés favoritos"
+                  text="Tocá el corazón en los productos que te gusten para guardarlos acá."
+                  action="Explorar catálogo"
+                  onAction={() => navigate('/')}
+                />
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-4 sm:gap-x-6 gap-y-8">
                   {favoriteProducts.map(p => {
                     const finalPrice = p.discount > 0 ? p.price * (1 - p.discount / 100) : p.price;
                     return (
-                      <div key={p.id} className="flex flex-col group cursor-pointer" onClick={() => navigate(`/producto/${p.id}`)}>
-                        <div className="aspect-[4/5] bg-zinc-100 dark:bg-zinc-900 rounded-3xl relative overflow-hidden mb-5 border border-zinc-200 dark:border-white/5">
-                          {p.imageUrl ? (
-                            <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-zinc-50 dark:bg-black/20"><span className="text-zinc-300 text-xs font-bold uppercase tracking-widest">Sin foto</span></div>
-                          )}
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); toggleFavorite(p.id); }}
-                            className="absolute top-4 right-4 w-10 h-10 bg-white/90 dark:bg-black/50 backdrop-blur-md border border-zinc-200 dark:border-white/10 rounded-full flex items-center justify-center text-red-500 hover:scale-110 transition-transform shadow-sm"
-                            title="Quitar de favoritos"
-                          >
-                            <Heart className="w-5 h-5 fill-red-500" />
-                          </button>
-                        </div>
-                        <div className="px-2">
-                          <h3 className="font-bold text-zinc-900 dark:text-white text-base leading-tight mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">{p.name}</h3>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="font-black text-zinc-900 dark:text-white">${finalPrice.toLocaleString('es-AR')}</span>
-                            {p.discount > 0 && (
-                              <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through">${p.price.toLocaleString('es-AR')}</span>
+                      <div key={p.id} className="group relative">
+                        <button type="button" onClick={() => navigate(`/producto/${p.id}`)} className="block w-full text-left">
+                          <div className="aspect-[4/5] bg-zinc-100 dark:bg-zinc-900 rounded-2xl overflow-hidden mb-3">
+                            {p.imageUrl ? (
+                              <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><span className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Sin foto</span></div>
                             )}
                           </div>
-                        </div>
+                          <h3 className="font-semibold text-zinc-900 dark:text-white truncate">{p.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 text-sm">
+                            <span className="font-bold text-zinc-900 dark:text-white">{formatMoney(finalPrice)}</span>
+                            {p.discount > 0 && <span className="text-zinc-400 line-through">{formatMoney(p.price)}</span>}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleFavorite(p.id)}
+                          className="absolute top-3 right-3 w-9 h-9 bg-white/90 dark:bg-black/60 backdrop-blur rounded-full flex items-center justify-center text-red-500 hover:scale-110 transition-transform shadow-sm"
+                          aria-label={`Quitar ${p.name} de favoritos`}
+                        >
+                          <Heart className="w-4 h-4 fill-red-500" />
+                        </button>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
-            </div>
+            </section>
           )}
-        </div>
 
+          {activeTab === 'datos' && (
+            <section>
+              <div className="mb-6">
+                <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Mis datos</h1>
+                <p className="text-sm text-zinc-500 mt-1">Los usamos para completar tus próximas compras más rápido.</p>
+              </div>
+
+              <form onSubmit={handleSaveDatos} className="space-y-5">
+                {datosSuccess && <div role="status" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl font-semibold text-sm">{datosSuccess}</div>}
+                {datosError && <div role="alert" className="bg-red-500/10 text-red-700 dark:text-red-400 p-4 rounded-xl font-semibold text-sm">{datosError}</div>}
+
+                <FormSection icon={User} title="Datos personales">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label="Nombre completo" autoComplete="name" value={datosForm.name} onChange={e => setDatosForm({ ...datosForm, name: e.target.value })} />
+                    <Field label="DNI" inputMode="numeric" value={datosForm.document} onChange={e => setDatosForm({ ...datosForm, document: e.target.value })} />
+                    <Field label="Teléfono" type="tel" autoComplete="tel" className="sm:col-span-2" value={datosForm.phone} onChange={e => setDatosForm({ ...datosForm, phone: e.target.value })} />
+                  </div>
+                </FormSection>
+
+                <FormSection icon={MapPin} title="Dirección de envío predeterminada">
+                  <div className="grid grid-cols-3 gap-4">
+                    <Field label="Calle" autoComplete="address-line1" className="col-span-2" value={datosForm.address.street} onChange={e => setAddress('street', e.target.value)} />
+                    <Field label="Número" value={datosForm.address.number} onChange={e => setAddress('number', e.target.value)} />
+                    <Field label="Depto / Piso (opcional)" autoComplete="address-line2" className="col-span-3 sm:col-span-2" value={datosForm.address.apartment} onChange={e => setAddress('apartment', e.target.value)} />
+                    <Field label="Código postal" autoComplete="postal-code" className="col-span-3 sm:col-span-1" value={datosForm.address.zip} onChange={e => setAddress('zip', e.target.value)} />
+                    <Field label="Ciudad" autoComplete="address-level2" className="col-span-3 sm:col-span-2" value={datosForm.address.city} onChange={e => setAddress('city', e.target.value)} />
+                    <Field label="Provincia" autoComplete="address-level1" className="col-span-3 sm:col-span-1" value={datosForm.address.state} onChange={e => setAddress('state', e.target.value)} />
+                  </div>
+                </FormSection>
+
+                <FormSection icon={Key} title="Seguridad">
+                  <Field label="Nueva contraseña" type="password" autoComplete="new-password" placeholder="Dejala en blanco para no cambiarla" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                </FormSection>
+
+                <div className="flex justify-end">
+                  <button disabled={isSavingDatos} type="submit" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold px-8 py-3.5 hover:opacity-85 transition disabled:opacity-60">
+                    {isSavingDatos ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</> : <><Save className="w-4 h-4" /> Guardar cambios</>}
+                  </button>
+                </div>
+              </form>
+            </section>
+          )}
+        </main>
       </div>
+    </div>
+  );
+}
+
+function FormSection({ icon: Icon, title, children }) {
+  return (
+    <div className="bg-white dark:bg-[#0c0c0c] border border-zinc-200 dark:border-white/10 rounded-2xl p-5 sm:p-6">
+      <h2 className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white mb-5">
+        <Icon className="w-4 h-4 text-zinc-500" /> {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, title, text, action, onAction }) {
+  return (
+    <div className="bg-white dark:bg-[#0c0c0c] border border-dashed border-zinc-300 dark:border-white/15 rounded-2xl px-6 py-16 text-center flex flex-col items-center">
+      <span className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-white/5 flex items-center justify-center mb-5">
+        <Icon className="w-6 h-6 text-zinc-400" />
+      </span>
+      <h2 className="text-lg font-bold text-zinc-900 dark:text-white">{title}</h2>
+      <p className="text-sm text-zinc-500 mt-1.5 mb-6 max-w-sm">{text}</p>
+      <button type="button" onClick={onAction} className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold px-6 py-3 hover:opacity-85 transition">
+        {action} <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
   );
 }
