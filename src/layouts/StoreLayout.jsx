@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useSearchParams, useLocation } from 'react-r
 import { Search, User, ShoppingBag, X, Moon, Sun, Menu } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import CartDrawer from '../components/CartDrawer';
+import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../storeContact';
 
 export default function StoreLayout() {
   const { cart, toggleCart, user, isDarkMode, toggleDarkMode } = useStore();
@@ -155,12 +156,38 @@ export default function StoreLayout() {
         <Outlet />
       </main>
       
-      {/* Footer Minimalista */}
-      <footer className="border-t border-zinc-200 dark:border-white/5 py-12 px-4 md:px-8 lg:px-12 mt-auto flex flex-col md:flex-row items-center justify-between text-sm font-bold text-zinc-400 dark:text-zinc-600">
-        <div>© 2026 MINIMAL. Todos los derechos reservados.</div>
-        <div className="flex gap-6 mt-4 md:mt-0">
-          <Link to="#" className="hover:text-black dark:hover:text-white transition">Instagram</Link>
-          <Link to="#" className="hover:text-black dark:hover:text-white transition">Términos</Link>
+      <footer className="border-t border-zinc-200 dark:border-white/5 mt-auto">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-14 pb-8">
+          <div className="grid grid-cols-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr] gap-x-6 gap-y-10">
+            <div className="col-span-2 md:col-span-1">
+              <Link to="/" className="text-2xl font-black tracking-tighter text-black dark:text-white">MINIMAL.</Link>
+              <p className="mt-3 max-w-xs text-sm text-zinc-500">Prendas esenciales con diseño propio. Menos ruido, más diseño.</p>
+            </div>
+            {[
+              { title: 'Tienda', links: [{ to: '/', label: 'Catálogo' }, { to: '/nosotros', label: 'Nosotros' }] },
+              { title: 'Ayuda', links: [{ to: '/seguimiento', label: 'Seguí tu pedido' }, { to: user ? '/perfil' : '/login', label: 'Mi cuenta' }] }
+            ].map(col => (
+              <div key={col.title}>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-4">{col.title}</p>
+                <ul className="space-y-2.5 text-sm text-zinc-500">
+                  {col.links.map(l => (
+                    <li key={l.label}><Link to={l.to} className="hover:text-black dark:hover:text-white transition">{l.label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-4">Contacto</p>
+              <ul className="space-y-2.5 text-sm text-zinc-500">
+                <li><a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="hover:text-black dark:hover:text-white transition">WhatsApp</a></li>
+                {SUPPORT_EMAIL && <li><a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-black dark:hover:text-white transition break-all">{SUPPORT_EMAIL}</a></li>}
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 pt-6 border-t border-zinc-200 dark:border-white/5 flex flex-col sm:flex-row gap-3 justify-between text-xs text-zinc-400 dark:text-zinc-600">
+            <p>© {new Date().getFullYear()} MINIMAL. Todos los derechos reservados.</p>
+            <p>Pagos procesados de forma segura por MercadoPago.</p>
+          </div>
         </div>
       </footer>
     

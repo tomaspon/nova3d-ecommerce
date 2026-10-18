@@ -1,10 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ShoppingBag, ChevronDown, Image as ImageIcon, SearchX, Heart, Plus } from 'lucide-react';
+import { ChevronDown, Image as ImageIcon, SearchX, Heart, Plus, ArrowDown, CreditCard, Truck, MessageCircle, Sparkles } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { parseBannerUrl } from '../../bannerPosition';
 import { findPreset } from '../../bannerPresets';
 import CampaignHero from '../../components/CampaignHero';
+import { SUPPORT_WHATSAPP } from '../../storeContact';
+
+const BENEFITS = [
+  { icon: CreditCard, title: 'Pagá como quieras', text: 'MercadoPago o transferencia' },
+  { icon: Truck, title: 'Seguí tu pedido', text: 'Del pago a tu puerta, online' },
+  { icon: MessageCircle, title: 'Atención directa', text: 'Te respondemos por WhatsApp' }
+];
 
 export default function HomePage() {
   const { products, addToCart, favorites, toggleFavorite, storeSettings, categories, isLoading } = useStore();
@@ -147,12 +154,65 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* PRESENTACIÓN DE MARCA (cuando no hay campaña ni búsqueda) */}
+      {!storeSettings?.campaign_active && !searchQuery && categoryFilter === 'all' && (
+        <section className="border-b border-zinc-200 dark:border-white/5">
+          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-14 md:py-20 lg:py-24 grid md:grid-cols-[minmax(0,1fr)_auto] gap-8 md:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-4">Nueva colección</p>
+              <h1 className="text-[clamp(2.5rem,7vw,6rem)] font-black tracking-tighter leading-[0.92] text-zinc-900 dark:text-white">
+                Menos ruido.<br />
+                <span className="text-zinc-400 dark:text-zinc-600">Más diseño.</span>
+              </h1>
+              <p className="mt-6 max-w-md text-zinc-600 dark:text-zinc-400 md:text-lg">
+                Prendas esenciales con diseño propio, pensadas para usarse todos los días.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}
+              className="justify-self-start md:justify-self-end inline-flex items-center gap-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold px-7 py-4 hover:opacity-85 transition"
+            >
+              Ver productos <ArrowDown className="w-4 h-4" />
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* BENEFICIOS */}
+      {!searchQuery && (
+        <div className="border-b border-zinc-200 dark:border-white/5">
+          <ul className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200 dark:divide-white/5">
+            {BENEFITS.map(({ icon: Icon, title, text }) => (
+              <li key={title} className="flex items-center gap-3.5 py-4 sm:py-5 sm:px-6 first:sm:pl-0">
+                <Icon className="w-5 h-5 text-zinc-900 dark:text-white shrink-0" strokeWidth={1.75} />
+                <div>
+                  <p className="text-sm font-bold text-zinc-900 dark:text-white">{title}</p>
+                  <p className="text-xs text-zinc-500">{text}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* HEADER DEL CATÁLOGO */}
-      <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-6 lg:pt-8">
-        
-        {/* Filtros de Categoría (Pills) */}
-        {storeCategories.length > 0 && (
-          <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-6 pb-1">
+      <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-10 lg:pt-14">
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
+          <div>
+            <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 tracking-[0.2em] uppercase mb-2">Inicio / Catálogo {categoryFilter !== 'all' ? `/ ${categoryFilter}` : ''}</div>
+            <h2 className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+              {searchQuery ? `Resultados para "${searchQuery}"` : categoryFilter !== 'all' ? categoryFilter : 'Todos los productos'}
+            </h2>
+          </div>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm">{activeProducts.length} {activeProducts.length === 1 ? 'producto' : 'productos'}</p>
+        </div>
+
+        {/* Barra de herramientas: categorías + orden */}
+        <div className="flex items-center justify-between gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-8">
+        {storeCategories.length > 0 ? (
+          <div className="flex overflow-x-auto hide-scrollbar gap-2 min-w-0">
             <button
               onClick={() => {
                 setSearchParams(prev => {
@@ -187,23 +247,15 @@ export default function HomePage() {
               </button>
             ))}
           </div>
-        )}
+        ) : <div />}
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
-          <div>
-            <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 tracking-[0.2em] uppercase mb-1">Inicio / Catálogo {categoryFilter !== 'all' ? `/ ${categoryFilter}` : ''}</div>
-            <h1 className="text-3xl font-black text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight transition-colors">
-              {searchQuery ? `Resultados para "${searchQuery}"` : categoryFilter !== 'all' ? categoryFilter : 'Catálogo General'}
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Mostrando {activeProducts.length} {activeProducts.length === 1 ? 'producto disponible' : 'productos disponibles'}</p>
-          </div>
-          
-          <div className="relative" ref={sortRef}>
-            <button 
+          <div className="relative shrink-0" ref={sortRef}>
+            <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className="flex items-center gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 px-6 py-2.5 rounded-full text-sm font-bold text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm"
+              aria-expanded={isSortOpen}
+              className="flex items-center gap-2 px-2 py-2 text-sm font-bold text-zinc-900 dark:text-white hover:opacity-70 transition"
             >
-              <span className="text-zinc-500 dark:text-zinc-400 font-medium">Ordenar por:</span> {currentSortLabel}
+              <span className="hidden sm:inline text-zinc-500 dark:text-zinc-400 font-medium">Ordenar:</span> {currentSortLabel}
               <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
             </button>
             
@@ -243,7 +295,7 @@ export default function HomePage() {
             <p className="text-zinc-500 dark:text-zinc-400 max-w-md">Intentá ajustar tu búsqueda o explorá otras categorías para encontrar lo que buscás.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6 lg:gap-x-8">
             {activeProducts.map(product => {
               const finalPrice = product.price * (1 - (product.discount || 0) / 100);
               const isFavorite = favorites.includes(product.id);
@@ -301,7 +353,7 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm md:text-base leading-tight mb-0.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">{product.name}</h3>
+                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm md:text-base leading-tight mb-0.5 group-hover:underline underline-offset-4 truncate">{product.name}</h3>
                   {product.category && <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">{product.category}</span>}
                   
                   <div className="flex items-center gap-2">
@@ -313,6 +365,26 @@ export default function HomePage() {
                 </div>
               );
             })}
+
+            {/* Con pocos productos la grilla queda vacía: invitamos a enterarse de lo próximo */}
+            {!searchQuery && activeProducts.length < 4 && (
+              <a
+                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('¡Hola! Quiero enterarme de los próximos lanzamientos de MINIMAL.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group col-span-1 sm:col-span-2 self-start aspect-[4/5] sm:aspect-[8.2/5] rounded-2xl md:rounded-3xl border border-dashed border-zinc-300 dark:border-white/15 p-4 sm:p-6 md:p-8 flex flex-col justify-between hover:border-zinc-500 dark:hover:border-white/40 transition-colors"
+              >
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-400" strokeWidth={1.75} />
+                <div>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2 sm:mb-3">Próximamente</p>
+                  <p className="text-lg sm:text-xl md:text-3xl font-black tracking-tight text-zinc-900 dark:text-white leading-tight">Nuevos diseños en camino.</p>
+                  <p className="hidden sm:block mt-3 text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">Escribinos y te avisamos cuando salgan, antes que nadie.</p>
+                  <span className="mt-3 sm:mt-5 inline-flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-white underline underline-offset-4 decoration-zinc-400 group-hover:decoration-current">
+                    Avisame por WhatsApp
+                  </span>
+                </div>
+              </a>
+            )}
           </div>
         )}
       </section>
