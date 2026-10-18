@@ -3,6 +3,12 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark, .dark *));
 
+/* Plus Jakarta Sans llega hasta 800: "font-black" (900) hacía que el navegador engordara
+   las letras artificialmente y se pegaran entre sí. Lo apuntamos al grosor real. */
+@theme {
+  --font-weight-black: 800;
+}
+
 :root {
   color-scheme: light dark;
 }
@@ -16,6 +22,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-synthesis-weight: none;
   /* El color-scheme fuerza que las barras de scroll nativas se vean oscuras */
 }
 
