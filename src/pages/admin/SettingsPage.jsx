@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { supabase } from '../../supabaseClient';
 import { parseBannerUrl, buildBannerUrl, DEFAULT_BANNER_Y } from '../../bannerPosition';
+import { BANNER_PRESETS, isPresetBanner } from '../../bannerPresets';
 import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -61,6 +62,14 @@ export default function SettingsPage() {
   const handleBannerPointerUp = () => {
     bannerDragRef.current = null;
   };
+
+  // Elegir un banner de temporada: se usa centrado y, si la campaña no tiene nombre, se propone uno
+  const selectBannerPreset = (preset) => {
+    setCampaignImageUrl(preset.src);
+    setCampaignImageY(DEFAULT_BANNER_Y);
+    if (!campaignName.trim()) setCampaignName(preset.suggestedName);
+  };
+  const isCustomBanner = Boolean(campaignImageUrl) && !isPresetBanner(campaignImageUrl);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -269,6 +278,46 @@ export default function SettingsPage() {
 
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Imagen de Portada (Banner)</label>
+
+                      {/* Banners de temporada listos para usar, o una imagen propia */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2" role="radiogroup" aria-label="Banner de la campaña">
+                        {BANNER_PRESETS.map(preset => {
+                          const isSelected = campaignImageUrl === preset.src;
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              onClick={() => selectBannerPreset(preset)}
+                              className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-indigo-500' : 'border-white/10 hover:border-white/30'}`}
+                            >
+                              <img src={preset.src} alt="" className="w-full h-full object-cover" />
+                              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-3 pb-1 text-[11px] font-bold text-white text-left">
+                                {preset.label}
+                              </span>
+                              {isSelected && <CheckCircle2 className="absolute top-1 right-1 w-4 h-4 text-indigo-400 drop-shadow" />}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isCustomBanner}
+                          onClick={() => !isUploading && fileInputRef.current?.click()}
+                          className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 border-dashed transition flex items-center justify-center gap-1.5 text-[11px] font-bold ${isCustomBanner ? 'border-indigo-500 text-indigo-300' : 'border-white/15 text-zinc-400 hover:border-white/30 hover:text-white'}`}
+                        >
+                          {isCustomBanner ? (
+                            <>
+                              <img src={campaignImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                              <span className="relative bg-black/70 rounded px-1.5 py-0.5 text-white">Tu imagen</span>
+                            </>
+                          ) : (
+                            <><Upload className="w-3.5 h-3.5" /> Subir propia</>
+                          )}
+                        </button>
+                      </div>
+
                       {campaignImageUrl && !isUploading ? (
                         <>
                           {/* Con imagen cargada, la caja sirve para encuadrar: se arrastra en vertical.
