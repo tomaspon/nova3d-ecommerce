@@ -3,6 +3,8 @@ import { ShoppingBag, ChevronDown, Image as ImageIcon, SearchX, Heart, Plus } fr
 import { useStore } from '../../context/StoreContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { parseBannerUrl } from '../../bannerPosition';
+import { findPreset } from '../../bannerPresets';
+import CampaignHero from '../../components/CampaignHero';
 
 export default function HomePage() {
   const { products, addToCart, favorites, toggleFavorite, storeSettings, categories, isLoading } = useStore();
@@ -47,6 +49,9 @@ export default function HomePage() {
   // En la tienda solo se muestran las categorías que tienen productos a la venta
   const storeCategories = categories.filter(cat => activeProducts.some(p => p.category === cat));
   const campaignBanner = parseBannerUrl(storeSettings?.campaign_image_url);
+  const campaignPreset = findPreset(storeSettings?.campaign_image_url);
+  // La oferta del banner sale de los productos reales de la campaña
+  const campaignMaxDiscount = Math.max(0, ...campaignProducts.map(p => Number(p.discount) || 0));
 
   if (categoryFilter !== 'all') {
     activeProducts = activeProducts.filter(p => p.category === categoryFilter);
@@ -69,8 +74,21 @@ export default function HomePage() {
       {storeSettings?.campaign_active && !searchQuery && (
         <section className="bg-white dark:bg-transparent border-b border-zinc-200 dark:border-white/5 transition-colors">
           
-          {/* Banner Hero (Opcional) */}
-          {storeSettings.campaign_image_url && (
+          {/* Banner de temporada diseñado (preset) */}
+          {campaignPreset && (
+            <div className="w-full h-64 sm:h-72 lg:h-96">
+              <CampaignHero
+                preset={campaignPreset}
+                title={storeSettings.campaign_name}
+                maxDiscount={campaignMaxDiscount}
+                productCount={campaignProducts.length}
+                onCtaClick={() => document.getElementById(campaignProducts.length > 0 ? 'ofertas' : 'catalogo')?.scrollIntoView({ behavior: 'smooth' })}
+              />
+            </div>
+          )}
+
+          {/* Banner con imagen propia */}
+          {storeSettings.campaign_image_url && !campaignPreset && (
             <div className="w-full h-40 md:h-64 lg:h-80 relative">
               <img fetchPriority="high" src={campaignBanner.src} alt="Campaña promocional" className="w-full h-full object-cover" style={{ objectPosition: `50% ${campaignBanner.y}%` }} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
@@ -84,7 +102,7 @@ export default function HomePage() {
 
           {/* Carrusel de Productos Seleccionados */}
           {campaignProducts.length > 0 && (
-            <div className={`max-w-screen-2xl mx-auto px-6 lg:px-12 py-8 ${storeSettings.campaign_image_url ? 'pt-6' : ''}`}>
+            <div id="ofertas" className={`scroll-mt-24 max-w-screen-2xl mx-auto px-6 lg:px-12 py-8 ${storeSettings.campaign_image_url ? 'pt-6' : ''}`}>
               {!storeSettings.campaign_image_url && (
                 <div className="mb-4 flex items-end justify-between">
                   <div>
@@ -130,7 +148,7 @@ export default function HomePage() {
       )}
 
       {/* HEADER DEL CATÁLOGO */}
-      <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-6 lg:pt-8">
+      <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-6 lg:pt-8">
         
         {/* Filtros de Categoría (Pills) */}
         {storeCategories.length > 0 && (

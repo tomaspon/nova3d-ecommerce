@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { supabase } from '../../supabaseClient';
 import { parseBannerUrl, buildBannerUrl, DEFAULT_BANNER_Y } from '../../bannerPosition';
-import { BANNER_PRESETS, isPresetBanner } from '../../bannerPresets';
+import { BANNER_PRESETS, isPresetBanner, findPreset, presetValue, isDefaultTitle } from '../../bannerPresets';
+import CampaignHero from '../../components/CampaignHero';
+import { SEASON_ART } from '../../components/campaignArt';
 import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -63,13 +65,17 @@ export default function SettingsPage() {
     bannerDragRef.current = null;
   };
 
-  // Elegir un banner de temporada: se usa centrado y, si la campaña no tiene nombre, se propone uno
+  // Elegir un banner de temporada. Si el nombre de la campaña es uno de los títulos por defecto
+  // (o está vacío), se reemplaza por el del nuevo; si lo escribió el admin, se respeta.
   const selectBannerPreset = (preset) => {
-    setCampaignImageUrl(preset.src);
+    setCampaignImageUrl(presetValue(preset));
     setCampaignImageY(DEFAULT_BANNER_Y);
-    if (!campaignName.trim()) setCampaignName(preset.suggestedName);
+    if (isDefaultTitle(campaignName)) setCampaignName(preset.defaultTitle);
   };
+  const selectedPreset = findPreset(campaignImageUrl);
   const isCustomBanner = Boolean(campaignImageUrl) && !isPresetBanner(campaignImageUrl);
+  const campaignProducts = products.filter(p => p.in_campaign && p.is_active);
+  const campaignMaxDiscount = Math.max(0, ...campaignProducts.map(p => Number(p.discount) || 0));
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -282,7 +288,7 @@ export default function SettingsPage() {
                       {/* Banners de temporada listos para usar, o una imagen propia */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2" role="radiogroup" aria-label="Banner de la campaña">
                         {BANNER_PRESETS.map(preset => {
-                          const isSelected = campaignImageUrl === preset.src;
+                          const isSelected = selectedPreset?.id === preset.id;
                           return (
                             <button
                               key={preset.id}
@@ -292,9 +298,14 @@ export default function SettingsPage() {
                               onClick={() => selectBannerPreset(preset)}
                               className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-indigo-500' : 'border-white/10 hover:border-white/30'}`}
                             >
-                              <img src={preset.src} alt="" className="w-full h-full object-cover" />
-                              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-3 pb-1 text-[11px] font-bold text-white text-left">
-                                {preset.label}
+                              {/* Miniatura: color de la temporada, uno de sus objetos y el nombre */}
+                              <span className="absolute inset-0 flex items-center justify-between gap-1 px-2" style={{ backgroundColor: preset.colors.bg }}>
+                                <span className="text-sm leading-none" style={{ fontFamily: "'Pacifico', cursive", color: preset.colors.script }}>
+                                  {preset.label}
+                                </span>
+                                <span className="w-7 shrink-0">
+                                  {(() => { const { C, props } = SEASON_ART[preset.id].narrow[0]; return <C {...props} />; })()}
+                                </span>
                               </span>
                               {isSelected && <CheckCircle2 className="absolute top-1 right-1 w-4 h-4 text-indigo-400 drop-shadow" />}
                             </button>
@@ -318,7 +329,23 @@ export default function SettingsPage() {
                         </button>
                       </div>
 
-                      {campaignImageUrl && !isUploading ? (
+                      {selectedPreset && !isUploading ? (
+                        <>
+                          {/* Vista previa real del banner, con el nombre de la campaña y la oferta de los productos elegidos */}
+                          <div className="w-full h-56 rounded-xl overflow-hidden border border-white/10">
+                            <CampaignHero
+                              preset={selectedPreset}
+                              title={campaignName}
+                              maxDiscount={campaignMaxDiscount}
+                              productCount={campaignProducts.length}
+                              as="p"
+                            />
+                          </div>
+                          <p className="text-xs text-zinc-500">
+                            El titular es el nombre de la campaña: la última palabra va en letra script (por ejemplo "Summer Sale" o "Print Sale"). La oferta se calcula sola con el mayor descuento de los productos destacados abajo.
+                          </p>
+                        </>
+                      ) : campaignImageUrl && !isUploading ? (
                         <>
                           {/* Con imagen cargada, la caja sirve para encuadrar: se arrastra en vertical.
                               Usa la proporción del banner en escritorio, que es donde más se recorta. */}
