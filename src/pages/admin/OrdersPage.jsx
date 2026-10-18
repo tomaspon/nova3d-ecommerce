@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
+import { formatMoney } from '../../pricing';
 import { useStore } from '../../context/StoreContext';
 import { Search, Package, Clock, CheckCircle2, ChevronDown, ChevronUp, User, SearchX, Calendar, X } from 'lucide-react';
 
@@ -192,7 +193,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Buscador y Filtros */}
-      <div className="bg-black border border-white/10 rounded-2xl p-3 flex flex-row gap-2">
+      <div className="bg-black border border-white/10 rounded-2xl p-3 sm:p-4 flex flex-row gap-2 sm:gap-3">
         
         {/* Buscador de Texto */}
         <div className="relative flex-1 min-w-0">
@@ -232,7 +233,7 @@ export default function OrdersPage() {
 
       {/* Lista de Pedidos */}
       <div className="bg-black border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+        <div className="px-4 py-3.5 sm:px-6 sm:py-4 border-b border-white/10 flex items-center justify-between">
           <h2 className="font-bold text-white flex items-center gap-2">
             <Package className="w-5 h-5 text-indigo-400" />
             Ventas Registradas
@@ -256,7 +257,7 @@ export default function OrdersPage() {
             )}
           </div>
         ) : (
-          <div className="">
+          <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
             {filteredOrders.map(order => {
               const date = new Date(order.created_at).toLocaleDateString('es-AR', {
                 day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -267,15 +268,15 @@ export default function OrdersPage() {
               const isExpanded = expandedOrderId === order.id;
 
               return (
-                                  <div key={order.id} className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-4 flex flex-col hover:bg-white/[0.02] transition-colors mb-4 cursor-pointer group" onClick={() => toggleExpand(order.id)}>
+                                  <div key={order.id} className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col hover:bg-white/[0.03] hover:border-white/15 transition-colors cursor-pointer group" onClick={() => toggleExpand(order.id)}>
                     
                     {/* Top Row: Avatar, Name & Status */}
-                    <div className="flex items-start gap-3 mb-3">
+                    <div className="flex items-start gap-3 sm:gap-4 mb-4">
                       <div className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
                         <User className="w-5 h-5 text-indigo-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mb-1">
                           <span className="font-bold text-white text-base truncate max-w-full">{order.customer_name}</span>
                           {order.status?.includes('cancelado') ? (
                             <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider shrink-0">
@@ -290,7 +291,7 @@ export default function OrdersPage() {
                     </div>
 
                     {/* Mid Row: Meta info */}
-                    <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-zinc-500 font-mono bg-white/5 rounded-lg p-2.5 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-zinc-500 font-mono bg-white/5 rounded-lg px-3 py-2.5 mb-4">
                       <span>{date}</span>
                       <span className="hidden sm:inline">•</span>
                       <span className="text-zinc-300 font-bold">ID: {order.id.split('-')[0]}</span>
@@ -299,18 +300,18 @@ export default function OrdersPage() {
                     {/* Bottom Row: Pricing & Actions */}
                     <div className="flex items-center justify-between mt-auto border-t border-white/5 pt-4">
                       <div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Total ({totalItems} prod)</div>
-                        <div className="text-lg font-black text-emerald-400">${Number(order.total).toFixed(0)}</div>
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Total ({totalItems} prod)</div>
+                        <div className="text-lg font-black text-emerald-400">{formatMoney(order.total)}</div>
                       </div>
                       
-                      <button className="p-2 text-zinc-500 group-hover:text-white transition">
+                      <button type="button" aria-label={isExpanded ? 'Ocultar detalle' : 'Ver detalle'} className="-mr-2 p-2 text-zinc-500 group-hover:text-white transition">
                         {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                       </button>
                     </div>
 
                     {isExpanded && (
-                    <div className="-mx-4 -mb-4 mt-4 p-4 bg-black/40 border-t border-white/5 rounded-b-2xl animate-in slide-in-from-top-2 duration-200 cursor-default" onClick={(e) => e.stopPropagation()}>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="-mx-4 -mb-4 sm:-mx-5 sm:-mb-5 mt-4 p-4 sm:p-6 bg-black/40 border-t border-white/5 rounded-b-2xl animate-in slide-in-from-top-2 duration-200 cursor-default" onClick={(e) => e.stopPropagation()}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         
                         {/* Info del Cliente y Logística */}
                         <div>
