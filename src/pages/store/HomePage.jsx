@@ -157,28 +157,19 @@ export default function HomePage() {
       {/* PRESENTACIÓN DE MARCA (cuando no hay campaña ni búsqueda) */}
       {!storeSettings?.campaign_active && !searchQuery && categoryFilter === 'all' && (
         <section className="border-b border-zinc-200 dark:border-white/5">
-          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-16 md:py-24 lg:py-28">
-            <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500 mb-6 md:mb-8">
-              <span className="w-8 h-px bg-zinc-400 dark:bg-zinc-600" aria-hidden="true" />
-              Nueva colección
-            </p>
-            {/* El titular muestra la idea: lo que sobra, fino y apagado; lo que importa, con peso */}
-            <h1 className="text-[clamp(2.75rem,8vw,7.5rem)] leading-[0.95] tracking-[-0.035em]">
-              <span className="block font-light text-zinc-400 dark:text-zinc-500">Menos ruido.</span>
-              <span className="block font-extrabold text-zinc-900 dark:text-white">Más diseño.</span>
+          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-12 md:py-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            {/* Lo que sobra, fino y apagado; lo que importa, con peso */}
+            <h1 className="text-[clamp(2.25rem,5vw,4rem)] leading-none tracking-[-0.03em]">
+              <span className="block md:inline font-light text-zinc-400 dark:text-zinc-500">Menos ruido. </span>
+              <span className="block md:inline font-extrabold text-zinc-900 dark:text-white whitespace-nowrap">Más diseño.</span>
             </h1>
-            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
-              <p className="max-w-sm text-zinc-600 dark:text-zinc-400 md:text-lg leading-relaxed">
-                Prendas esenciales con diseño propio, pensadas para usarse todos los días.
-              </p>
-              <button
-                type="button"
-                onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}
-                className="self-start sm:self-auto shrink-0 inline-flex items-center gap-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold px-7 py-4 hover:opacity-85 transition"
-              >
-                Ver productos <ArrowDown className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}
+              className="self-start md:self-auto shrink-0 inline-flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-white underline underline-offset-4 decoration-zinc-400 hover:decoration-current transition"
+            >
+              Ver productos <ArrowDown className="w-4 h-4" />
+            </button>
           </div>
         </section>
       )}
