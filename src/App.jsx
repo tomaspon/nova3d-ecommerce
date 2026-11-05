@@ -24,6 +24,7 @@ const OrdersPage = lazy(() => import('./pages/admin/OrdersPage'));
 const ShippingPage = lazy(() => import('./pages/admin/ShippingPage'));
 const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage'));
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
+const UsersPage = lazy(() => import('./pages/admin/UsersPage'));
 
 const adminFallback = <div className="min-h-screen bg-zinc-950" />;
 
@@ -52,6 +53,7 @@ function App() {
             <Route path="orders" element={<OrdersPage />} />
             <Route path="shipping" element={<ShippingPage />} />
             <Route path="categories" element={<CategoriesPage />} />
+            <Route path="users" element={<UsersPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>

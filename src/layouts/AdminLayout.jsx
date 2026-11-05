@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 export default function AdminLayout() {
@@ -17,6 +17,7 @@ export default function AdminLayout() {
     { name: 'Categorías', path: '/admin/categories', icon: Tag },
     { name: 'Órdenes', path: '/admin/orders', icon: Box },
     { name: 'Envíos', path: '/admin/shipping', icon: Truck },
+    { name: 'Usuarios', path: '/admin/users', icon: Users },
     { name: 'Config.', path: '/admin/settings', icon: Settings },
   ];
 
