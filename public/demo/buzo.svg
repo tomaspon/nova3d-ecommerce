@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <style>
+    .g{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+    .s{animation:tw 2.4s ease-in-out infinite}.s2{animation-delay:1.2s}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+    @keyframes tw{0%,100%{opacity:.3}50%{opacity:1}}
+    @media (prefers-reduced-motion:reduce){.g,.s{animation:none}}
+  </style>
+  <rect width="800" height="1000" fill="#ECEAFF"/>
+  <circle cx="140" cy="190" r="60" fill="#DCD8FF"/>
+  <circle cx="680" cy="830" r="52" fill="#DCD8FF"/>
+  <path class="s" d="M660 230 Q660 260 690 260 Q660 260 660 290 Q660 260 630 260 Q660 260 660 230Z" fill="#7C6CF2"/>
+  <path class="s s2" d="M140 760 Q140 784 164 784 Q140 784 140 808 Q140 784 116 784 Q140 784 140 760Z" fill="#7C6CF2"/>
+  <ellipse cx="400" cy="870" rx="220" ry="18" fill="#1E1B2E" opacity=".08"/>
+  <g class="g" fill="none" stroke="#1E1B2E" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M285 320 L345 288 L455 288 L515 320 L600 440 L622 750 L568 758 L548 490 L520 465 L520 790 L280 790 L280 465 L252 490 L232 758 L178 750 L200 440 Z" fill="#7C6CF2"/>
+    <path d="M345 288 Q330 195 400 185 Q470 195 455 288 Q400 320 345 288 Z" fill="#6A5AE6"/>
+    <path d="M368 282 Q362 225 400 220 Q438 225 432 282 Q400 300 368 282 Z" fill="#4B3FBF"/>
+    <path d="M388 305 L384 395 M412 305 L416 395" stroke-width="5"/>
+    <circle cx="384" cy="402" r="6" fill="#FFFFFF" stroke-width="4"/>
+    <circle cx="416" cy="402" r="6" fill="#FFFFFF" stroke-width="4"/>
+    <path d="M318 605 L482 605 L512 712 L288 712 Z" fill="#6A5AE6"/>
+    <path d="M282 760 L518 760 M182 725 L236 732 M564 732 L618 725" stroke-width="5"/>
+  </g>
+</svg>

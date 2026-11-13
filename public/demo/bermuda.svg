@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <style>
+    .g{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+    .s{animation:tw 2.4s ease-in-out infinite}.s2{animation-delay:1.2s}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+    @keyframes tw{0%,100%{opacity:.3}50%{opacity:1}}
+    @media (prefers-reduced-motion:reduce){.g,.s{animation:none}}
+  </style>
+  <rect width="800" height="1000" fill="#FFF4D9"/>
+  <circle cx="140" cy="230" r="66" fill="#FFE7A8"/>
+  <circle cx="670" cy="800" r="50" fill="#FFE7A8"/>
+  <path class="s" d="M650 260 Q650 290 680 290 Q650 290 650 320 Q650 290 620 290 Q650 290 650 260Z" fill="#E89A10"/>
+  <path class="s s2" d="M150 730 Q150 754 174 754 Q150 754 150 778 Q150 754 126 754 Q150 754 150 730Z" fill="#E89A10"/>
+  <ellipse cx="400" cy="790" rx="200" ry="18" fill="#1E1B2E" opacity=".08"/>
+  <g class="g" fill="none" stroke="#1E1B2E" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M245 360 L555 360 L582 680 L428 696 L400 500 L372 696 L218 680 Z" fill="#F5B83D"/>
+    <rect x="245" y="300" width="310" height="60" rx="6" fill="#E9A92A"/>
+    <path d="M285 300 L285 360 M515 300 L515 360 M352 300 L352 360 M448 300 L448 360" stroke-width="5"/>
+    <circle cx="400" cy="330" r="10" fill="#FFFFFF" stroke-width="4"/>
+    <path d="M400 360 L400 500 M422 370 Q426 460 400 500" stroke-width="5"/>
+    <path d="M258 366 Q318 392 318 452 M542 366 Q482 392 482 452" stroke-width="5"/>
+    <path d="M226 648 L376 662 M424 662 L574 648" stroke-width="5"/>
+  </g>
+</svg>

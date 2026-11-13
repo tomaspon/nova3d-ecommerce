@@ -27,7 +27,8 @@ export default function CampaignHero({ preset, title, maxDiscount = 0, productCo
         left: left !== undefined ? `${left}%` : undefined,
         right: right !== undefined ? `${right}%` : undefined,
         top: `${top}%`,
-        width: `${size}cqw`,
+        // Las composiciones se diseñaron para una proporción ~4:1; en banners más bajos se achican por el alto
+        width: `min(${size}cqw, ${(size * 4.2).toFixed(1)}cqh)`,
         transform: `rotate(${rotate}deg)`,
         filter: 'drop-shadow(0 0.6cqw 0.8cqw rgba(0,0,0,0.18))'
       }}
@@ -40,6 +41,8 @@ export default function CampaignHero({ preset, title, maxDiscount = 0, productCo
     <div
       className="@container relative w-full h-full overflow-hidden select-none"
       style={{
+        // Ancho y alto disponibles para las medidas internas (cqw / cqh)
+        containerType: 'size',
         backgroundColor: colors.bg,
         // Brillo detrás del titular + papel picado sutil
         backgroundImage: `radial-gradient(ellipse at center, ${colors.glow} 0%, transparent 60%), radial-gradient(${colors.confetti} 1.5px, transparent 1.6px)`,
@@ -54,22 +57,22 @@ export default function CampaignHero({ preset, title, maxDiscount = 0, productCo
       <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-[18cqw] @2xl:px-[30cqw]">
         <p
           className="leading-none -rotate-3"
-          style={{ fontFamily: SCRIPT_FONT, color: colors.script, fontSize: 'clamp(15px, 2.4cqw, 36px)' }}
+          style={{ fontFamily: SCRIPT_FONT, color: colors.script, fontSize: 'clamp(13px, min(2.4cqw, 10cqh), 36px)' }}
         >
           {preset.kicker}
         </p>
 
-        <Heading className="mt-[0.6cqw] leading-none">
+        <Heading className="mt-[min(0.6cqw,2.4cqh)] leading-none">
           <span
             className="block font-black uppercase tracking-tighter"
-            style={{ color: colors.title, fontSize: 'clamp(30px, 6.2cqw, 96px)', lineHeight: 0.95 }}
+            style={{ color: colors.title, fontSize: 'clamp(26px, min(6.2cqw, 24cqh), 96px)', lineHeight: 0.95 }}
           >
             {mainWords}
           </span>
           {scriptWord && (
             <span
               className="block -rotate-3 -mt-[0.4cqw]"
-              style={{ fontFamily: SCRIPT_FONT, color: colors.script, fontSize: 'clamp(28px, 5.2cqw, 80px)', lineHeight: 1.1 }}
+              style={{ fontFamily: SCRIPT_FONT, color: colors.script, fontSize: 'clamp(24px, min(5.2cqw, 20cqh), 80px)', lineHeight: 1.1 }}
             >
               {scriptWord}
             </span>
@@ -78,8 +81,8 @@ export default function CampaignHero({ preset, title, maxDiscount = 0, productCo
 
         {offer && (
           <p
-            className="mt-[0.8cqw] font-black uppercase tracking-tight"
-            style={{ color: colors.offer, fontSize: 'clamp(14px, 2cqw, 30px)' }}
+            className="mt-[min(0.8cqw,3cqh)] font-black uppercase tracking-tight"
+            style={{ color: colors.offer, fontSize: 'clamp(12px, min(2cqw, 8cqh), 30px)' }}
           >
             {offer}
           </p>
@@ -89,12 +92,12 @@ export default function CampaignHero({ preset, title, maxDiscount = 0, productCo
           type="button"
           onClick={onCtaClick}
           tabIndex={onCtaClick ? 0 : -1}
-          className="mt-[1.4cqw] rounded-full font-bold uppercase tracking-wider shadow-lg transition hover:scale-105"
+          className="mt-[min(1.4cqw,5cqh)] rounded-full font-bold uppercase tracking-wider shadow-lg transition hover:scale-105"
           style={{
             backgroundColor: colors.ctaBg,
             color: colors.ctaText,
-            fontSize: 'clamp(11px, 1.3cqw, 18px)',
-            padding: 'clamp(7px, 0.9cqw, 14px) clamp(16px, 2.4cqw, 36px)'
+            fontSize: 'clamp(10px, min(1.3cqw, 5.2cqh), 18px)',
+            padding: 'clamp(6px, min(0.9cqw, 3.6cqh), 14px) clamp(14px, min(2.4cqw, 9.6cqh), 36px)'
           }}
         >
           Comprar ahora

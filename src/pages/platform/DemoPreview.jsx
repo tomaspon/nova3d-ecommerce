@@ -5,11 +5,13 @@ import { Monitor, Smartphone, ExternalLink, Lock, MousePointerClick, RotateCw } 
 // real, en marco de computadora o de celular. Se carga recién cuando aparece en pantalla.
 
 const DEVICES = {
-  desktop: { label: 'Computadora', icon: Monitor, width: 1280, height: 800 },
-  mobile: { label: 'Celular', icon: Smartphone, width: 390, height: 800 }
+  // Alto pensado para que se vea el banner, las ofertas y el comienzo del catálogo
+  desktop: { label: 'Computadora', icon: Monitor, width: 1600, height: 1240 },
+  mobile: { label: 'Celular', icon: Smartphone, width: 390, height: 844 }
 };
 
-const PHONE_WIDTH = 300;
+const PHONE_WIDTH = 270;
+const DESKTOP_MAX_WIDTH = 960;
 
 export default function DemoPreview({ url, title }) {
   // La barra de dirección muestra la dirección real (sin "https://") y lleva a la tienda
@@ -63,7 +65,7 @@ export default function DemoPreview({ url, title }) {
 
   const spec = DEVICES[device];
   const isMobile = device === 'mobile';
-  const screenWidth = isMobile ? Math.min(boxWidth, PHONE_WIDTH) : boxWidth;
+  const screenWidth = Math.min(boxWidth, isMobile ? PHONE_WIDTH : DESKTOP_MAX_WIDTH);
   const scale = screenWidth > 0 ? screenWidth / spec.width : 0;
   const screenHeight = spec.height * scale;
 
@@ -90,7 +92,7 @@ export default function DemoPreview({ url, title }) {
   return (
     <div>
       {/* Controles */}
-      <div className="flex flex-wrap items-center justify-center sm:justify-between gap-3 mb-6">
+      <div className="mx-auto flex flex-wrap items-center justify-center sm:justify-between gap-3 mb-6" style={{ maxWidth: DESKTOP_MAX_WIDTH }}>
         <div className="inline-flex rounded-full bg-white/[0.06] border border-white/10 p-1" role="group" aria-label="Ver como">
           {Object.entries(DEVICES).map(([id, { label, icon: Icon }]) => (
             <button
@@ -144,7 +146,7 @@ export default function DemoPreview({ url, title }) {
           </div>
         ) : (
           // Ventana de navegador con la dirección de la tienda
-          <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/15 shadow-2xl shadow-black/60 bg-zinc-900">
+          <div className="relative mx-auto overflow-hidden rounded-2xl ring-1 ring-white/15 shadow-2xl shadow-black/60 bg-zinc-900" style={{ width: screenWidth || '100%', maxWidth: '100%' }}>
             <div className="h-11 flex items-center gap-4 px-4 bg-zinc-900 border-b border-white/5">
               <div className="flex gap-2" aria-hidden="true">
                 <span className="w-3 h-3 rounded-full bg-[#FF5F57]" />
