@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { StoreProvider } from './context/StoreContext';
+import { isPlatformHost } from './platformBrand';
 
 // Layouts
 import StoreLayout from './layouts/StoreLayout';
@@ -26,6 +27,12 @@ const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage'));
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
 const UsersPage = lazy(() => import('./pages/admin/UsersPage'));
 const PlatformPage = lazy(() => import('./pages/platform/PlatformPage'));
+const PlatformHome = lazy(() => import('./pages/platform/PlatformHome'));
+const ManualPage = lazy(() => import('./pages/admin/ManualPage'));
+
+// En el dominio de la plataforma la dirección principal es la página oficial;
+// en cualquier otro (tiendas, Vercel, localhost) es una tienda.
+const onPlatformHost = isPlatformHost(window.location.hostname);
 
 const adminFallback = <div className="min-h-screen bg-zinc-950" />;
 
@@ -36,7 +43,10 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={adminFallback}>
         <Routes>
-          {/* RUTA PÚBLICA: STOREFRONT */}
+          {/* RUTA PÚBLICA: STOREFRONT (o la página oficial, en el dominio de la plataforma) */}
+          {onPlatformHost ? (
+            <Route path="/" element={<PlatformHome />} />
+          ) : (
           <Route path="/" element={<StoreLayout />}>
             <Route index element={<HomePage />} />
             <Route path="producto/:id" element={<ProductDetailPage />} />
@@ -46,6 +56,10 @@ function App() {
             <Route path="perfil" element={<ProfilePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
+          )}
+
+          {/* Página oficial de la plataforma: vista previa en cualquier dominio */}
+          <Route path="/plataforma/inicio" element={<PlatformHome />} />
 
           {/* RUTA PRIVADA: PANEL DE PLATAFORMA (todas las tiendas) */}
           <Route path="/plataforma" element={<AdminAuth platformOnly><PlatformPage /></AdminAuth>} />
@@ -59,6 +73,7 @@ function App() {
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="ayuda" element={<ManualPage />} />
           </Route>
         </Routes>
         </Suspense>

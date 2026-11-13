@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users, Globe } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users, Globe, BookOpen } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
 import { isAdminUser } from '../adminAccess';
@@ -24,6 +24,7 @@ export default function AdminLayout() {
     // Cuentas de toda la plataforma: solo para su administrador
     ...(isPlatformAdmin ? [{ name: 'Usuarios', path: '/admin/users', icon: Users }] : []),
     { name: 'Config.', path: '/admin/settings', icon: Settings },
+    { name: 'Ayuda', path: '/admin/ayuda', icon: BookOpen },
   ];
 
   return (

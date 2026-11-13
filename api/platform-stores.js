@@ -109,15 +109,35 @@ export default async function handler(req, res) {
       const invalidSlug = slugError(slug);
       if (invalidSlug) throw new UserError(invalidSlug);
 
-      const { data: store, error } = await supabase.from('stores').insert({ name, slug, template }).select().single();
+      // Plantilla: otra tienda de la que se copian la marca y la configuración (envío, campaña,
+      // banner). Los productos, pedidos y dueños no se copian: la tienda nueva arranca vacía.
+      let base = null;
+      let baseSettings = {};
+      if (body.copyFrom) {
+        base = await getStore(supabase, body.copyFrom);
+        const { data, error } = await supabase.from('store_settings').select('*').eq('store_id', base.id).maybeSingle();
+        if (error) throw error;
+        if (data) {
+          baseSettings = {
+            shipping_cost: data.shipping_cost,
+            campaign_active: data.campaign_active,
+            campaign_name: data.campaign_name,
+            campaign_image_url: data.campaign_image_url
+          };
+        }
+      }
+
+      const { data: store, error } = await supabase.from('stores')
+        .insert({ name, slug, template, branding: base?.branding || {} })
+        .select().single();
       if (error) {
         if (error.code === '23505') throw new UserError('Ya existe una tienda con ese enlace. Elegí otro.', 409);
         throw error;
       }
-      const { error: settingsError } = await supabase.from('store_settings').insert({ store_id: store.id, store_name: name });
+      const { error: settingsError } = await supabase.from('store_settings').insert({ ...baseSettings, store_id: store.id, store_name: name });
       if (settingsError) throw settingsError;
 
-      let message = `Tienda "${name}" creada.`;
+      let message = base ? `Tienda "${name}" creada con la configuración de ${base.name}.` : `Tienda "${name}" creada.`;
       if (String(body.ownerEmail || '').trim()) {
         message += ' ' + await addOwner(supabase, req, store, String(body.ownerEmail));
       }

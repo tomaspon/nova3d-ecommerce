@@ -175,7 +175,7 @@ export default function PlatformPage() {
         </p>
       </main>
 
-      {dialog?.type === 'create' && <CreateStoreDialog onClose={() => setDialog(null)} onSubmit={(payload) => run({ action: 'create', ...payload })} />}
+      {dialog?.type === 'create' && <CreateStoreDialog stores={stores} onClose={() => setDialog(null)} onSubmit={(payload) => run({ action: 'create', ...payload })} />}
       {dialog?.type === 'domain' && <DomainDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(domain) => run({ action: 'setDomain', storeId: dialog.store.id, domain })} />}
       {dialog?.type === 'owner' && <OwnerDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(email) => run({ action: 'addOwner', storeId: dialog.store.id, email })} />}
 
@@ -345,12 +345,14 @@ function useSubmit(onSubmit) {
   return [isSaving, submit];
 }
 
-function CreateStoreDialog({ onClose, onSubmit }) {
+function CreateStoreDialog({ stores, onClose, onSubmit }) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [template, setTemplate] = useState('general');
   const [ownerEmail, setOwnerEmail] = useState('');
+  // Por defecto arranca con la configuración de la tienda principal (MINIMAL), sin sus productos
+  const [copyFrom, setCopyFrom] = useState(() => stores.find(s => s.isDefault)?.id || '');
   const [isSaving, submit] = useSubmit(onSubmit);
 
   const finalSlug = slugTouched ? slug : slugify(name);
@@ -358,7 +360,7 @@ function CreateStoreDialog({ onClose, onSubmit }) {
 
   return (
     <Dialog title="Nueva tienda" onClose={onClose}>
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit({ name, slug: finalSlug, template, ownerEmail }); }}>
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit({ name, slug: finalSlug, template, ownerEmail, copyFrom: copyFrom || null }); }}>
         <label className="block">
           <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Nombre</span>
           <input autoFocus required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} placeholder="Velas Luna" className={inputClass} />
@@ -378,6 +380,14 @@ function CreateStoreDialog({ onClose, onSubmit }) {
           <select value={template} onChange={(e) => setTemplate(e.target.value)} className={inputClass}>
             {STORE_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
+        </label>
+        <label className="block">
+          <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Plantilla</span>
+          <select value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)} className={inputClass}>
+            {stores.map(s => <option key={s.id} value={s.id}>Copiar configuración de {s.name}</option>)}
+            <option value="">Empezar en blanco</option>
+          </select>
+          <span className="block mt-1.5 text-xs text-zinc-500">Copia envío, campaña y banner. Los productos no se copian: la tienda arranca vacía.</span>
         </label>
         <label className="block">
           <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Email del dueño (opcional)</span>
