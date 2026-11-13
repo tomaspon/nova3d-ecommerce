@@ -67,23 +67,25 @@ export default function PlatformHome() {
       </section>
 
       {/* Ejemplo real */}
-      <section id="ejemplo" className="bg-zinc-950 text-white scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20">
-          <div className="grid md:grid-cols-[minmax(0,1fr)_auto] gap-6 md:items-end mb-10">
-            <div>
-              <p className="text-sm font-semibold text-indigo-400 mb-3">Tienda de ejemplo · probala acá mismo</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">NORTE.</h2>
-              <p className="mt-4 text-zinc-400 leading-relaxed max-w-xl">
-                Así se ve una marca de ropa en {PLATFORM_BRAND.name}. Recorrela como si fueras un cliente: mirá productos, ofertas y el carrito, en computadora o en celular.
-              </p>
-            </div>
-            <ul className="space-y-2 text-sm text-zinc-300">
-              {['Banners de temporada listos para usar', 'Stock reservado mientras el cliente paga', 'Seguimiento del pedido para el comprador'].map(item => (
-                <li key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> {item}</li>
+      <section id="ejemplo" className="relative overflow-hidden bg-zinc-950 text-white scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+            <p className="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" /> Tienda de ejemplo en vivo
+            </p>
+            <h2 className="mt-5 text-3xl md:text-5xl font-extrabold tracking-tight">Probala como si fueras un cliente</h2>
+            <p className="mt-4 text-zinc-400 md:text-lg leading-relaxed">
+              NORTE. es una marca de ropa armada con {PLATFORM_BRAND.name}. Mirá productos, ofertas y el carrito, en computadora o en celular.
+            </p>
+            <ul className="mt-6 flex flex-wrap justify-center gap-2">
+              {['Banners de temporada', 'Stock reservado mientras pagan', 'Seguimiento de pedidos'].map(item => (
+                <li key={item} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/10 px-3 py-1.5 text-xs text-zinc-300">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" /> {item}
+                </li>
               ))}
             </ul>
           </div>
-          <DemoPreview url={exampleUrl} title="Tienda de ejemplo NORTE." />
+          <DemoPreview url={exampleUrl} title="Tienda de ejemplo NORTE." displayHost="norte.com.ar" />
         </div>
       </section>
 

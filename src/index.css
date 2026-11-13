@@ -26,6 +26,14 @@ body {
   /* El color-scheme fuerza que las barras de scroll nativas se vean oscuras */
 }
 
+/* Dentro de la vista en vivo de la página oficial se scrollea igual, sin barra visible */
+html.embedded {
+  scrollbar-width: none;
+}
+html.embedded::-webkit-scrollbar {
+  display: none;
+}
+
 /* Scrollbar personalizada minimalista */
 ::-webkit-scrollbar {
   width: 6px;
