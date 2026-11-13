@@ -1,22 +1,19 @@
 import { supabase } from './supabaseClient';
+import { DEFAULT_STORE_ID } from './storeIds';
 
 // Qué tienda muestra este sitio. Un mismo despliegue sirve a todas las tiendas de la
 // plataforma: se elige por el dominio (supabase/003_multitienda.sql, get_store_by_host).
 
-// La primera tienda de la plataforma; también es la que se usa si el dominio no
-// corresponde a ninguna (por ejemplo, el dominio de Vercel o localhost).
-export const DEFAULT_STORE_ID = '00000000-0000-0000-0000-000000000001';
+export { DEFAULT_STORE_ID };
 export const DEFAULT_STORE_SLUG = import.meta.env?.VITE_DEFAULT_STORE || 'minimal';
 
 const FALLBACK_STORE = { id: DEFAULT_STORE_ID, slug: 'minimal', name: 'MINIMAL.', status: 'active', template: 'ropa', branding: {} };
 const OVERRIDE_KEY = 'store_override';
 
-const isLocalHost = (hostname) => ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
-
-// En desarrollo se puede ver otra tienda con ?tienda=<slug> (queda guardado en la pestaña;
-// ?tienda= vacío vuelve a la normal). En producción manda siempre el dominio.
+// Fuera del dominio de una tienda (localhost, la dirección de Vercel, el dominio de la
+// plataforma) se elige la tienda con ?tienda=<slug>. Queda guardada en la pestaña;
+// ?tienda= vacío vuelve a la tienda por defecto. En el dominio de una tienda, manda el dominio.
 export function storeOverride(location, storage) {
-  if (!isLocalHost(location.hostname)) return null;
   const params = new URLSearchParams(location.search);
   if (params.has('tienda')) {
     const slug = params.get('tienda').trim().toLowerCase();
@@ -41,14 +38,15 @@ async function rpcStore(fn, args) {
 
 export async function resolveStore(location = window.location, storage = window.sessionStorage) {
   try {
+    const byHost = await rpcStore('get_store_by_host', { p_host: location.host });
+    if (byHost) return byHost;
+
     const override = storeOverride(location, storage);
     if (override) {
       const store = await rpcStore('get_store_by_slug', { p_slug: override });
       if (store) return store;
     }
-    return (await rpcStore('get_store_by_host', { p_host: location.host }))
-      || (await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG }))
-      || FALLBACK_STORE;
+    return (await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG })) || FALLBACK_STORE;
   } catch (error) {
     // Sin conexión o base sin migrar: se sigue con la tienda por defecto
     console.error('No se pudo identificar la tienda:', error);

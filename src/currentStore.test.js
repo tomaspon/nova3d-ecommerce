@@ -12,7 +12,7 @@ const memoryStorage = () => {
 const at = (hostname, search = '') => ({ hostname, search });
 
 describe('storeOverride', () => {
-  it('en localhost permite elegir tienda con ?tienda= y la recuerda en la pestaña', () => {
+  it('permite elegir tienda con ?tienda= y la recuerda en la pestaña', () => {
     const storage = memoryStorage();
     expect(storeOverride(at('localhost', '?tienda=Velas-Luna'), storage)).toBe('velas-luna');
     expect(storeOverride(at('localhost'), storage)).toBe('velas-luna');
@@ -20,9 +20,8 @@ describe('storeOverride', () => {
     expect(storeOverride(at('localhost'), storage)).toBeNull();
   });
 
-  it('en un dominio real se ignora: manda el dominio', () => {
+  it('funciona igual en la dirección de Vercel (el dominio propio se resuelve antes, en resolveStore)', () => {
     const storage = memoryStorage();
-    storage.setItem('store_override', 'velas-luna');
-    expect(storeOverride(at('minimal.com.ar', '?tienda=velas-luna'), storage)).toBeNull();
+    expect(storeOverride(at('nova3d-ecommerce.vercel.app', '?tienda=velas-demo'), storage)).toBe('velas-demo');
   });
 });

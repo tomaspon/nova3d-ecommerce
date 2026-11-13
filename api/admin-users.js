@@ -1,37 +1,12 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { summarizeUsers, DISABLE_BAN_DURATION } from '../src/adminUsers.js';
+import { requirePlatformAdmin, listAllUsers, siteUrl } from './_lib/platformAdmin.js';
 
 // Gestión de usuarios para el panel. Listar cuentas, desactivarlas o mandar el mail de
 // restablecimiento necesita la service role key, que solo existe acá en el servidor.
 // Cada pedido se valida con el token de sesión del administrador que lo hace.
 
-const MAX_PAGES = 20; // hasta 20.000 cuentas
 const ACTIONS = ['disable', 'enable', 'reset'];
-
-async function requireAdmin(supabase, req) {
-  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!token) return null;
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || data?.user?.app_metadata?.role !== 'admin') return null;
-  return data.user;
-}
-
-async function listAllUsers(supabase) {
-  const users = [];
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    users.push(...data.users);
-    if (data.users.length < 1000) break;
-  }
-  return users;
-}
-
-function siteUrl(req) {
-  if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, '');
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  return `${proto}://${req.headers.host}`;
-}
 
 export default async function handler(req, res) {
   if (!hasServiceKey()) {
@@ -40,7 +15,7 @@ export default async function handler(req, res) {
 
   try {
     const supabase = getSupabase();
-    const admin = await requireAdmin(supabase, req);
+    const admin = await requirePlatformAdmin(supabase, req);
     if (!admin) return res.status(401).json({ message: 'Solo para administradores.' });
 
     if (req.method === 'GET') {

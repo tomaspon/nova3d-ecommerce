@@ -5,7 +5,8 @@ import { supabase } from '../supabaseClient';
 import { isAdminUser } from '../adminAccess';
 import { useStore } from '../context/StoreContext';
 
-export default function AdminAuth({ children }) {
+// platformOnly: solo el administrador de la plataforma (panel /plataforma)
+export default function AdminAuth({ children, platformOnly = false }) {
   const { store } = useStore();
   // session: undefined = todavía verificando, null = sin sesión
   const [session, setSession] = useState(undefined);
@@ -36,7 +37,7 @@ export default function AdminAuth({ children }) {
         const { data } = await supabase.auth.refreshSession();
         allowed = isAdminUser(data?.session?.user);
       }
-      if (!allowed) {
+      if (!allowed && !platformOnly) {
         const { data } = await supabase.rpc('is_store_admin', { p_store_id: store.id });
         allowed = data === true;
       }
@@ -91,7 +92,7 @@ export default function AdminAuth({ children }) {
           // Sesión iniciada con una cuenta que no es administradora
           <div className="space-y-4 relative z-10">
             <p className="text-sm text-zinc-400 text-center break-words">
-              La cuenta {session.user.email} no administra {store.name || 'esta tienda'}.
+              La cuenta {session.user.email} no administra {platformOnly ? 'la plataforma' : store.name || 'esta tienda'}.
             </p>
             <button
               onClick={() => supabase.auth.signOut()}

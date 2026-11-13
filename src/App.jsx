@@ -25,6 +25,7 @@ const ShippingPage = lazy(() => import('./pages/admin/ShippingPage'));
 const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage'));
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
 const UsersPage = lazy(() => import('./pages/admin/UsersPage'));
+const PlatformPage = lazy(() => import('./pages/platform/PlatformPage'));
 
 const adminFallback = <div className="min-h-screen bg-zinc-950" />;
 
@@ -45,6 +46,9 @@ function App() {
             <Route path="perfil" element={<ProfilePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
+
+          {/* RUTA PRIVADA: PANEL DE PLATAFORMA (todas las tiendas) */}
+          <Route path="/plataforma" element={<AdminAuth platformOnly><PlatformPage /></AdminAuth>} />
 
           {/* RUTA PRIVADA: CMS DASHBOARD */}
           <Route path="/admin" element={<AdminAuth><AdminLayout /></AdminAuth>}>

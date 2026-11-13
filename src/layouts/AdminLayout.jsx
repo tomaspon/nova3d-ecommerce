@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users, Globe } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
 import { isAdminUser } from '../adminAccess';
@@ -60,6 +60,12 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-3 border-t border-white/5">
+          {isPlatformAdmin && (
+            <Link to="/plataforma" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
+              <Globe className="w-4 h-4" />
+              Mis tiendas
+            </Link>
+          )}
           <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
             <Store className="w-4 h-4" />
             Ver la Tienda
