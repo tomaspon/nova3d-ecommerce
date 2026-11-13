@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".14"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".25"/>
+    </linearGradient>
+    <path id="legs" d="M288 236 L512 236 L540 760 L452 768 L404 420 L396 420 L348 768 L260 760 Z"/>
+  </defs>
+  <rect width="800" height="1000" fill="#E6E6E4"/>
+  <g transform="translate(400 520) scale(1.22) translate(-400 -520)">
+  <ellipse cx="400" cy="822" rx="190" ry="20" fill="#000" opacity=".09"/>
+  <use href="#legs" fill="#1E1F22"/>
+  <use href="#legs" fill="url(#shade)"/>
+  <!-- Cintura elastizada y cordón -->
+  <rect x="284" y="204" width="232" height="40" rx="8" fill="#26272B"/>
+  <path d="M292 218 L508 218 M292 230 L508 230" stroke="#1A1B1E" stroke-width="3"/>
+  <path d="M392 244 Q386 290 378 310 M408 244 Q414 290 422 310" stroke="#D6D6D6" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <!-- Bolsillos -->
+  <path d="M296 262 Q318 320 300 360 M504 262 Q482 320 500 360" fill="none" stroke="#141517" stroke-width="5"/>
+  <!-- Puños -->
+  <path d="M262 742 L346 750 L344 800 L256 794 Z M454 750 L538 742 L544 794 L456 800 Z" fill="#26272B"/>
+  <path d="M320 440 Q330 560 316 680 M480 440 Q470 560 484 680" fill="none" stroke="#2C2D31" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>

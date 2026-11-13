@@ -25,7 +25,7 @@ const formatAddress = (address) => {
 
 // HTML del comprobante. Los datos de la orden los escribió un cliente, así que todo pasa por escapeHtml.
 // showCustomerDetails: el comprobante del panel incluye DNI, teléfono y dirección; el del cliente no.
-export function buildReceiptHtml(order, { showCustomerDetails = false } = {}) {
+export function buildReceiptHtml(order, { showCustomerDetails = false, storeName = 'MINIMAL.' } = {}) {
   const e = escapeHtml;
   const shortId = String(order?.id || '').split('-')[0].toUpperCase();
   const date = new Date(order?.created_at).toLocaleDateString('es-AR', {
@@ -63,7 +63,7 @@ export function buildReceiptHtml(order, { showCustomerDetails = false } = {}) {
   </head>
   <body>
     <div class="header">
-      <div class="logo">MINIMAL.</div>
+      <div class="logo">${escapeHtml(storeName)}</div>
       <div class="title">Comprobante de ${showCustomerDetails ? 'Orden' : 'Compra'}</div>
     </div>
 
@@ -101,7 +101,7 @@ export function buildReceiptHtml(order, { showCustomerDetails = false } = {}) {
     </div>
 
     <div class="footer">
-      Comprobante de su compra en MINIMAL. Gracias por confiar en nosotros.
+      Comprobante de su compra en ${escapeHtml(storeName)} Gracias por confiar en nosotros.
     </div>
   </body>
 </html>`;

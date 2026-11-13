@@ -14,7 +14,7 @@ const BENEFITS = [
 ];
 
 export default function HomePage() {
-  const { products, addToCart, favorites, toggleFavorite, storeSettings, categories, isLoading } = useStore();
+  const { store, products, addToCart, favorites, toggleFavorite, storeSettings, categories, isLoading } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -364,7 +364,7 @@ export default function HomePage() {
             {/* Con pocos productos la grilla queda vacía: invitamos a enterarse de lo próximo */}
             {!searchQuery && activeProducts.length < 4 && (
               <a
-                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('¡Hola! Quiero enterarme de los próximos lanzamientos de MINIMAL.')}`}
+                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`¡Hola! Quiero enterarme de los próximos lanzamientos de ${store?.name || 'la tienda'}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group col-span-1 sm:col-span-2 self-start aspect-[4/5] sm:aspect-[8.2/5] rounded-2xl md:rounded-3xl border border-dashed border-zinc-300 dark:border-white/15 p-4 sm:p-6 md:p-8 flex flex-col justify-between hover:border-zinc-500 dark:hover:border-white/40 transition-colors"

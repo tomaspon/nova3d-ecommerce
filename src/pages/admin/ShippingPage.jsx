@@ -6,7 +6,7 @@ import { printReceipt } from '../../printReceipt';
 import { lineTotal, formatMoney } from '../../pricing';
 
 export default function ShippingPage() {
-  const { updateOrderStatus, storeId } = useStore();
+  const { updateOrderStatus, storeId, store } = useStore();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +39,7 @@ export default function ShippingPage() {
       fetchOrders();
     }, [activeTab]);
 
-  const handlePrintReceipt = (order) => printReceipt(order, { showCustomerDetails: true });
+  const handlePrintReceipt = (order) => printReceipt(order, { showCustomerDetails: true, storeName: store?.name });
 
   const filteredOrders = orders.filter(order => {
     const q = searchQuery.toLowerCase();

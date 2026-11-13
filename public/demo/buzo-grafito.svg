@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".16"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".22"/>
+    </linearGradient>
+    <path id="body" d="M252 300 L332 258 L468 258 L548 300 L630 424 L642 716 L584 722 L572 474 L548 452 L548 786 Q400 806 252 786 L252 452 L228 474 L216 722 L158 716 L170 424 Z"/>
+  </defs>
+  <rect width="800" height="1000" fill="#E7E8EA"/>
+  <g transform="translate(400 520) scale(1.22) translate(-400 -520)">
+  <ellipse cx="400" cy="812" rx="230" ry="22" fill="#000" opacity=".09"/>
+  <use href="#body" fill="#3A3D42"/>
+  <use href="#body" fill="url(#shade)"/>
+  <!-- Capucha -->
+  <path d="M330 262 Q318 166 400 156 Q482 166 470 262 Q400 304 330 262 Z" fill="#33363B"/>
+  <path d="M356 252 Q352 196 400 190 Q448 196 444 252 Q400 278 356 252 Z" fill="#26282C"/>
+  <!-- Cordones -->
+  <path d="M384 276 L378 380 M416 276 L422 380" stroke="#D9DADC" stroke-width="5" stroke-linecap="round"/>
+  <!-- Bolsillo canguro -->
+  <path d="M298 590 L502 590 L534 694 L266 694 Z" fill="#33363B"/>
+  <path d="M298 590 L266 694 M502 590 L534 694" stroke="#2A2C30" stroke-width="5"/>
+  <!-- Puños y cintura -->
+  <rect x="252" y="756" width="296" height="30" rx="6" fill="#33363B"/>
+  <path d="M160 698 L216 704 M584 704 L640 698" stroke="#2A2C30" stroke-width="16" stroke-linecap="round"/>
+  </g>
+</svg>

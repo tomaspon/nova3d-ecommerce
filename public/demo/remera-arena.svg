@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".18"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".14"/>
+    </linearGradient>
+    <path id="body" d="M262 262 L345 222 Q400 262 455 222 L538 262 L648 336 L596 444 L540 414 L540 772 Q400 792 260 772 L260 414 L204 444 L152 336 Z"/>
+  </defs>
+  <rect width="800" height="1000" fill="#EFEBE4"/>
+  <g transform="translate(400 520) scale(1.22) translate(-400 -520)">
+  <ellipse cx="400" cy="800" rx="210" ry="22" fill="#000" opacity=".08"/>
+  <use href="#body" fill="#D8C9B0"/>
+  <use href="#body" fill="url(#shade)"/>
+  <path d="M345 222 Q400 284 455 222" fill="none" stroke="#B9A88C" stroke-width="12" stroke-linecap="round"/>
+  <path d="M260 414 L262 330 M540 414 L538 330" stroke="#B9A88C" stroke-width="4" opacity=".7"/>
+  <path d="M300 520 Q330 600 310 700 M500 540 Q470 620 492 720" fill="none" stroke="#C4B394" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+  <path d="M262 756 Q400 776 538 756" fill="none" stroke="#B9A88C" stroke-width="4" opacity=".7"/>
+  </g>
+</svg>

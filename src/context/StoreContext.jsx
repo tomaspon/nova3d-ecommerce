@@ -95,6 +95,8 @@ export function StoreProvider({ children }) {
   // DATOS DE LA TIENDA
   useEffect(() => {
     if (!storeId) return;
+    // Las páginas de la plataforma (/plataforma...) llevan su propio título
+    if (store?.name && !window.location.pathname.startsWith('/plataforma')) document.title = `${store.name} | Tienda online`;
     setCart(loadSaved('store_cart', storeId, []));
     setCategories(loadSaved('store_categories', storeId, DEFAULT_CATEGORIES));
     loadedLocalFor.current = storeId;

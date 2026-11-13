@@ -16,6 +16,10 @@ export default function StoreLayout() {
   const [searchParams] = useSearchParams();
   const currentQuery = searchParams.get('q') || '';
   
+  // Nombre e inicial de la tienda actual (cada tienda de la plataforma tiene el suyo)
+  const storeName = store?.name || '';
+  const storeInitial = storeName.replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase();
+
   const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleSearchSubmit = (e) => {
@@ -72,8 +76,8 @@ export default function StoreLayout() {
             {isMenuOpen ? <X className="w-5 h-5" strokeWidth={2} /> : <Menu className="w-5 h-5" strokeWidth={2} />}
           </button>
           <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 md:gap-3 group min-w-0">
-            <div className="w-7 h-7 md:w-9 md:h-9 shrink-0 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">M</div>
-            <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden">MINIMAL.</span>
+            <div className="w-7 h-7 md:w-9 md:h-9 shrink-0 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">{storeInitial}</div>
+            <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden truncate max-w-[11rem] md:max-w-none">{storeName}</span>
           </Link>
         </div>
         
@@ -174,7 +178,7 @@ export default function StoreLayout() {
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-14 pb-8">
           <div className="grid grid-cols-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr] gap-x-6 gap-y-10">
             <div className="col-span-2 md:col-span-1">
-              <Link to="/" className="text-2xl font-black tracking-tighter text-black dark:text-white">MINIMAL.</Link>
+              <Link to="/" className="text-2xl font-black tracking-tighter text-black dark:text-white">{storeName}</Link>
               <p className="mt-3 max-w-xs text-sm text-zinc-500">Prendas esenciales con diseño propio. Menos ruido, más diseño.</p>
             </div>
             {[
@@ -199,7 +203,7 @@ export default function StoreLayout() {
             </div>
           </div>
           <div className="mt-12 pt-6 border-t border-zinc-200 dark:border-white/5 flex flex-col sm:flex-row gap-3 justify-between text-xs text-zinc-400 dark:text-zinc-600">
-            <p>© {new Date().getFullYear()} MINIMAL. Todos los derechos reservados.</p>
+            <p>© {new Date().getFullYear()} {storeName} Todos los derechos reservados.</p>
             <p>Pagos procesados de forma segura por MercadoPago.</p>
           </div>
         </div>

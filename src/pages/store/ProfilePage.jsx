@@ -188,7 +188,7 @@ function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
 }
 
 export default function ProfilePage() {
-  const { user, products, favorites, toggleFavorite, storeId } = useStore();
+  const { user, products, favorites, toggleFavorite, storeId, store } = useStore();
   const navigate = useNavigate();
 
   const shipping = user?.user_metadata?.shipping || {};
@@ -396,7 +396,7 @@ export default function ProfilePage() {
                       key={order.id}
                       order={order}
                       onTrack={(o) => navigate(`/seguimiento?order=${o.id}`)}
-                      onReceipt={printReceipt}
+                      onReceipt={(o) => printReceipt(o, { storeName: store?.name })}
                       onReorder={handleReorder}
                       onOpenProduct={(id) => navigate(`/producto/${id}`)}
                     />
