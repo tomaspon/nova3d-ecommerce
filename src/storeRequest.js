@@ -1,3 +1,5 @@
+import { STORE_TEMPLATES } from './platformStores.js';
+
 // Solicitud de tienda desde la página oficial. La usan el formulario y el servidor
 // (api/store-request.js), así las reglas son las mismas en los dos lados.
 
@@ -11,12 +13,8 @@ export const PROVINCES = [
   'San Luis', 'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'Tucumán'
 ];
 
-export const REQUEST_CATEGORIES = [
-  { id: 'ropa', label: 'Ropa y calzado' },
-  { id: 'accesorios', label: 'Accesorios y bijou' },
-  { id: 'velas', label: 'Velas, aromas y deco' },
-  { id: 'general', label: 'Otro rubro' }
-];
+// Mismos rubros que las tiendas: el de la solicitud pasa directo a la tienda que se crea
+export const REQUEST_CATEGORIES = STORE_TEMPLATES;
 
 const onlyDigits = (value) => String(value || '').replace(/\D/g, '');
 

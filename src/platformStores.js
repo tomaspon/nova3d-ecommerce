@@ -1,10 +1,23 @@
 // Reglas de la plataforma multi-tienda que comparten el panel y el servidor.
 
+// Rubros: los usan el formulario de solicitud y la creación de tiendas.
+// Los ids quedan guardados en la base (stores.template): no cambiarlos, solo agregar.
 export const STORE_TEMPLATES = [
-  { id: 'ropa', label: 'Ropa' },
-  { id: 'velas', label: 'Velas y aromas' },
-  { id: 'accesorios', label: 'Accesorios' },
-  { id: 'general', label: 'General' }
+  { id: 'ropa', label: 'Ropa e indumentaria' },
+  { id: 'calzado', label: 'Calzado' },
+  { id: 'accesorios', label: 'Accesorios y bijou' },
+  { id: 'carteras', label: 'Carteras y marroquinería' },
+  { id: 'infantil', label: 'Bebés y niños' },
+  { id: 'cosmetica', label: 'Cosmética y cuidado personal' },
+  { id: 'velas', label: 'Velas, aromas y deco' },
+  { id: 'hogar', label: 'Hogar y bazar' },
+  { id: 'plantas', label: 'Plantas y jardín' },
+  { id: 'alimentos', label: 'Alimentos y bebidas' },
+  { id: 'regalos', label: 'Regalos, arte y papelería' },
+  { id: 'deportes', label: 'Deportes y fitness' },
+  { id: 'mascotas', label: 'Mascotas' },
+  { id: 'tecnologia', label: 'Tecnología y accesorios para celular' },
+  { id: 'general', label: 'Otro rubro' }
 ];
 
 // Nombres que no pueden ser tiendas: chocarían con subdominios o rutas de la plataforma
