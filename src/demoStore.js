@@ -39,11 +39,11 @@ const product = (id, name, description, price, discount, stock, category, image,
 });
 
 export const DEMO_PRODUCTS = [
-  product(1, 'Remera Oversize Coral', 'Remera de algodón peinado 24/1, calce oversize y cuello reforzado.', 18000, 0, 24, 'Remeras', '/demo/remera.svg', false),
+  product(1, 'Remera Oversize Coral', 'Remera de algodón peinado 24/1, calce oversize y cuello reforzado.', 18000, 20, 24, 'Remeras', '/demo/remera.svg', true),
   product(2, 'Buzo Canguro Lila', 'Frisa de algodón, capucha forrada y bolsillo canguro.', 42000, 15, 12, 'Buzos', '/demo/buzo.svg', true),
   product(3, 'Camisa de Lino Celeste', 'Lino liviano con bolsillos al pecho y botones de nácar.', 32000, 0, 15, 'Camisas', '/demo/camisa.svg', false),
   product(4, 'Bermuda Gabardina Mostaza', 'Gabardina de algodón con bolsillos y cintura con presillas.', 26000, 10, 18, 'Bermudas', '/demo/bermuda.svg', true),
-  product(5, 'Jean Recto Azul', 'Denim rígido de corte recto con costuras en contraste.', 39000, 0, 4, 'Pantalones', '/demo/jean.svg', false)
+  product(5, 'Jean Recto Azul', 'Denim rígido de corte recto con costuras en contraste.', 39000, 10, 4, 'Pantalones', '/demo/jean.svg', true)
 ];
 
 export const DEMO_CHECKOUT_MESSAGE = 'Esta es una tienda de ejemplo: el carrito funciona, pero no se procesan compras reales.';

@@ -109,7 +109,7 @@ export default function HomePage() {
 
           {/* Carrusel de Productos Seleccionados */}
           {campaignProducts.length > 0 && (
-            <div id="ofertas" className={`scroll-mt-24 max-w-screen-2xl mx-auto px-6 lg:px-12 py-8 ${storeSettings.campaign_image_url ? 'pt-6' : ''}`}>
+            <div id="ofertas" className={`scroll-mt-24 max-w-screen-2xl mx-auto px-6 lg:px-12 py-6 ${storeSettings.campaign_image_url ? 'pt-5' : ''}`}>
               {!storeSettings.campaign_image_url && (
                 <div className="mb-4 flex items-end justify-between">
                   <div>
@@ -121,7 +121,7 @@ export default function HomePage() {
                 </div>
               )}
               
-              <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+              <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar snap-x">
                 {campaignProducts.map(p => {
                   const finalPrice = p.price * (1 - (p.discount || 0) / 100);
                   return (
@@ -179,7 +179,7 @@ export default function HomePage() {
         <div className="border-b border-zinc-200 dark:border-white/5">
           <ul className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200 dark:divide-white/5">
             {BENEFITS.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="flex items-center gap-3.5 py-4 sm:py-5 sm:px-6 first:sm:pl-0">
+              <li key={title} className="flex items-center gap-3.5 py-3.5 sm:py-4 sm:px-6 first:sm:pl-0">
                 <Icon className="w-5 h-5 text-zinc-900 dark:text-white shrink-0" strokeWidth={1.75} />
                 <div>
                   <p className="text-sm font-bold text-zinc-900 dark:text-white">{title}</p>
@@ -192,7 +192,7 @@ export default function HomePage() {
       )}
 
       {/* HEADER DEL CATÁLOGO */}
-      <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-10 lg:pt-14">
+      <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-8 lg:pt-10">
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
           <div>
@@ -205,7 +205,7 @@ export default function HomePage() {
         </div>
 
         {/* Barra de herramientas: categorías + orden */}
-        <div className="flex items-center justify-between gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-8">
+        <div className="flex items-center justify-between gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-6">
         {storeCategories.length > 0 ? (
           <div className="flex overflow-x-auto hide-scrollbar gap-2 min-w-0">
             <button

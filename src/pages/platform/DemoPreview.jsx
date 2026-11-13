@@ -2,48 +2,27 @@ import { useEffect, useRef, useState } from 'react';
 import { Monitor, Smartphone, ExternalLink, Lock, MousePointerClick, RotateCw } from 'lucide-react';
 
 // La tienda de ejemplo, funcionando, dentro de la página oficial: un iframe con la tienda
-// real, en marco de computadora o de celular. Se carga recién cuando aparece en pantalla.
+// real, en marco de computadora o de celular.
 
 const DEVICES = {
   // Alto pensado para que se vea el banner, las ofertas y el comienzo del catálogo
-  desktop: { label: 'Computadora', icon: Monitor, width: 1600, height: 1240 },
+  desktop: { label: 'Computadora', icon: Monitor, width: 1600, height: 1120 },
   mobile: { label: 'Celular', icon: Smartphone, width: 390, height: 844 }
 };
 
 const PHONE_WIDTH = 270;
-const DESKTOP_MAX_WIDTH = 960;
+const DESKTOP_MAX_WIDTH = 1152;
 
 export default function DemoPreview({ url, title }) {
   // La barra de dirección muestra la dirección real (sin "https://") y lleva a la tienda
   const displayUrl = url.replace(/^https?:\/\//, '');
   // En el celular del visitante, la vista de computadora quedaría diminuta
   const [device, setDevice] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'mobile' : 'desktop'));
-  const [isVisible, setIsVisible] = useState(false);
   const [boxWidth, setBoxWidth] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const boxRef = useRef(null);
   const iframeRef = useRef(null);
-
-  // Cargar la tienda solo cuando el visitante llega a esta sección
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        observer.disconnect();
-      }
-    }, { rootMargin: '300px' });
-    observer.observe(el);
-    // Respaldo por si el navegador no avisa (pestaña en segundo plano, etc.):
-    // el iframe igual lleva loading="lazy", así que no carga hasta acercarse
-    const fallback = setTimeout(() => setIsVisible(true), 2000);
-    return () => {
-      observer.disconnect();
-      clearTimeout(fallback);
-    };
-  }, []);
 
   // La tienda se dibuja a su tamaño real y se achica para entrar en el marco
   useEffect(() => {
@@ -69,7 +48,8 @@ export default function DemoPreview({ url, title }) {
   const scale = screenWidth > 0 ? screenWidth / spec.width : 0;
   const screenHeight = spec.height * scale;
 
-  const iframe = isVisible && scale > 0 ? (
+  // loading="lazy": el navegador la carga recién cuando el visitante se acerca a la sección
+  const iframe = scale > 0 ? (
     <iframe
       ref={iframeRef}
       key={`${device}-${reloadKey}`}
