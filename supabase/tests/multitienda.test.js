@@ -217,3 +217,17 @@ describe('004 · tienda de ejemplo', () => {
     expect(names).not.toContain('Buzo');
   });
 });
+
+describe('005 · solicitudes de tienda', () => {
+  it('solo el servidor las lee y escribe: ni visitantes, ni clientes, ni dueños', async () => {
+    await db.exec(sql('005_solicitudes.sql'));
+    await db.exec(sql('005_solicitudes.sql')); // se puede correr dos veces
+    await db.query(`insert into store_requests (owner_name, tax_id, email, phone, city, province, business_name, category, terms_version, accepted_at)
+      values ('Ana Pérez', '20123456786', 'ana@x.com', '2915551234', 'Bahía', 'Buenos Aires', 'Velas', 'velas', 'v1', now())`);
+
+    for (const who of ['anon', 'customer', 'ownerB', 'admin']) {
+      await expect(as(who, `select * from store_requests`)).rejects.toThrow(/permission denied/);
+      await expect(as(who, `insert into store_requests (owner_name) values ('x')`)).rejects.toThrow(/permission denied/);
+    }
+  });
+});

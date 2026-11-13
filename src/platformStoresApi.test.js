@@ -22,7 +22,8 @@ function makeClient() {
     store_settings: [],
     store_members: [],
     products: [],
-    orders: []
+    orders: [],
+    store_requests: [{ id: 'req-1', status: 'nueva', business_name: 'Velas Luna', email: 'nuevo@velas.com', admin_notes: null, store_id: null }]
   };
   let nextId = 1;
 
@@ -161,6 +162,20 @@ describe('api/platform-stores', () => {
 
     expect((await call('admin', { action: 'setDomain', storeId: MINIMAL, domain: '' })).statusCode).toBe(200);
     expect(fake.client.tables.stores[0].custom_domain).toBeNull();
+  });
+
+  it('lista y actualiza solicitudes; al crear la tienda desde una, queda aprobada y vinculada', async () => {
+    expect((await call('admin')).body.requests).toHaveLength(1);
+    expect((await call('owner', { action: 'updateRequest', requestId: 'req-1', status: 'contactada' })).statusCode).toBe(401);
+
+    await call('admin', { action: 'updateRequest', requestId: 'req-1', status: 'contactada', adminNotes: 'Presupuesto enviado' });
+    expect(fake.client.tables.store_requests[0]).toMatchObject({ status: 'contactada', admin_notes: 'Presupuesto enviado' });
+    expect((await call('admin', { action: 'updateRequest', requestId: 'req-1', status: 'cualquiera' })).statusCode).toBe(400);
+    expect((await call('admin', { action: 'updateRequest', requestId: 'no-existe', status: 'nueva' })).statusCode).toBe(404);
+
+    await call('admin', { action: 'create', name: 'Velas Luna', slug: 'velas-luna', fromRequest: 'req-1' });
+    const store = fake.client.tables.stores.find(st => st.slug === 'velas-luna');
+    expect(fake.client.tables.store_requests[0]).toMatchObject({ status: 'aprobada', store_id: store.id });
   });
 
   it('agrega y quita dueños', async () => {

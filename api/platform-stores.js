@@ -10,7 +10,8 @@ import { isPaid } from '../src/orderStatus.js';
 // (supabase/003_multitienda.sql): pasa por acá, con la service role key y solo para
 // el administrador de la plataforma.
 
-const ACTIONS = ['create', 'update', 'setDomain', 'addOwner', 'removeOwner'];
+const ACTIONS = ['create', 'update', 'setDomain', 'addOwner', 'removeOwner', 'updateRequest'];
+const REQUEST_STATUSES = ['nueva', 'contactada', 'aprobada', 'rechazada'];
 
 class UserError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -90,8 +91,12 @@ export default async function handler(req, res) {
     if (!admin) return res.status(401).json({ message: 'Solo para el administrador de la plataforma.' });
 
     if (req.method === 'GET') {
+      const { data: requests, error: requestsError } = await supabase.from('store_requests')
+        .select('*').order('created_at', { ascending: false });
       return res.status(200).json({
         stores: await listStores(supabase),
+        // Si la migración 005 todavía no se corrió, el panel funciona igual sin solicitudes
+        requests: requestsError ? null : requests,
         vercelConfigured: isVercelConfigured(),
         platformDomain: process.env.PLATFORM_DOMAIN || null
       });
@@ -100,6 +105,20 @@ export default async function handler(req, res) {
 
     const body = req.body || {};
     if (!ACTIONS.includes(body.action)) throw new UserError('Acción inválida.');
+
+    if (body.action === 'updateRequest') {
+      const changes = {};
+      if (body.status !== undefined) {
+        if (!REQUEST_STATUSES.includes(body.status)) throw new UserError('Estado inválido.');
+        changes.status = body.status;
+      }
+      if (body.adminNotes !== undefined) changes.admin_notes = String(body.adminNotes).slice(0, 1000) || null;
+      if (Object.keys(changes).length === 0) throw new UserError('No hay cambios.');
+      const { data, error } = await supabase.from('store_requests').update(changes).eq('id', body.requestId).select('id');
+      if (error) throw error;
+      if (!data?.length) throw new UserError('No existe esa solicitud.', 404);
+      return res.status(200).json({ message: 'Solicitud actualizada.' });
+    }
 
     if (body.action === 'create') {
       const name = String(body.name || '').trim();
@@ -136,6 +155,11 @@ export default async function handler(req, res) {
       }
       const { error: settingsError } = await supabase.from('store_settings').insert({ ...baseSettings, store_id: store.id, store_name: name });
       if (settingsError) throw settingsError;
+
+      // Creada desde una solicitud: queda vinculada y aprobada
+      if (body.fromRequest) {
+        await supabase.from('store_requests').update({ status: 'aprobada', store_id: store.id }).eq('id', body.fromRequest);
+      }
 
       let message = base ? `Tienda "${name}" creada con la configuración de ${base.name}.` : `Tienda "${name}" creada.`;
       if (String(body.ownerEmail || '').trim()) {

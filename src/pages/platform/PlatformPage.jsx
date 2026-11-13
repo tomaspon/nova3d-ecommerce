@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Store, Plus, ExternalLink, LayoutDashboard, Globe, Users, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw, Pause, Play, Trash2, LogOut, Copy } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { formatMoney } from '../../pricing';
+import RequestsList from './RequestsList';
 import { STORE_TEMPLATES, slugify, slugError, normalizeDomain, isValidDomain, storeUrls } from '../../platformStores';
 
 async function callPlatformApi(options = {}) {
@@ -34,6 +35,7 @@ export default function PlatformPage() {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [view, setView] = useState('stores'); // stores | requests
   const [dialog, setDialog] = useState(null); // { type: 'create' | 'domain' | 'owner', store? }
   const [notice, setNotice] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -76,6 +78,8 @@ export default function PlatformPage() {
   };
 
   const stores = data?.stores || [];
+  const requests = data ? data.requests : [];
+  const newRequests = (requests || []).filter(r => r.status === 'nueva').length;
   const origin = window.location.origin;
   const totals = [
     { label: 'Tiendas', value: stores.length },
@@ -142,6 +146,22 @@ export default function PlatformPage() {
           </div>
         )}
 
+        <div className="flex gap-2 border-b border-white/10 pb-4" role="tablist">
+          {[['stores', 'Tiendas', stores.length], ['requests', 'Solicitudes', newRequests]].map(([id, label, count]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={view === id}
+              onClick={() => setView(id)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition ${view === id ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+            >
+              {label}
+              {count > 0 && <span className={`min-w-5 px-1.5 py-0.5 rounded-full text-[10px] ${id === 'requests' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-zinc-300'}`}>{count}</span>}
+            </button>
+          ))}
+        </div>
+
         {isLoading && !data ? (
           <div className="p-12 flex items-center justify-center gap-3 text-zinc-500"><Loader2 className="w-5 h-5 animate-spin" /> Cargando tiendas...</div>
         ) : loadError ? (
@@ -149,6 +169,12 @@ export default function PlatformPage() {
             <AlertTriangle className="w-10 h-10 text-amber-400/70 mx-auto mb-3" />
             <p className="text-sm text-zinc-300 max-w-md mx-auto">{loadError}</p>
           </div>
+        ) : view === 'requests' ? (
+          <RequestsList
+            requests={requests}
+            onUpdate={(requestId, changes) => run({ action: 'updateRequest', requestId, ...changes })}
+            onCreateStore={(request) => setDialog({ type: 'create', request })}
+          />
         ) : (
           <ul className="space-y-4">
             {stores.map(store => (
@@ -175,7 +201,14 @@ export default function PlatformPage() {
         </p>
       </main>
 
-      {dialog?.type === 'create' && <CreateStoreDialog stores={stores} onClose={() => setDialog(null)} onSubmit={(payload) => run({ action: 'create', ...payload })} />}
+      {dialog?.type === 'create' && (
+        <CreateStoreDialog
+          stores={stores}
+          request={dialog.request}
+          onClose={() => setDialog(null)}
+          onSubmit={(payload) => run({ action: 'create', ...payload, fromRequest: dialog.request?.id || null })}
+        />
+      )}
       {dialog?.type === 'domain' && <DomainDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(domain) => run({ action: 'setDomain', storeId: dialog.store.id, domain })} />}
       {dialog?.type === 'owner' && <OwnerDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(email) => run({ action: 'addOwner', storeId: dialog.store.id, email })} />}
 
@@ -345,12 +378,13 @@ function useSubmit(onSubmit) {
   return [isSaving, submit];
 }
 
-function CreateStoreDialog({ stores, onClose, onSubmit }) {
-  const [name, setName] = useState('');
+// request: solicitud desde la que se crea (completa nombre, rubro y dueño)
+function CreateStoreDialog({ stores, request, onClose, onSubmit }) {
+  const [name, setName] = useState(request?.business_name || '');
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
-  const [template, setTemplate] = useState('general');
-  const [ownerEmail, setOwnerEmail] = useState('');
+  const [template, setTemplate] = useState(() => STORE_TEMPLATES.some(t => t.id === request?.category) ? request.category : 'general');
+  const [ownerEmail, setOwnerEmail] = useState(request?.email || '');
   // Por defecto arranca con la configuración de la tienda principal (MINIMAL), sin sus productos
   const [copyFrom, setCopyFrom] = useState(() => stores.find(s => s.isDefault)?.id || '');
   const [isSaving, submit] = useSubmit(onSubmit);
@@ -359,7 +393,7 @@ function CreateStoreDialog({ stores, onClose, onSubmit }) {
   const error = finalSlug ? slugError(finalSlug) : null;
 
   return (
-    <Dialog title="Nueva tienda" onClose={onClose}>
+    <Dialog title={request ? `Tienda para ${request.owner_name}` : 'Nueva tienda'} onClose={onClose}>
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit({ name, slug: finalSlug, template, ownerEmail, copyFrom: copyFrom || null }); }}>
         <label className="block">
           <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Nombre</span>

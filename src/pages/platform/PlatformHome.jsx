@@ -4,6 +4,7 @@ import { ArrowRight, CreditCard, Truck, LayoutDashboard, Globe, Smartphone, Pack
 import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
 import { SUPPORT_WHATSAPP } from '../../storeContact';
 import { storeUrls } from '../../platformStores';
+import StoreRequestForm from './StoreRequestForm';
 
 // Página oficial de la plataforma: ofrece tiendas online y muestra funcionando la tienda
 // de ejemplo NORTE. (enlace "demo", supabase/004_tienda_demo.sql).
@@ -41,7 +42,7 @@ export default function PlatformHome() {
           <nav className="flex items-center gap-2 sm:gap-6 text-sm font-semibold">
             <a href="#como-funciona" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Cómo funciona</a>
             <a href={exampleUrl} className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
-            <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Quiero mi tienda</a>
+            <a href="#solicitar" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Quiero mi tienda</a>
           </nav>
         </div>
       </header>
@@ -56,8 +57,8 @@ export default function PlatformHome() {
           Catálogo, cobros con MercadoPago, envíos y un panel para manejar todo. Vos te ocupás de vender; nosotros, de la tecnología.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
-            <MessageCircle className="w-5 h-5" /> Hablemos por WhatsApp
+          <a href="#solicitar" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
+            Solicitar mi tienda <ArrowRight className="w-4 h-4" />
           </a>
           <a href={exampleUrl} className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
             Ver una tienda de ejemplo <ArrowRight className="w-4 h-4" />
@@ -134,13 +135,17 @@ export default function PlatformHome() {
         </div>
       </section>
 
-      {/* Cierre */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 text-center">
-        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">¿Arrancamos tu tienda?</h2>
-        <p className="mt-4 text-zinc-600 text-lg">Escribinos y en pocos días estás vendiendo.</p>
-        <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-8 py-4 hover:bg-indigo-500 transition">
-          <MessageCircle className="w-5 h-5" /> Quiero mi tienda
-        </a>
+      {/* Solicitud */}
+      <section id="solicitar" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-10">
+        <div>
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">¿Arrancamos tu tienda?</h2>
+          <p className="mt-4 text-zinc-600 text-lg leading-relaxed">Completá tus datos y te mandamos el presupuesto. En pocos días estás vendiendo.</p>
+          <p className="mt-6 text-sm text-zinc-500">¿Preferís hablar primero?</p>
+          <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-bold text-zinc-900 underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900">
+            <MessageCircle className="w-5 h-5" /> Escribinos por WhatsApp
+          </a>
+        </div>
+        <StoreRequestForm />
       </section>
 
       <footer className="border-t border-zinc-200">

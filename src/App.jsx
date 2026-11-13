@@ -28,6 +28,7 @@ const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
 const UsersPage = lazy(() => import('./pages/admin/UsersPage'));
 const PlatformPage = lazy(() => import('./pages/platform/PlatformPage'));
 const PlatformHome = lazy(() => import('./pages/platform/PlatformHome'));
+const TermsPage = lazy(() => import('./pages/platform/TermsPage'));
 const ManualPage = lazy(() => import('./pages/admin/ManualPage'));
 
 // En el dominio de la plataforma la dirección principal es la página oficial;
@@ -60,6 +61,7 @@ function App() {
 
           {/* Página oficial de la plataforma: vista previa en cualquier dominio */}
           <Route path="/plataforma/inicio" element={<PlatformHome />} />
+          <Route path="/plataforma/terminos" element={<TermsPage />} />
 
           {/* RUTA PRIVADA: PANEL DE PLATAFORMA (todas las tiendas) */}
           <Route path="/plataforma" element={<AdminAuth platformOnly><PlatformPage /></AdminAuth>} />
