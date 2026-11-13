@@ -6,7 +6,7 @@ import { printReceipt } from '../../printReceipt';
 import { lineTotal, formatMoney } from '../../pricing';
 
 export default function ShippingPage() {
-  const { updateOrderStatus } = useStore();
+  const { updateOrderStatus, storeId } = useStore();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +22,7 @@ export default function ShippingPage() {
         const { data, error } = await supabase
           .from('orders')
           .select('*')
+          .eq('store_id', storeId)
           .in('status', statuses)
           .order('created_at', { ascending: false });
 

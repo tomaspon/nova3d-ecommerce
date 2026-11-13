@@ -6,7 +6,7 @@ import CartDrawer from '../components/CartDrawer';
 import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../storeContact';
 
 export default function StoreLayout() {
-  const { cart, toggleCart, user, isDarkMode, toggleDarkMode } = useStore();
+  const { store, cart, toggleCart, user, isDarkMode, toggleDarkMode } = useStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const searchInputRef = useRef(null);
@@ -159,7 +159,15 @@ export default function StoreLayout() {
       </header>
 
       <main className="flex-1 flex flex-col pb-0">
-        <Outlet />
+        {store && store.status !== 'active' ? (
+          // Tienda suspendida desde la plataforma: no se muestra el catálogo ni se puede comprar
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24">
+            <h1 className="text-2xl font-black text-zinc-900 dark:text-white">Esta tienda no está disponible</h1>
+            <p className="mt-2 text-sm text-zinc-500 max-w-sm">Por el momento no está recibiendo pedidos. Volvé a intentar más tarde.</p>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </main>
       
       <footer className="border-t border-zinc-200 dark:border-white/5 mt-auto">

@@ -8,7 +8,7 @@ import { SEASON_ART } from '../../components/campaignArt';
 import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { storeSettings, updateStoreSettings, products, toggleProductCampaign } = useStore();
+  const { storeSettings, updateStoreSettings, products, toggleProductCampaign, storeId } = useStore();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState('campaigns'); // 'general', 'shipping', 'campaigns'
@@ -104,7 +104,7 @@ export default function SettingsPage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `campaign_banner_${Math.random()}.${fileExt}`;
-      const filePath = `banners/${fileName}`;
+      const filePath = `${storeId}/banners/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('products')

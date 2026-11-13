@@ -6,7 +6,7 @@ import { isPaid, isCanceled, holdsReservation } from '../../orderStatus';
 import { ChevronRight, User, TrendingUp, Package, ShoppingBag, DollarSign, X, Clock, CheckCircle2, CreditCard, AlertTriangle, ChevronDown } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { products, updateOrderStatus } = useStore();
+  const { products, updateOrderStatus, storeId } = useStore();
   const [orders, setOrders] = useState([]);
   const [inventoryLogs, setInventoryLogs] = useState([]);
   const [timeFilter, setTimeFilter] = useState('all'); // all, today, week, month, year
@@ -40,6 +40,7 @@ export default function DashboardPage() {
           await supabase.from('products').update({stock: newStock}).eq('id', item.id);
           await supabase.from('inventory_logs').insert([{
             product_id: item.id,
+            store_id: storeId,
             change_amount: formItem.restock,
             stock_after: newStock,
             reason: 'Devolución',
@@ -51,6 +52,7 @@ export default function DashboardPage() {
         if (formItem.damaged > 0 && originalProduct) {
           await supabase.from('inventory_logs').insert([{
             product_id: item.id,
+            store_id: storeId,
             change_amount: -formItem.damaged,
             stock_after: originalProduct.stock,
             reason: 'Dañado',
@@ -61,6 +63,7 @@ export default function DashboardPage() {
         if (formItem.lost > 0 && originalProduct) {
           await supabase.from('inventory_logs').insert([{
             product_id: item.id,
+            store_id: storeId,
             change_amount: -formItem.lost,
             stock_after: originalProduct.stock,
             reason: 'Perdido',
@@ -71,7 +74,7 @@ export default function DashboardPage() {
 
       await supabase.from('orders').update({status: 'cancelado/devuelto'}).eq('id', returnModal.id);
       
-      const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('orders').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
       if (data) setOrders(data);
       
       setReturnModal(null);
@@ -84,11 +87,11 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       // 1. Fetch Orders
-      const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const { data: ordersData } = await supabase.from('orders').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
       if (ordersData) setOrders(ordersData);
 
       // 2. Fetch Inventory Logs (para mermas)
-      const { data: logsData } = await supabase.from('inventory_logs').select('change_amount, reason, product_id, created_at');
+      const { data: logsData } = await supabase.from('inventory_logs').select('change_amount, reason, product_id, created_at').eq('store_id', storeId);
       if (logsData) {
         setInventoryLogs(logsData);
       }
@@ -104,7 +107,7 @@ export default function DashboardPage() {
       }
  else {
       // Si products todavía no cargó, esperamos a que cargue
-      supabase.from('orders').select('*').order('created_at', { ascending: false }).then(({data}) => {
+      supabase.from('orders').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).then(({data}) => {
         if(data) setOrders(data);
         setIsLoading(false);
       });
@@ -368,7 +371,7 @@ export default function DashboardPage() {
                                     const res = await updateOrderStatus(selectedOrder, option.value);
                                     if (res.success) {
                                       setSelectedOrder({...selectedOrder, status: option.value});
-                                      const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+                                      const { data: ordersData } = await supabase.from('orders').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
                                       if (ordersData) setOrders(ordersData);
                                     } else {
                                       alert("Error actualizando estado.");

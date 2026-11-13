@@ -3,17 +3,33 @@ import { supabase } from '../supabaseClient';
 import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
 import { mapProduct } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
+import { resolveStore, DEFAULT_STORE_ID } from '../currentStore';
+
+const DEFAULT_CATEGORIES = ['Tecnología', 'Indumentaria', 'Accesorios', 'Hogar'];
+
+// Carrito y categorías se guardan por tienda: en un mismo navegador pueden convivir varias.
+// La tienda original usaba claves sin tienda; se leen como respaldo para no perder carritos.
+function loadSaved(key, storeId, fallback) {
+  try {
+    const saved = localStorage.getItem(`${key}_${storeId}`)
+      ?? (storeId === DEFAULT_STORE_ID ? localStorage.getItem(key) : null);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 const StoreContext = createContext();
 
 export function StoreProvider({ children }) {
   const hasLoadedProductsRef = useRef(false);
 
+  // TIENDA ACTUAL (según el dominio). Todo lo demás se carga recién cuando se conoce.
+  const [store, setStore] = useState(null);
+  const storeId = store?.id;
+
   // ESTADO BASE
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('store_categories');
-    return saved ? JSON.parse(saved) : ['Tecnología', 'Indumentaria', 'Accesorios', 'Hogar'];
-  });
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,10 +49,7 @@ export function StoreProvider({ children }) {
   const [favorites, setFavorites] = useState([]);
 
   // ESTADO DEL CARRITO (Local)
-  const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem('store_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // MODO OSCURO GLOBAL
@@ -56,42 +69,52 @@ export function StoreProvider({ children }) {
 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
-  // Efectos de guardado local
+  // Efectos de guardado local (por tienda)
+  const loadedLocalFor = useRef(null);
   useEffect(() => {
-    localStorage.setItem('store_categories', JSON.stringify(categories));
-    localStorage.setItem('store_cart', JSON.stringify(cart));
-  }, [categories, cart]);
+    if (!storeId || loadedLocalFor.current !== storeId) return;
+    localStorage.setItem(`store_categories_${storeId}`, JSON.stringify(categories));
+    localStorage.setItem(`store_cart_${storeId}`, JSON.stringify(cart));
+  }, [storeId, categories, cart]);
 
-  // INICIO: CARGAR DATOS
+  // INICIO: identificar la tienda y la sesión
   useEffect(() => {
+    resolveStore().then(setStore);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
-    
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
     });
 
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // DATOS DE LA TIENDA
+  useEffect(() => {
+    if (!storeId) return;
+    setCart(loadSaved('store_cart', storeId, []));
+    setCategories(loadSaved('store_categories', storeId, DEFAULT_CATEGORIES));
+    loadedLocalFor.current = storeId;
+
     fetchProducts();
+    fetchStoreSettings();
     // Refresco de stock cada minuto, solo mientras la pestaña está a la vista
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchProducts();
     }, 60000);
-    fetchStoreSettings();
-
-    return () => {
-      subscription.unsubscribe();
-      clearInterval(interval);
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [storeId]);
 
   useEffect(() => {
     fetchFavorites();
-  }, [user]);
+  }, [user, storeId]);
 
   const fetchStoreSettings = async () => {
     try {
-      const { data, error } = await supabase.from('store_settings').select('*').eq('id', 1).single();
+      const { data, error } = await supabase.from('store_settings').select('*').eq('store_id', storeId).maybeSingle();
       if (data && !error) {
         setStoreSettings(prev => ({
           ...prev,
@@ -121,8 +144,11 @@ export function StoreProvider({ children }) {
       if (newSettings.shipping_cost !== undefined) payload.shipping_cost = Math.max(0, Number(newSettings.shipping_cost) || 0);
 
       if (Object.keys(payload).length > 0) {
-        // .select() permite detectar cuando la base no actualizó ninguna fila
-        const { data, error } = await supabase.from('store_settings').update(payload).eq('id', 1).select();
+        // Las tiendas nuevas todavía no tienen fila: se crea al guardar por primera vez.
+        // .select() permite detectar cuando la base no guardó nada (sin permiso).
+        const { data, error } = await supabase.from('store_settings')
+          .upsert({ ...payload, store_id: storeId }, { onConflict: 'store_id' })
+          .select();
         if (error) throw error;
         if (!data || data.length === 0) throw new Error('store_settings no se actualizó');
       }
@@ -146,6 +172,7 @@ export function StoreProvider({ children }) {
 
   
   const fetchProducts = async () => {
+    if (!storeId) return;
     // El indicador de carga solo en la primera carga: las recargas automáticas no deben tapar el catálogo
     if (!hasLoadedProductsRef.current) setIsLoading(true);
     try {
@@ -153,8 +180,8 @@ export function StoreProvider({ children }) {
       releaseExpiredReservations().catch(err => console.error('Error liberando reservas:', err));
 
       const [productsRes, reservedMap] = await Promise.all([
-        supabase.from('products').select('*'),
-        fetchReservedMap()
+        supabase.from('products').select('*').eq('store_id', storeId),
+        fetchReservedMap(storeId)
       ]);
       if (productsRes.error) throw productsRes.error;
 
@@ -175,9 +202,9 @@ export function StoreProvider({ children }) {
   };
 
   const fetchFavorites = async () => {
-    if (!user) return;
+    if (!user || !storeId) return;
     try {
-      const { data, error } = await supabase.from('favorites').select('product_id').eq('user_id', user.id);
+      const { data, error } = await supabase.from('favorites').select('product_id').eq('user_id', user.id).eq('store_id', storeId);
       if (error) throw error;
       setFavorites(data.map(f => f.product_id));
     } catch (error) {
@@ -196,7 +223,7 @@ export function StoreProvider({ children }) {
         await supabase.from('favorites').delete().match({ user_id: user.id, product_id: productId });
         setFavorites(prev => prev.filter(id => id !== productId));
       } else {
-        await supabase.from('favorites').insert([{ user_id: user.id, product_id: productId }]);
+        await supabase.from('favorites').insert([{ user_id: user.id, product_id: productId, store_id: storeId }]);
         setFavorites(prev => [...prev, productId]);
       }
     } catch (error) {
@@ -242,7 +269,8 @@ export function StoreProvider({ children }) {
         change_amount: changeAmount,
         stock_after: stockAfter,
         reason: reason,
-        note: note || ''
+        note: note || '',
+        store_id: storeId
       }]);
       if (error) console.error('Supabase error logging inventory:', error);
     } catch (error) {
@@ -267,7 +295,8 @@ export function StoreProvider({ children }) {
         stock: productData.stock,
         image_url: productData.images && productData.images.length > 0 ? JSON.stringify(productData.images) : (productData.imageUrl || null),
         features: productData.features || [],
-        barcode: productData.barcode || null
+        barcode: productData.barcode || null,
+        store_id: storeId
       };
       const { data, error } = await supabase.from('products').insert([payload]).select();
       if (error) throw error;
@@ -378,7 +407,8 @@ export function StoreProvider({ children }) {
         p_document: checkoutData.document,
         p_address: checkoutData.address,
         p_payment_method: checkoutData.paymentMethod,
-        p_items: cart.map(item => ({ id: item.id, quantity: item.quantity }))
+        p_items: cart.map(item => ({ id: item.id, quantity: item.quantity })),
+        p_store_id: storeId
       });
       if (orderError) throw orderError;
 
@@ -412,6 +442,8 @@ export function StoreProvider({ children }) {
 
   return (
     <StoreContext.Provider value={{
+      store,
+      storeId,
       categories,
       products,
       cart,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, ClipboardCheck, MapPin, MessageCircle, Mail, User, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
+import { useStore } from '../../context/StoreContext';
 import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../storeContact';
 import { isAwaitingPayment, isPaid as isOrderPaid, isCanceled as isOrderCanceled, trackingStep } from '../../orderStatus';
 import { lineTotal, formatMoney } from '../../pricing';
@@ -15,6 +16,7 @@ const TRACKING_STAGES = [
 ];
 
 export default function TrackingPage() {
+  const { storeId } = useStore();
   const [document, setDocument] = useState('');
   const [orders, setOrders] = useState([]); // Can be multiple if searching by DNI
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -97,7 +99,7 @@ export default function TrackingPage() {
     try {
       // Por DNI la base devuelve solo estado, artículos y envío: sin dirección ni datos personales,
       // y con el número corto de pedido en lugar del id completo.
-      const { data, error: fetchError } = await supabase.rpc('track_orders_by_document', { p_document: document.trim() });
+      const { data, error: fetchError } = await supabase.rpc('track_orders_by_document', { p_document: document.trim(), p_store_id: storeId });
 
       if (fetchError || !data || data.length === 0) {
         throw new Error('No encontramos pedidos asociados a este documento.');

@@ -63,7 +63,7 @@ const OrderStatusDropdown = ({ order, updateOrderStatus, onUpdated }) => {
 };
 
 export default function OrdersPage() {
-  const { products, updateOrderStatus } = useStore();
+  const { products, updateOrderStatus, storeId } = useStore();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +76,7 @@ export default function OrdersPage() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('store_id', storeId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -113,6 +114,7 @@ export default function OrdersPage() {
               await supabase.from('products').update({stock: newStock}).eq('id', item.id);
               await supabase.from('inventory_logs').insert([{
                 product_id: item.id,
+                store_id: storeId,
                 change_amount: item.quantity,
                 stock_after: newStock,
                 reason: 'Devolución',
@@ -122,6 +124,7 @@ export default function OrdersPage() {
               // El stock ya fue restado al comprar. Solo registramos la merma financiera.
               await supabase.from('inventory_logs').insert([{
                 product_id: item.id,
+                store_id: storeId,
                 change_amount: 0,
                 stock_after: originalProduct.stock,
                 reason: 'Perdido',
@@ -133,7 +136,7 @@ export default function OrdersPage() {
 
       await supabase.from('orders').update({status: 'cancelado'}).eq('id', order.id);
       
-      const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('orders').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
       if (data) setOrders(data);
 
       alert("Orden cancelada exitosamente.");
@@ -145,7 +148,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [storeId]);
 
   const toggleExpand = (id) => {
     if (expandedOrderId === id) {

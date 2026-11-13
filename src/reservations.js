@@ -9,9 +9,9 @@ export async function releaseExpiredReservations() {
   if (error) throw error;
 }
 
-// Unidades reservadas por producto: { [productId]: cantidad }
-export async function fetchReservedMap() {
-  const { data, error } = await supabase.rpc('get_reserved_stock');
+// Unidades reservadas por producto de una tienda: { [productId]: cantidad }
+export async function fetchReservedMap(storeId) {
+  const { data, error } = await supabase.rpc('get_reserved_stock', { p_store_id: storeId });
   if (error) throw error;
 
   const reserved = {};

@@ -2,9 +2,13 @@ import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useStore } from '../context/StoreContext';
+import { isAdminUser } from '../adminAccess';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const { store, user } = useStore();
+  const isPlatformAdmin = isAdminUser(user);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -17,7 +21,8 @@ export default function AdminLayout() {
     { name: 'Categorías', path: '/admin/categories', icon: Tag },
     { name: 'Órdenes', path: '/admin/orders', icon: Box },
     { name: 'Envíos', path: '/admin/shipping', icon: Truck },
-    { name: 'Usuarios', path: '/admin/users', icon: Users },
+    // Cuentas de toda la plataforma: solo para su administrador
+    ...(isPlatformAdmin ? [{ name: 'Usuarios', path: '/admin/users', icon: Users }] : []),
     { name: 'Config.', path: '/admin/settings', icon: Settings },
   ];
 
@@ -29,7 +34,7 @@ export default function AdminLayout() {
           <Link to="/admin" className="flex items-center gap-3 group">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">M</div>
             <div>
-              <span className="font-black text-white tracking-tight text-sm leading-none block">MINIMAL.</span>
+              <span className="font-black text-white tracking-tight text-sm leading-none block truncate max-w-[9rem]">{store?.name}</span>
               <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Admin Panel</span>
             </div>
           </Link>
@@ -72,7 +77,7 @@ export default function AdminLayout() {
         <header className="h-16 border-b border-white/5 bg-black/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-30">
           <div className="flex items-center gap-3 md:hidden">
             <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-xs">M</div>
-            <span className="font-black text-white text-sm">MINIMAL. Admin</span>
+            <span className="font-black text-white text-sm truncate max-w-[10rem]">{store?.name} Admin</span>
           </div>
           <div className="hidden md:flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>

@@ -9,7 +9,7 @@ import { mapProduct } from '../../productMapping';
 const BarcodeScanner = lazy(() => import('../../components/BarcodeScanner'));
 
 export default function ProductsPage() {
-  const { addProduct, updateProduct, categories } = useStore();
+  const { addProduct, updateProduct, categories, storeId } = useStore();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -95,8 +95,8 @@ export default function ProductsPage() {
     try {
       // Mismas reglas de reserva que usa la tienda (reservations.js)
       const [prodRes, reservedMap] = await Promise.all([
-        supabase.from('products').select('*').order('created_at', { ascending: false }),
-        fetchReservedMap()
+        supabase.from('products').select('*').eq('store_id', storeId).order('created_at', { ascending: false }),
+        fetchReservedMap(storeId)
       ]);
       if (prodRes.error) throw prodRes.error;
 
@@ -126,7 +126,7 @@ export default function ProductsPage() {
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `products/${fileName}`;
+        const filePath = `${storeId}/products/${fileName}`;
 
         const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
         if (uploadError) throw uploadError;
@@ -294,7 +294,7 @@ export default function ProductsPage() {
 
   const handleExportLogsCSV = async () => {
     try {
-      const { data: logs, error } = await supabase.from('inventory_logs').select('*').order('created_at', { ascending: false });
+      const { data: logs, error } = await supabase.from('inventory_logs').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
       if (error) throw error;
       if (!logs || logs.length === 0) {
         alert('No hay movimientos registrados.');

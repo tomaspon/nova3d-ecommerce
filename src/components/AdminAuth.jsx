@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { isAdminUser } from '../adminAccess';
+import { useStore } from '../context/StoreContext';
 
 export default function AdminAuth({ children }) {
+  const { store } = useStore();
   // session: undefined = todavía verificando, null = sin sesión
   const [session, setSession] = useState(undefined);
   const [email, setEmail] = useState('');
@@ -19,16 +21,32 @@ export default function AdminAuth({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // El rol viaja dentro del token de la sesión. Si se asignó en Supabase después de iniciar sesión,
-  // el token guardado todavía no lo tiene: se pide uno nuevo una vez antes de rechazar la cuenta.
-  const [refreshedFor, setRefreshedFor] = useState(null);
-  const userId = session?.user?.id ?? null;
-  const needsRoleRefresh = !!session && !isAdminUser(session.user) && refreshedFor !== userId;
+  // Entra el administrador de la plataforma (a cualquier tienda) o quien administra esta tienda.
+  // El rol de plataforma viaja dentro del token: si se asignó en Supabase después de iniciar
+  // sesión, el token guardado no lo tiene, así que se pide uno nuevo antes de rechazar la cuenta.
+  const [access, setAccess] = useState(null); // { key, allowed }
+  const accessKey = session && store ? `${session.user.id}:${store.id}` : null;
 
   useEffect(() => {
-    if (!needsRoleRefresh) return;
-    supabase.auth.refreshSession().finally(() => setRefreshedFor(userId));
-  }, [needsRoleRefresh, userId]);
+    if (!accessKey) return;
+    let cancelled = false;
+    (async () => {
+      let allowed = isAdminUser(session.user);
+      if (!allowed) {
+        const { data } = await supabase.auth.refreshSession();
+        allowed = isAdminUser(data?.session?.user);
+      }
+      if (!allowed) {
+        const { data } = await supabase.rpc('is_store_admin', { p_store_id: store.id });
+        allowed = data === true;
+      }
+      if (!cancelled) setAccess({ key: accessKey, allowed });
+    })();
+    return () => { cancelled = true; };
+    // session y store cambian de objeto sin cambiar de usuario o tienda: alcanza con la clave
+  }, [accessKey]);
+
+  const isChecking = session === undefined || !store || (accessKey !== null && access?.key !== accessKey);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -43,11 +61,11 @@ export default function AdminAuth({ children }) {
     setIsSubmitting(false);
   };
 
-  if (session === undefined || needsRoleRefresh) {
+  if (isChecking) {
     return <div className="min-h-screen bg-zinc-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div>;
   }
 
-  if (isAdminUser(session?.user)) {
+  if (session && access?.allowed) {
     return children;
   }
 
@@ -73,7 +91,7 @@ export default function AdminAuth({ children }) {
           // Sesión iniciada con una cuenta que no es administradora
           <div className="space-y-4 relative z-10">
             <p className="text-sm text-zinc-400 text-center break-words">
-              La cuenta {session.user.email} no tiene permisos de administrador.
+              La cuenta {session.user.email} no administra {store.name || 'esta tienda'}.
             </p>
             <button
               onClick={() => supabase.auth.signOut()}

@@ -188,7 +188,7 @@ function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
 }
 
 export default function ProfilePage() {
-  const { user, products, favorites, toggleFavorite } = useStore();
+  const { user, products, favorites, toggleFavorite, storeId } = useStore();
   const navigate = useNavigate();
 
   const shipping = user?.user_metadata?.shipping || {};
@@ -256,6 +256,7 @@ export default function ProfilePage() {
       const { data } = await supabase
         .from('orders')
         .select('*')
+        .eq('store_id', storeId)
         .or(`user_id.eq.${user.id},customer_email.eq."${user.email}"`)
         .order('created_at', { ascending: false });
 
@@ -263,8 +264,8 @@ export default function ProfilePage() {
       setIsLoading(false);
     };
 
-    fetchOrders();
-  }, [user, navigate]);
+    if (storeId) fetchOrders();
+  }, [user, navigate, storeId]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
