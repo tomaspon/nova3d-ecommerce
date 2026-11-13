@@ -1,46 +1,54 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
+import { Sparkles, ShieldCheck, MessageCircle, ArrowRight } from 'lucide-react';
+import { useStore } from '../../context/StoreContext';
+
+// "Nosotros" genérica: sirve para cualquier tienda de la plataforma. Cada tienda puede
+// reemplazar el título y el texto con su propia historia (branding.about_title / about_text).
+
+const VALUES = [
+  { icon: Sparkles, title: 'Cuidamos cada detalle', text: 'Elegimos y revisamos cada producto antes de que llegue a tus manos.' },
+  { icon: ShieldCheck, title: 'Comprá con tranquilidad', text: 'Pagás con MercadoPago o transferencia y seguís tu pedido online en todo momento.' },
+  { icon: MessageCircle, title: 'Atención de persona a persona', text: 'Si tenés una duda antes o después de comprar, te respondemos nosotros, no un robot.' }
+];
 
 export default function AboutPage() {
+  const { store } = useStore();
+  const name = store?.name || '';
+  const branding = store?.branding || {};
+
+  const title = branding.about_title || `Conocé ${name}`;
+  const text = branding.about_text
+    || 'Somos una marca que vende sus productos online. Cada pedido lo preparamos con dedicación y te acompañamos desde que comprás hasta que lo recibís.';
+
   return (
     <div className="bg-white dark:bg-zinc-950 min-h-[calc(100vh-6rem)]">
-      {/* Hero Section */}
-      <div className="bg-[#f4f4f5] dark:bg-zinc-900 py-24 px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-black text-zinc-900 dark:text-white mb-6 tracking-tighter">
-            Diseño que respira.
-          </h1>
-          <p className="text-xl text-zinc-500 font-medium max-w-2xl mx-auto leading-relaxed">
-            Nacimos con una idea simple: los espacios que habitamos moldean cómo nos sentimos. Creamos muebles minimalistas, atemporales y funcionales para la vida moderna.
-          </p>
+      <section className="bg-[#f4f4f5] dark:bg-zinc-900 px-4 sm:px-8 py-20 md:py-28">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-[0.25em] mb-4">Nosotros</p>
+          <h1 className="text-4xl md:text-6xl font-black text-zinc-900 dark:text-white tracking-tighter">{title}</h1>
+          <p className="mt-6 text-lg md:text-xl text-zinc-500 leading-relaxed whitespace-pre-line">{text}</p>
         </div>
-      </div>
+      </section>
 
-      {/* Content Section */}
-      <div className="max-w-4xl mx-auto px-8 py-24 space-y-24">
-        
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="aspect-square bg-zinc-100 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-white/5"></div>
-          <div>
-            <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Nuestra Filosofía</div>
-            <h2 className="text-3xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">Menos ruido, más esencia.</h2>
-            <p className="text-zinc-500 leading-relaxed">
-              [Texto de relleno] Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-            </p>
-          </div>
+      <section className="max-w-5xl mx-auto px-4 sm:px-8 py-16 md:py-24">
+        <div className="grid md:grid-cols-3 gap-6">
+          {VALUES.map(({ icon: Icon, title: valueTitle, text: valueText }) => (
+            <div key={valueTitle} className="rounded-3xl border border-zinc-200 dark:border-white/10 p-6 md:p-8">
+              <span className="w-11 h-11 rounded-2xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center">
+                <Icon className="w-5 h-5 text-zinc-900 dark:text-white" />
+              </span>
+              <h2 className="mt-5 text-lg font-black text-zinc-900 dark:text-white tracking-tight">{valueTitle}</h2>
+              <p className="mt-2 text-sm text-zinc-500 leading-relaxed">{valueText}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center md:flex-row-reverse">
-          <div className="order-2 md:order-1">
-            <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Calidad Argentina</div>
-            <h2 className="text-3xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">Materiales honestos.</h2>
-            <p className="text-zinc-500 leading-relaxed">
-              [Texto de relleno] Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-            </p>
-          </div>
-          <div className="order-1 md:order-2 aspect-square bg-zinc-100 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-white/5"></div>
+        <div className="mt-16 text-center">
+          <Link to="/" className="inline-flex items-center gap-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold px-7 py-4 hover:opacity-85 transition">
+            Ver productos <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-
-      </div>
+      </section>
     </div>
   );
 }

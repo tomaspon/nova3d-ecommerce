@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, items, status, shipping_cost')
+      .select('id, items, status, shipping_cost, store_id')
       .eq('id', orderId)
       .maybeSingle();
 
@@ -44,6 +44,10 @@ export default async function handler(req, res) {
         currency_id: 'ARS',
       });
     }
+
+    // Nombre de la tienda que ve el comprador en el resumen de su tarjeta (MercadoPago admite 22 caracteres)
+    const { data: store } = await supabase.from('stores').select('name').eq('id', order.store_id).maybeSingle();
+    const statementDescriptor = (store?.name || 'Tienda online').replace(/[^\p{L}\p{N} ]/gu, '').trim().slice(0, 22) || 'Tienda online';
 
     const shippingCost = Number(order.shipping_cost) || 0;
     if (shippingCost > 0) {
@@ -77,7 +81,7 @@ export default async function handler(req, res) {
       expires: true,
       expiration_date_to: expirationDate,
       notification_url: `${baseUrl}/api/webhook`,
-      statement_descriptor: 'MINIMAL',
+      statement_descriptor: statementDescriptor,
     };
 
     const response = await preference.create({ body });

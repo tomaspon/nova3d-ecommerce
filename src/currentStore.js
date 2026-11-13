@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { DEFAULT_STORE_ID } from './storeIds';
+import { DEMO_STORE, DEMO_SLUG } from './demoStore';
 
 // Qué tienda muestra este sitio. Un mismo despliegue sirve a todas las tiendas de la
 // plataforma: se elige por el dominio (supabase/003_multitienda.sql, get_store_by_host).
@@ -47,6 +48,7 @@ export async function resolveStore(location = window.location, storage = window.
     if (byHost) return byHost;
 
     const override = storeOverride(location, storage);
+    if (override === DEMO_SLUG) return DEMO_STORE;
     if (override) {
       const store = await rpcStore('get_store_by_slug', { p_slug: override });
       if (store) return store;

@@ -4,6 +4,7 @@ import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
 import { mapProduct } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID } from '../currentStore';
+import { DEMO_PRODUCTS, DEMO_SETTINGS, DEMO_CHECKOUT_MESSAGE } from '../demoStore';
 
 const DEFAULT_CATEGORIES = ['Tecnología', 'Indumentaria', 'Accesorios', 'Hogar'];
 
@@ -115,6 +116,10 @@ export function StoreProvider({ children }) {
   }, [user, storeId]);
 
   const fetchStoreSettings = async () => {
+    if (store?.isDemo) {
+      setStoreSettings(prev => ({ ...prev, ...DEMO_SETTINGS }));
+      return;
+    }
     try {
       const { data, error } = await supabase.from('store_settings').select('*').eq('store_id', storeId).maybeSingle();
       if (data && !error) {
@@ -175,6 +180,12 @@ export function StoreProvider({ children }) {
   
   const fetchProducts = async () => {
     if (!storeId) return;
+    if (store?.isDemo) {
+      setProducts(DEMO_PRODUCTS.map(row => mapProduct(row)));
+      hasLoadedProductsRef.current = true;
+      setIsLoading(false);
+      return;
+    }
     // El indicador de carga solo en la primera carga: las recargas automáticas no deben tapar el catálogo
     if (!hasLoadedProductsRef.current) setIsLoading(true);
     try {
@@ -204,7 +215,7 @@ export function StoreProvider({ children }) {
   };
 
   const fetchFavorites = async () => {
-    if (!user || !storeId) return;
+    if (!user || !storeId || store?.isDemo) return;
     try {
       const { data, error } = await supabase.from('favorites').select('product_id').eq('user_id', user.id).eq('store_id', storeId);
       if (error) throw error;
@@ -401,6 +412,7 @@ export function StoreProvider({ children }) {
   // La orden se crea dentro de la base (create_order): ahí se validan el stock disponible,
   // los precios y el envío, con el producto bloqueado para que dos compras no reserven la misma unidad.
   const checkoutOrder = async (checkoutData) => {
+    if (store?.isDemo) return { success: false, errorMessage: DEMO_CHECKOUT_MESSAGE };
     try {
       const { data: created, error: orderError } = await supabase.rpc('create_order', {
         p_name: checkoutData.name,

@@ -179,7 +179,7 @@ export default function StoreLayout() {
           <div className="grid grid-cols-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr] gap-x-6 gap-y-10">
             <div className="col-span-2 md:col-span-1">
               <Link to="/" className="text-2xl font-black tracking-tighter text-black dark:text-white">{storeName}</Link>
-              <p className="mt-3 max-w-xs text-sm text-zinc-500">Prendas esenciales con diseño propio. Menos ruido, más diseño.</p>
+              <p className="mt-3 max-w-xs text-sm text-zinc-500">{store?.branding?.tagline || `Tienda online oficial de ${storeName}`}</p>
             </div>
             {[
               { title: 'Tienda', links: [{ to: '/', label: 'Catálogo' }, { to: '/nosotros', label: 'Nosotros' }] },

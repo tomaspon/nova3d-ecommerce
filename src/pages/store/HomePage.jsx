@@ -160,8 +160,8 @@ export default function HomePage() {
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-12 md:py-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             {/* Lo que sobra, fino y apagado; lo que importa, con peso */}
             <h1 className="text-[clamp(2.25rem,5vw,4rem)] leading-none tracking-[-0.03em]">
-              <span className="block md:inline font-light text-zinc-400 dark:text-zinc-500">Menos ruido. </span>
-              <span className="block md:inline font-extrabold text-zinc-900 dark:text-white whitespace-nowrap">Más diseño.</span>
+              <span className="block md:inline font-light text-zinc-400 dark:text-zinc-500">{store?.branding?.headline_light || 'Lo nuevo de'} </span>
+              <span className="block md:inline font-extrabold text-zinc-900 dark:text-white whitespace-nowrap">{store?.branding?.headline_bold || store?.name}</span>
             </h1>
             <button
               type="button"

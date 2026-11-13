@@ -21,7 +21,7 @@ export const STORE_TEMPLATES = [
 ];
 
 // Nombres que no pueden ser tiendas: chocarían con subdominios o rutas de la plataforma
-const RESERVED_SLUGS = ['www', 'app', 'api', 'admin', 'plataforma', 'panel', 'mail', 'localhost', 'nova3d-ecommerce'];
+const RESERVED_SLUGS = ['www', 'app', 'api', 'admin', 'plataforma', 'panel', 'mail', 'localhost', 'nova3d-ecommerce', 'demo'];
 
 // Mismas reglas que la base (stores.slug): minúsculas, números y guiones, sin guion en los bordes
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/;

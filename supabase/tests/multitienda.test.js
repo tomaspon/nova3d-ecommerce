@@ -194,26 +194,16 @@ describe('inventario por tienda', () => {
 });
 
 // Va al final: pausa los productos de MINIMAL
-describe('004 · tienda de ejemplo', () => {
-  it('crea NORTE. con 5 productos, copia la configuración de MINIMAL y pausa sus productos', async () => {
-    await db.query(`update store_settings set shipping_cost = 1500, campaign_name = 'Summer Sale' where id = 1`);
-    await db.exec(sql('004_tienda_demo.sql'));
-    await db.exec(sql('004_tienda_demo.sql')); // no duplica
+describe('004 · pausar MINIMAL', () => {
+  it('saca de la tienda los productos de MINIMAL sin borrarlos ni tocar otras tiendas', async () => {
+    const before = (await db.query(`select count(*)::int as n from products where store_id = $1`, [MINIMAL])).rows[0].n;
+    await db.exec(sql('004_pausar_minimal.sql'));
 
-    const [demo] = (await db.query(`select id, name from stores where slug = 'demo'`)).rows;
-    expect(demo.name).toBe('NORTE.');
-    const products = (await db.query(`select name, image_url from products where store_id = $1`, [demo.id])).rows;
-    expect(products).toHaveLength(5);
-    expect(products.every(p => p.image_url.startsWith('/demo/'))).toBe(true);
-
-    const [settings] = (await db.query(`select store_name, shipping_cost, campaign_name from store_settings where store_id = $1`, [demo.id])).rows;
-    expect(settings).toEqual({ store_name: 'NORTE.', shipping_cost: '1500', campaign_name: 'Summer Sale' });
-
-    const active = (await db.query(`select count(*)::int as n from products where store_id = $1 and is_active`, [MINIMAL])).rows[0].n;
-    expect(active).toBe(0);
-    // En el catálogo público la demo se ve; MINIMAL no muestra nada pausado
+    const rows = (await db.query(`select is_active from products where store_id = $1`, [MINIMAL])).rows;
+    expect(rows).toHaveLength(before);
+    expect(rows.every(r => !r.is_active)).toBe(true);
     const names = (await as('anon', `select name from products where is_active`)).map(r => r.name);
-    expect(names).toEqual(expect.arrayContaining(['Remera Oversize Arena', 'Vela']));
+    expect(names).toContain('Vela');
     expect(names).not.toContain('Buzo');
   });
 });
