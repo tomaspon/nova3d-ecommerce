@@ -113,7 +113,8 @@ describe('dueño de una tienda', () => {
 
   it('solo ve sus tiendas; el administrador de plataforma ve todas', async () => {
     expect(await as('ownerB', `select slug, role from public.my_stores()`)).toEqual([{ slug: 'velas-luna', role: 'owner' }]);
-    expect((await as('admin', `select slug from public.my_stores()`)).map(r => r.slug)).toEqual(['minimal', 'velas-luna', 'apagada']);
+    // Las tiendas de prueba se crean en el mismo instante: se compara sin importar el orden
+    expect((await as('admin', `select slug from public.my_stores()`)).map(r => r.slug).sort()).toEqual(['apagada', 'minimal', 'velas-luna']);
     expect(await as('customer', `select slug from public.my_stores()`)).toEqual([]);
   });
 
