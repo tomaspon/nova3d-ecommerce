@@ -44,6 +44,12 @@ export default function StoreLayout() {
     setIsMenuOpen(false);
   }, [location.pathname, location.search]);
 
+  // Al cambiar de página se arranca desde arriba (los filtros del catálogo cambian solo
+  // la query, así que no mueven el scroll)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
       <CartDrawer />
