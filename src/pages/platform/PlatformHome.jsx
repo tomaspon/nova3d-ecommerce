@@ -85,7 +85,7 @@ export default function PlatformHome() {
               ))}
             </ul>
           </div>
-          <DemoPreview url={exampleUrl} title="Tienda de ejemplo NORTE." displayHost="norte.com.ar" />
+          <DemoPreview url={exampleUrl} title="Tienda de ejemplo NORTE." />
         </div>
       </section>
 

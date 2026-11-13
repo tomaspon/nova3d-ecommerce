@@ -11,7 +11,9 @@ const DEVICES = {
 
 const PHONE_WIDTH = 300;
 
-export default function DemoPreview({ url, title, displayHost }) {
+export default function DemoPreview({ url, title }) {
+  // La barra de dirección muestra la dirección real (sin "https://") y lleva a la tienda
+  const displayUrl = url.replace(/^https?:\/\//, '');
   // En el celular del visitante, la vista de computadora quedaría diminuta
   const [device, setDevice] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'mobile' : 'desktop'));
   const [isVisible, setIsVisible] = useState(false);
@@ -150,10 +152,17 @@ export default function DemoPreview({ url, title, displayHost }) {
                 <span className="w-3 h-3 rounded-full bg-[#28C840]" />
               </div>
               <div className="flex-1 flex justify-center">
-                <div className="inline-flex items-center gap-2 max-w-full rounded-lg bg-white/[0.06] px-4 py-1.5 text-xs text-zinc-300">
-                  <Lock className="w-3 h-3 text-zinc-500" />
-                  <span className="truncate">{displayHost}</span>
-                </div>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Abrir la tienda de ejemplo en otra pestaña"
+                  className="inline-flex items-center gap-2 max-w-full rounded-lg bg-white/[0.06] hover:bg-white/10 px-4 py-1.5 text-xs text-zinc-300 hover:text-white transition"
+                >
+                  <Lock className="w-3 h-3 text-zinc-500 shrink-0" />
+                  <span className="truncate">{displayUrl}</span>
+                  <ExternalLink className="w-3 h-3 text-zinc-500 shrink-0" />
+                </a>
               </div>
               <div className="w-[52px]" aria-hidden="true" />
             </div>
