@@ -5,6 +5,7 @@ import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
 import { SUPPORT_WHATSAPP } from '../../storeContact';
 import { storeUrls } from '../../platformStores';
 import StoreRequestForm from './StoreRequestForm';
+import DemoPreview from './DemoPreview';
 
 // Página oficial de la plataforma: ofrece tiendas online y muestra funcionando la tienda
 // de ejemplo NORTE. (enlace "demo", supabase/004_tienda_demo.sql).
@@ -25,7 +26,6 @@ const STEPS = [
 ];
 
 const EXAMPLE_STORE = { slug: 'demo', custom_domain: null };
-const EXAMPLE_PRODUCTS = ['/demo/remera-arena.svg', '/demo/buzo-grafito.svg', '/demo/gorra-oliva.svg'];
 
 export default function PlatformHome() {
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function PlatformHome() {
           <span className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></span>
           <nav className="flex items-center gap-2 sm:gap-6 text-sm font-semibold">
             <a href="#como-funciona" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Cómo funciona</a>
-            <a href={exampleUrl} className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
+            <a href="#ejemplo" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
             <a href="#solicitar" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Quiero mi tienda</a>
           </nav>
         </div>
@@ -60,48 +60,30 @@ export default function PlatformHome() {
           <a href="#solicitar" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
             Solicitar mi tienda <ArrowRight className="w-4 h-4" />
           </a>
-          <a href={exampleUrl} className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
+          <a href="#ejemplo" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
             Ver una tienda de ejemplo <ArrowRight className="w-4 h-4" />
           </a>
         </div>
       </section>
 
       {/* Ejemplo real */}
-      <section className="bg-zinc-950 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20 grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-10 items-center">
-          <div>
-            <p className="text-sm font-semibold text-indigo-400 mb-3">Tienda de ejemplo</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">NORTE.</h2>
-            <p className="mt-4 text-zinc-400 leading-relaxed max-w-md">
-              Así se ve una marca de ropa en {PLATFORM_BRAND.name}: catálogo, ofertas de temporada, carrito y seguimiento de pedidos. Entrá y recorrela como si fueras un cliente.
-            </p>
-            <ul className="mt-6 space-y-2 text-sm text-zinc-300">
+      <section id="ejemplo" className="bg-zinc-950 text-white scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-20">
+          <div className="grid md:grid-cols-[minmax(0,1fr)_auto] gap-6 md:items-end mb-10">
+            <div>
+              <p className="text-sm font-semibold text-indigo-400 mb-3">Tienda de ejemplo · probala acá mismo</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">NORTE.</h2>
+              <p className="mt-4 text-zinc-400 leading-relaxed max-w-xl">
+                Así se ve una marca de ropa en {PLATFORM_BRAND.name}. Recorrela como si fueras un cliente: mirá productos, ofertas y el carrito, en computadora o en celular.
+              </p>
+            </div>
+            <ul className="space-y-2 text-sm text-zinc-300">
               {['Banners de temporada listos para usar', 'Stock reservado mientras el cliente paga', 'Seguimiento del pedido para el comprador'].map(item => (
                 <li key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> {item}</li>
               ))}
             </ul>
-            <a href={exampleUrl} className="mt-8 inline-flex items-center gap-2 font-bold text-white underline underline-offset-4 decoration-zinc-600 hover:decoration-white">
-              Entrar a la tienda <ArrowRight className="w-4 h-4" />
-            </a>
           </div>
-          {/* Maqueta del navegador con la portada de la tienda */}
-          <a href={exampleUrl} className="block rounded-2xl overflow-hidden border border-white/10 bg-[#FAFAFA] shadow-2xl shadow-indigo-500/10 hover:-translate-y-1 transition-transform" aria-label="Abrir la tienda de ejemplo NORTE.">
-            <div className="h-8 bg-zinc-200 flex items-center gap-1.5 px-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" /><span className="w-2.5 h-2.5 rounded-full bg-zinc-400" /><span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
-            </div>
-            <div className="p-6 sm:p-8 text-zinc-900">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-sm font-black tracking-tighter">NORTE.</span>
-                <span className="text-zinc-400">Catálogo · Nosotros · Seguimiento</span>
-              </div>
-              <p className="mt-10 text-[clamp(1.5rem,3.4vw,2.5rem)] leading-none tracking-[-0.03em]">
-                <span className="font-light text-zinc-400">Menos ruido. </span><span className="font-extrabold">Más diseño.</span>
-              </p>
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                {EXAMPLE_PRODUCTS.map(src => <img key={src} src={src} alt="" loading="lazy" className="aspect-[4/5] w-full rounded-xl object-cover" />)}
-              </div>
-            </div>
-          </a>
+          <DemoPreview url={exampleUrl} title="Tienda de ejemplo NORTE." />
         </div>
       </section>
 

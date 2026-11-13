@@ -8,7 +8,12 @@ export { DEFAULT_STORE_ID };
 export const DEFAULT_STORE_SLUG = import.meta.env?.VITE_DEFAULT_STORE || 'minimal';
 
 const FALLBACK_STORE = { id: DEFAULT_STORE_ID, slug: 'minimal', name: 'MINIMAL.', status: 'active', template: 'ropa', branding: {} };
-const OVERRIDE_KEY = 'store_override';
+// Dentro de una vista encuadrada (la demo de la página oficial) se guarda aparte: el
+// sessionStorage es de toda la pestaña y no tiene que cambiar la tienda de la página que la contiene.
+const isFramed = () => {
+  try { return typeof window !== 'undefined' && window.self !== window.top; } catch { return true; }
+};
+const OVERRIDE_KEY = isFramed() ? 'store_override_embed' : 'store_override';
 
 // Fuera del dominio de una tienda (localhost, la dirección de Vercel, el dominio de la
 // plataforma) se elige la tienda con ?tienda=<slug>. Queda guardada en la pestaña;
