@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Rocket, LayoutDashboard, Package, Tag, Box, Truck, Settings, ShoppingBag, Users, Globe, HelpCircle, Lightbulb } from 'lucide-react';
-import { useStore } from '../../context/StoreContext';
-import { isAdminUser } from '../../adminAccess';
 import { RESERVATION_MINUTES, TRANSFER_RESERVATION_HOURS } from '../../orderStatus';
 
-// Manual del panel, paso a paso. Las secciones platformOnly las ve solo el administrador de la plataforma.
+// Manual del panel de la tienda, paso a paso.
 
 const SECTIONS = [
   {
@@ -103,27 +101,6 @@ const SECTIONS = [
     ]
   },
   {
-    id: 'usuarios', icon: Users, title: 'Usuarios', platformOnly: true,
-    intro: 'Las cuentas de toda la plataforma (solo para vos).',
-    steps: [
-      ['Buscar', 'Por nombre, email, teléfono, DNI o ciudad, con filtros de activos, desactivados, con compras y admins.'],
-      ['Restablecer contraseña', 'Le manda a esa persona un mail con un enlace para elegir una contraseña nueva.'],
-      ['Desactivar', 'La cuenta no puede iniciar sesión hasta que la reactives. Sus pedidos se conservan. Las cuentas de administrador no se desactivan desde acá.']
-    ]
-  },
-  {
-    id: 'plataforma', icon: Globe, title: 'Plataforma: tus tiendas', platformOnly: true,
-    intro: <>Desde <Link to="/plataforma">Mis tiendas</Link> manejás todas las tiendas (solo vos lo ves).</>,
-    steps: [
-      ['Altas por autoservicio', <>Los emprendedores crean su tienda solos desde la página oficial ("Creá tu tienda gratis"). Nace <b>sin ventas</b>: cuando el dueño toca "Pedir activación", la tarjeta muestra <b>Pidió activación</b> y aparece primera. Verificalo (CUIT, WhatsApp) y tocá <b>Habilitar ventas</b>.</>],
-      ['Crear una tienda a mano', <>Tocá <b>Nueva tienda</b>: nombre, enlace (se arma solo y no se cambia después), rubro y plantilla. La plantilla copia envío, campaña y banner de otra tienda; los productos no se copian.</>],
-      ['Asignar al dueño', 'Poné su email al crearla o con "Agregar dueño". Si no tiene cuenta, le llega una invitación. El dueño entra solo al panel de su tienda.'],
-      ['Conectar un dominio', <>Tocá <b>Conectar dominio</b> y pegá el dominio del cliente. El panel te dice qué registro DNS crear donde lo compró (registro A para "velas.com.ar", CNAME para "tienda.velas.com"). Puede tardar hasta 48 horas.</>],
-      ['Ver la tienda y su panel', 'Cada tarjeta tiene "Ver tienda" y "Panel". Mientras no tengas el dominio de la plataforma, los links usan ?tienda= en la dirección actual.'],
-      ['Suspender', 'Una tienda suspendida muestra "no disponible" y no recibe pedidos. La tienda principal no se puede suspender.']
-    ]
-  },
-  {
     id: 'preguntas', icon: HelpCircle, title: 'Preguntas frecuentes',
     items: [
       ['Un producto dice "Agotado" pero tengo unidades', 'Puede haber unidades reservadas por pedidos sin pagar. Si el pago no llega, se liberan solas cuando vence la reserva.'],
@@ -164,8 +141,7 @@ function Items({ items }) {
 }
 
 export default function ManualPage() {
-  const { user } = useStore();
-  const sections = SECTIONS.filter(s => !s.platformOnly || isAdminUser(user));
+  const sections = SECTIONS;
 
   return (
     <div className="space-y-8">
@@ -192,12 +168,12 @@ export default function ManualPage() {
 
         {/* Secciones */}
         <div className="space-y-6 min-w-0 [&_a]:text-indigo-300 [&_a:hover]:text-indigo-200">
-          {sections.map(({ id, icon: Icon, title, intro, steps, items, tip, platformOnly }) => (
+          {sections.map(({ id, icon: Icon, title, intro, steps, items, tip }) => (
             <section key={id} id={id} className="scroll-mt-24 bg-black border border-white/10 rounded-2xl p-5 sm:p-7 space-y-5">
               <div>
                 <h2 className="text-xl font-black text-white flex items-center gap-2.5">
                   <Icon className="w-5 h-5 text-indigo-400" /> {title}
-                  {platformOnly && <span className="ml-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300">Solo plataforma</span>}
+                  
                 </h2>
                 {intro && <p className="text-sm text-zinc-400 mt-1.5">{intro}</p>}
               </div>

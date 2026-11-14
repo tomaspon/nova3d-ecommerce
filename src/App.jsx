@@ -27,6 +27,8 @@ const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage'));
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
 const UsersPage = lazy(() => import('./pages/admin/UsersPage'));
 const PlatformPage = lazy(() => import('./pages/platform/PlatformPage'));
+const PlatformLayout = lazy(() => import('./layouts/PlatformLayout'));
+const PlatformDashboard = lazy(() => import('./pages/platform/PlatformDashboard'));
 const PlatformHome = lazy(() => import('./pages/platform/PlatformHome'));
 const TermsPage = lazy(() => import('./pages/platform/TermsPage'));
 const CreateStorePage = lazy(() => import('./pages/platform/CreateStorePage'));
@@ -66,7 +68,12 @@ function App() {
           <Route path="/plataforma/crear" element={<CreateStorePage />} />
 
           {/* RUTA PRIVADA: PANEL DE PLATAFORMA (todas las tiendas) */}
-          <Route path="/plataforma" element={<AdminAuth platformOnly><PlatformPage /></AdminAuth>} />
+          <Route path="/plataforma" element={<AdminAuth platformOnly><PlatformLayout /></AdminAuth>}>
+            <Route index element={<PlatformDashboard />} />
+            <Route path="tiendas" element={<PlatformPage view="stores" />} />
+            <Route path="solicitudes" element={<PlatformPage view="requests" />} />
+            <Route path="usuarios" element={<UsersPage />} />
+          </Route>
 
           {/* RUTA PRIVADA: CMS DASHBOARD */}
           <Route path="/admin" element={<AdminAuth><AdminLayout /></AdminAuth>}>
@@ -75,7 +82,6 @@ function App() {
             <Route path="orders" element={<OrdersPage />} />
             <Route path="shipping" element={<ShippingPage />} />
             <Route path="categories" element={<CategoriesPage />} />
-            <Route path="users" element={<UsersPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="ayuda" element={<ManualPage />} />
           </Route>

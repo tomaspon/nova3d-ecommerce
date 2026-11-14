@@ -1,15 +1,13 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Users, Globe, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, BookOpen } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
-import { isAdminUser } from '../adminAccess';
 import SalesActivationBanner from '../components/SalesActivationBanner';
 
 export default function AdminLayout() {
   const location = useLocation();
-  const { store, user } = useStore();
-  const isPlatformAdmin = isAdminUser(user);
+  const { store } = useStore();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -22,8 +20,6 @@ export default function AdminLayout() {
     { name: 'Categorías', path: '/admin/categories', icon: Tag },
     { name: 'Órdenes', path: '/admin/orders', icon: Box },
     { name: 'Envíos', path: '/admin/shipping', icon: Truck },
-    // Cuentas de toda la plataforma: solo para su administrador
-    ...(isPlatformAdmin ? [{ name: 'Usuarios', path: '/admin/users', icon: Users }] : []),
     { name: 'Config.', path: '/admin/settings', icon: Settings },
     { name: 'Ayuda', path: '/admin/ayuda', icon: BookOpen },
   ];
@@ -62,12 +58,6 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-3 border-t border-white/5">
-          {isPlatformAdmin && (
-            <Link to="/plataforma" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
-              <Globe className="w-4 h-4" />
-              Mis tiendas
-            </Link>
-          )}
           <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
             <Store className="w-4 h-4" />
             Ver la Tienda

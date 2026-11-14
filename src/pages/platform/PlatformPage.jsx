@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Store, Plus, ExternalLink, LayoutDashboard, Globe, Users, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw, Pause, Play, Trash2, LogOut, Copy } from 'lucide-react';
+import { Plus, ExternalLink, LayoutDashboard, Globe, Users, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw, Pause, Play, Trash2, Copy } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { formatMoney } from '../../pricing';
 import RequestsList from './RequestsList';
@@ -31,11 +30,11 @@ const DOMAIN_STATUS = {
 
 const inputClass = 'w-full bg-black border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition';
 
-export default function PlatformPage() {
+// Tiendas o solicitudes (cada una es una sección del menú del panel de plataforma)
+export default function PlatformPage({ view = 'stores' }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [view, setView] = useState('stores'); // stores | requests
   const [dialog, setDialog] = useState(null); // { type: 'create' | 'domain' | 'owner', store? }
   const [notice, setNotice] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -79,43 +78,14 @@ export default function PlatformPage() {
 
   const stores = data?.stores || [];
   const requests = data ? data.requests : [];
-  const newRequests = (requests || []).filter(r => r.status === 'nueva').length;
   const origin = window.location.origin;
-  const totals = [
-    { label: 'Tiendas', value: stores.length },
-    { label: 'Activas', value: stores.filter(s => s.status === 'active').length },
-    { label: 'Productos', value: stores.reduce((n, s) => n + s.productCount, 0) },
-    { label: 'Ventas', value: formatMoney(stores.reduce((n, s) => n + s.revenue, 0)) }
-  ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300">
-      <header className="h-16 border-b border-white/5 bg-black/80 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white">
-              <Store className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="font-black text-white text-sm leading-none">Plataforma</p>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Tus tiendas</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}
-            className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-red-400 transition"
-          >
-            <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Cerrar sesión</span>
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Tiendas</h1>
-            <p className="text-sm text-zinc-400 mt-1">Creá tiendas, conectá sus dominios y asigná a sus dueños.</p>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">{view === 'requests' ? 'Solicitudes' : 'Tiendas'}</h1>
+            <p className="text-sm text-zinc-400 mt-1">{view === 'requests' ? 'Pedidos de emprendedores que quieren que les armes la tienda.' : 'Creá tiendas, habilitá sus ventas, conectá dominios y asigná dueños.'}</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={load} disabled={isLoading} aria-label="Actualizar" className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition disabled:opacity-50">
@@ -127,15 +97,6 @@ export default function PlatformPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {totals.map(t => (
-            <div key={t.label} className="bg-black border border-white/10 rounded-2xl p-4 sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t.label}</p>
-              <p className="mt-1 text-2xl font-black text-white tabular-nums truncate">{isLoading && !data ? '–' : t.value}</p>
-            </div>
-          ))}
-        </div>
-
         {data && !data.vercelConfigured && (
           <div className="flex gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-100/90">
             <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
@@ -145,22 +106,6 @@ export default function PlatformPage() {
             </p>
           </div>
         )}
-
-        <div className="flex gap-2 border-b border-white/10 pb-4" role="tablist">
-          {[['stores', 'Tiendas', stores.length], ['requests', 'Solicitudes', newRequests]].map(([id, label, count]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={view === id}
-              onClick={() => setView(id)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition ${view === id ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
-            >
-              {label}
-              {count > 0 && <span className={`min-w-5 px-1.5 py-0.5 rounded-full text-[10px] ${id === 'requests' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-zinc-300'}`}>{count}</span>}
-            </button>
-          ))}
-        </div>
 
         {isLoading && !data ? (
           <div className="p-12 flex items-center justify-center gap-3 text-zinc-500"><Loader2 className="w-5 h-5 animate-spin" /> Cargando tiendas...</div>
@@ -197,10 +142,6 @@ export default function PlatformPage() {
           </ul>
         )}
 
-        <p className="text-xs text-zinc-600 pt-2">
-          <Link to="/admin" className="hover:text-zinc-400">← Volver al panel de la tienda</Link>
-        </p>
-      </main>
 
       {dialog?.type === 'create' && (
         <CreateStoreDialog
