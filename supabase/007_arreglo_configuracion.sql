@@ -1,21 +1,40 @@
 -- ============================================================================
 -- 007 · ARREGLO: NUMERACIÓN DE store_settings
--- La configuración de MINIMAL se cargó con id = 1 a mano y el contador automático
--- de la tabla quedó atrás: la primera tienda nueva chocaba con ese id
+-- La tabla nació para una sola tienda: su id tenía un valor fijo (1) en lugar de un
+-- contador, así que la primera tienda nueva chocaba con la fila de MINIMAL
 -- ("duplicate key value violates unique constraint store_settings_pkey").
 --
--- Este archivo adelanta el contador y crea la configuración de las tiendas que
--- quedaron sin ella. Se puede ejecutar más de una vez.
+-- Este archivo le pone un contador al id (o adelanta el que tenga), quita la regla
+-- de "una sola fila" si existe, y crea la configuración de las tiendas que quedaron
+-- sin ella. Se puede ejecutar más de una vez.
 -- Dónde: Supabase > SQL Editor > New query > pegar todo > Run.
 -- ============================================================================
 
 do $$
 declare
   v_seq text := pg_get_serial_sequence('public.store_settings', 'id');
+  r record;
 begin
-  if v_seq is not null then
-    perform setval(v_seq, greatest((select coalesce(max(id), 0) from public.store_settings), 1));
+  -- Reglas tipo "id = 1" de cuando había una sola configuración
+  for r in
+    select conname from pg_constraint
+    where conrelid = 'public.store_settings'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) ~* '\mid\M'
+  loop
+    execute format('alter table public.store_settings drop constraint %I', r.conname);
+  end loop;
+
+  -- Sin contador propio (valor fijo o nada): se le crea uno
+  if v_seq is null then
+    create sequence if not exists public.store_settings_id_seq;
+    alter sequence public.store_settings_id_seq owned by public.store_settings.id;
+    alter table public.store_settings alter column id set default nextval('public.store_settings_id_seq');
+    v_seq := 'public.store_settings_id_seq';
   end if;
+
+  -- El próximo id es el siguiente al mayor que ya existe
+  perform setval(v_seq, greatest((select coalesce(max(id), 0) from public.store_settings), 1));
 end $$;
 
 -- Mis tiendas: si quien llama es dueño, figura como dueño aunque además sea

@@ -252,9 +252,12 @@ describe('006 · alta por autoservicio', () => {
 });
 
 describe('007 · arreglo de la numeración de store_settings', () => {
-  it('con el contador atrasado (como en producción) las tiendas nuevas vuelven a poder guardarse', async () => {
-    // Reproduce el problema: el contador vuelve a 1 aunque ya existe la fila con id = 1
-    await db.exec(`alter sequence store_settings_id_seq restart with 1`);
+  it('con el id fijo en 1 (como en producción) las tiendas nuevas vuelven a poder guardarse', async () => {
+    // Reproduce producción: el id tiene un valor fijo (1) en vez de contador, y una regla
+    // de "una sola fila" (NOT VALID: las filas de prueba existentes ya tienen otros ids)
+    await db.exec(`alter table store_settings alter column id set default 1`);
+    await db.exec(`alter sequence store_settings_id_seq owned by none`);
+    await db.exec(`alter table store_settings add constraint store_settings_single_row check (id = 1) not valid`);
     const [nueva] = (await db.query(`insert into stores (slug, name) values ('sin-config', 'Sin config') returning id`)).rows;
     await expect(db.query(`insert into store_settings (store_id) values ($1)`, [nueva.id])).rejects.toThrow(/store_settings_pkey/);
 
