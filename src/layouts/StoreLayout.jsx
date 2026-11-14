@@ -63,6 +63,12 @@ export default function StoreLayout() {
         <div className="md:hidden fixed inset-0 z-[35] bg-black/20" onClick={() => setIsMenuOpen(false)} />
       )}
 
+      {store?.sales_enabled === false && (
+        <div className="bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200 text-center text-xs sm:text-sm font-medium px-4 py-2">
+          Tienda en preparación: todavía no recibe pedidos.
+        </div>
+      )}
+
       <header className="h-16 md:h-24 bg-[#FAFAFA]/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-2 md:px-8 lg:px-12 sticky top-0 z-40 transition-colors duration-300">
 
         {/* MENÚ (móvil) + LOGO */}

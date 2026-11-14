@@ -64,7 +64,10 @@ async function listStores(supabase) {
   const users = await Promise.all(userIds.map(id => supabase.auth.admin.getUserById(id)));
   const emailById = Object.fromEntries(users.map((r, i) => [userIds[i], r.data?.user?.email || '']));
 
-  return Promise.all(storesRes.data.map(async (store) => {
+  const pendingFirst = [...storesRes.data].sort((a, b) =>
+    Number(Boolean(b.activation_requested_at && !b.sales_enabled)) - Number(Boolean(a.activation_requested_at && !a.sales_enabled)));
+
+  return Promise.all(pendingFirst.map(async (store) => {
     const paid = ordersRes.data.filter(o => o.store_id === store.id && isPaid(o.status));
     return {
       ...store,
@@ -185,11 +188,19 @@ export default async function handler(req, res) {
         }
         changes.status = body.status;
       }
+      if (body.salesEnabled !== undefined) {
+        changes.sales_enabled = Boolean(body.salesEnabled);
+        if (changes.sales_enabled) changes.activation_requested_at = null;
+      }
       if (Object.keys(changes).length === 0) throw new UserError('No hay cambios.');
       const { error } = await supabase.from('stores').update(changes).eq('id', store.id);
       if (error) throw error;
       return res.status(200).json({
-        message: changes.status === 'suspended' ? 'Tienda suspendida.' : changes.status === 'active' ? 'Tienda reactivada.' : 'Cambios guardados.'
+        message: changes.status === 'suspended' ? 'Tienda suspendida.'
+          : changes.status === 'active' ? 'Tienda reactivada.'
+          : changes.sales_enabled === true ? 'Ventas habilitadas: la tienda ya puede recibir pedidos.'
+          : changes.sales_enabled === false ? 'Ventas deshabilitadas.'
+          : 'Cambios guardados.'
       });
     }
 

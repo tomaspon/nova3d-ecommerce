@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { ArrowRight, CreditCard, Truck, LayoutDashboard, Globe, Smartphone, Package, MessageCircle, Check } from 'lucide-react';
 import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
 import { SUPPORT_WHATSAPP } from '../../storeContact';
@@ -42,7 +43,7 @@ export default function PlatformHome() {
           <nav className="flex items-center gap-2 sm:gap-6 text-sm font-semibold">
             <a href="#como-funciona" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Cómo funciona</a>
             <a href="#ejemplo" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
-            <a href="#solicitar" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Quiero mi tienda</a>
+            <Link to="/plataforma/crear" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Creá tu tienda</Link>
           </nav>
         </div>
       </header>
@@ -57,9 +58,9 @@ export default function PlatformHome() {
           Catálogo, cobros con MercadoPago, envíos y un panel para manejar todo. Vos te ocupás de vender; nosotros, de la tecnología.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <a href="#solicitar" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
-            Solicitar mi tienda <ArrowRight className="w-4 h-4" />
-          </a>
+          <Link to="/plataforma/crear" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
+            Creá tu tienda gratis <ArrowRight className="w-4 h-4" />
+          </Link>
           <a href="#ejemplo" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
             Ver una tienda de ejemplo <ArrowRight className="w-4 h-4" />
           </a>
@@ -123,7 +124,12 @@ export default function PlatformHome() {
       <section id="solicitar" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-10">
         <div>
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">¿Arrancamos tu tienda?</h2>
-          <p className="mt-4 text-zinc-600 text-lg leading-relaxed">Completá tus datos y te mandamos el presupuesto. En pocos días estás vendiendo.</p>
+          <p className="mt-4 text-zinc-600 text-lg leading-relaxed">Creala vos en 2 minutos, gratis. Cargás tus productos y cuando esté lista te habilitamos las ventas.</p>
+          <Link to="/plataforma/crear" className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
+            <Sparkles className="w-5 h-5" /> Creá tu tienda gratis
+          </Link>
+          <p className="mt-10 font-bold text-zinc-900">¿Preferís que te la armemos nosotros?</p>
+          <p className="mt-1 text-zinc-600">Dejanos tus datos y te mandamos un presupuesto para armarla por vos.</p>
           <p className="mt-6 text-sm text-zinc-500">¿Preferís hablar primero?</p>
           <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-bold text-zinc-900 underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900">
             <MessageCircle className="w-5 h-5" /> Escribinos por WhatsApp

@@ -14,7 +14,8 @@ const SECTIONS = [
       ['Configurá tu tienda', <>En <Link to="/admin/settings">Config.</Link> completá el nombre del negocio, el email de contacto y el costo de envío.</>],
       ['Creá tus categorías', <>En <Link to="/admin/categories">Categorías</Link> armá las secciones de tu catálogo (por ejemplo: Remeras, Buzos, Accesorios).</>],
       ['Cargá tus productos', <>En <Link to="/admin/products">Productos</Link> tocá <b>Nuevo Producto</b>, subí fotos, poné precio y stock.</>],
-      ['Revisá cómo se ve', <>Abrí tu tienda con <b>Ver la Tienda</b> (abajo en el menú) y hacé una compra de prueba con transferencia para conocer el recorrido.</>]
+      ['Revisá cómo se ve', <>Abrí tu tienda con <b>Ver la Tienda</b> (abajo en el menú) y recorrela como si fueras un cliente.</>],
+      ['Pedí la activación', <>Las tiendas nuevas no reciben pedidos hasta que se verifica al titular. Cuando la tuya esté lista, tocá <b>Pedir activación</b> en el aviso de arriba del panel y te contactamos para habilitar las ventas.</>]
     ]
   },
   {
@@ -114,7 +115,8 @@ const SECTIONS = [
     id: 'plataforma', icon: Globe, title: 'Plataforma: tus tiendas', platformOnly: true,
     intro: <>Desde <Link to="/plataforma">Mis tiendas</Link> manejás todas las tiendas (solo vos lo ves).</>,
     steps: [
-      ['Crear una tienda', <>Tocá <b>Nueva tienda</b>: nombre, enlace (se arma solo y no se cambia después), rubro y plantilla. La plantilla copia envío, campaña y banner de otra tienda; los productos no se copian.</>],
+      ['Altas por autoservicio', <>Los emprendedores crean su tienda solos desde la página oficial ("Creá tu tienda gratis"). Nace <b>sin ventas</b>: cuando el dueño toca "Pedir activación", la tarjeta muestra <b>Pidió activación</b> y aparece primera. Verificalo (CUIT, WhatsApp) y tocá <b>Habilitar ventas</b>.</>],
+      ['Crear una tienda a mano', <>Tocá <b>Nueva tienda</b>: nombre, enlace (se arma solo y no se cambia después), rubro y plantilla. La plantilla copia envío, campaña y banner de otra tienda; los productos no se copian.</>],
       ['Asignar al dueño', 'Poné su email al crearla o con "Agregar dueño". Si no tiene cuenta, le llega una invitación. El dueño entra solo al panel de su tienda.'],
       ['Conectar un dominio', <>Tocá <b>Conectar dominio</b> y pegá el dominio del cliente. El panel te dice qué registro DNS crear donde lo compró (registro A para "velas.com.ar", CNAME para "tienda.velas.com"). Puede tardar hasta 48 horas.</>],
       ['Ver la tienda y su panel', 'Cada tarjeta tiene "Ver tienda" y "Panel". Mientras no tengas el dominio de la plataforma, los links usan ?tienda= en la dirección actual.'],

@@ -184,6 +184,7 @@ export default function PlatformPage() {
                 urls={storeUrls(store, { origin, platformDomain: data.platformDomain })}
                 busy={busyId === store.id}
                 onToggleStatus={() => run({ action: 'update', storeId: store.id, status: store.status === 'active' ? 'suspended' : 'active' }, store.id)}
+                onToggleSales={() => run({ action: 'update', storeId: store.id, salesEnabled: store.sales_enabled === false }, store.id)}
                 onDomain={() => setDialog({ type: 'domain', store })}
                 onAddOwner={() => setDialog({ type: 'owner', store })}
                 onRemoveOwner={(owner) => {
@@ -223,7 +224,9 @@ export default function PlatformPage() {
   );
 }
 
-function StoreCard({ store, urls, busy, onToggleStatus, onDomain, onAddOwner, onRemoveOwner }) {
+function StoreCard({ store, urls, busy, onToggleStatus, onToggleSales, onDomain, onAddOwner, onRemoveOwner }) {
+  const salesOff = store.sales_enabled === false;
+  const wantsActivation = salesOff && Boolean(store.activation_requested_at);
   const active = store.status === 'active';
   const template = STORE_TEMPLATES.find(t => t.id === store.template)?.label || store.template;
   const domainState = store.domain ? DOMAIN_STATUS[store.domain.status] || DOMAIN_STATUS.unknown : null;
@@ -240,6 +243,8 @@ function StoreCard({ store, urls, busy, onToggleStatus, onDomain, onAddOwner, on
               <h2 className="text-lg font-bold text-white truncate">{store.name}</h2>
               {store.isDefault && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300">Principal</span>}
               {!active && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/15 text-red-300">Suspendida</span>}
+              {wantsActivation && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 animate-pulse">Pidió activación</span>}
+              {salesOff && !wantsActivation && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/10 text-zinc-300">Sin ventas</span>}
             </div>
             <p className="text-xs text-zinc-500 mt-1">{template} · <span className="font-mono">{store.slug}</span></p>
           </div>
@@ -298,6 +303,14 @@ function StoreCard({ store, urls, busy, onToggleStatus, onDomain, onAddOwner, on
           <div className="flex flex-wrap gap-2 pt-1">
             <button type="button" onClick={onAddOwner} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition">
               <Plus className="w-3.5 h-3.5" /> Agregar dueño
+            </button>
+            <button
+              type="button"
+              onClick={onToggleSales}
+              disabled={busy}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition disabled:opacity-50 ${salesOff ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25' : 'bg-white/5 text-zinc-300 hover:bg-white/10'}`}
+            >
+              {salesOff ? 'Habilitar ventas' : 'Deshabilitar ventas'}
             </button>
             {!store.isDefault && (
               <button

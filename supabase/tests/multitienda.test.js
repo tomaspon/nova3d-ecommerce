@@ -221,3 +221,32 @@ describe('005 · solicitudes de tienda', () => {
     }
   });
 });
+
+describe('006 · alta por autoservicio', () => {
+  it('una tienda sin ventas habilitadas no recibe pedidos; las existentes siguen vendiendo', async () => {
+    await db.exec(sql('006_alta_autoservicio.sql'));
+    await db.exec(sql('006_alta_autoservicio.sql')); // se puede correr dos veces
+
+    expect((await db.query(`select bool_and(sales_enabled) as ok from stores`)).rows[0].ok).toBe(true);
+
+    await db.query(`update stores set sales_enabled = false, signup_ip = '1.2.3.4' where id = $1`, [STORE_B]);
+    await expect(as('anon', createOrder, orderArgs([{ id: ids.velas, quantity: 1 }], STORE_B)))
+      .rejects.toThrow(/no está habilitada para vender/);
+
+    const store = (await as('anon', `select public.get_store_by_slug('velas-luna') as s`))[0].s;
+    expect(store.sales_enabled).toBe(false);
+
+    await db.query(`update stores set sales_enabled = true where id = $1`, [STORE_B]);
+    const [{ o }] = await as('anon', createOrder, orderArgs([{ id: ids.velas, quantity: 1 }], STORE_B));
+    expect(o.id).toBeTruthy();
+  });
+
+  it('los datos del alta no son públicos, y el dueño no puede habilitarse las ventas solo', async () => {
+    await expect(as('anon', `select signup_ip from stores`)).rejects.toThrow(/permission denied/);
+    await expect(as('ownerB', `select created_by from stores`)).rejects.toThrow(/permission denied/);
+    expect((await as('anon', `select slug, sales_enabled from stores where id = $1`, [STORE_B]))[0].slug).toBe('velas-luna');
+    await expect(as('ownerB', `update stores set sales_enabled = true where id = $1`, [STORE_B])).rejects.toThrow(/permission denied/);
+    // El catálogo público sigue funcionando con los permisos por columna
+    expect((await as('anon', `select name from products where store_id = $1`, [STORE_B])).length).toBeGreaterThan(0);
+  });
+});

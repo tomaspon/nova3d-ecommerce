@@ -150,6 +150,16 @@ describe('api/platform-stores', () => {
     expect(velas.status).toBe('suspended');
   });
 
+  it('habilita y deshabilita las ventas de una tienda', async () => {
+    const store = fake.client.tables.stores[0];
+    store.sales_enabled = false;
+    store.activation_requested_at = '2026-11-14';
+    expect((await call('admin', { action: 'update', storeId: MINIMAL, salesEnabled: true })).body.message).toMatch(/Ventas habilitadas/);
+    expect(store).toMatchObject({ sales_enabled: true, activation_requested_at: null });
+    await call('admin', { action: 'update', storeId: MINIMAL, salesEnabled: false });
+    expect(store.sales_enabled).toBe(false);
+  });
+
   it('guarda dominios limpios, rechaza inválidos y no repite el de otra tienda', async () => {
     expect((await call('admin', { action: 'setDomain', storeId: MINIMAL, domain: 'https://www.Minimal.com.ar/' })).statusCode).toBe(200);
     expect(fake.client.tables.stores[0].custom_domain).toBe('minimal.com.ar');
