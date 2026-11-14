@@ -42,7 +42,7 @@ export default function TrackingPage() {
           await fetch('/api/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: paymentIdParam })
+            body: JSON.stringify({ paymentId: paymentIdParam, orderId: orderIdParam })
           });
         } catch (err) {
           console.error('No se pudo verificar el pago:', err);

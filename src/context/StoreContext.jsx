@@ -42,7 +42,12 @@ export function StoreProvider({ children }) {
     campaign_image_url: '',
     store_name: '',
     store_email: '',
-    shipping_cost: 0
+    shipping_cost: 0,
+    // Cobro por transferencia y contacto de la tienda
+    transfer_alias: '',
+    transfer_cbu: '',
+    transfer_holder: '',
+    contact_whatsapp: ''
   });
 
   // ESTADO AUTH Y PERFIL
@@ -130,7 +135,11 @@ export function StoreProvider({ children }) {
           campaign_image_url: data.campaign_image_url || '',
           store_name: data.store_name || '',
           store_email: data.store_email || '',
-          shipping_cost: Number(data.shipping_cost) || 0
+          shipping_cost: Number(data.shipping_cost) || 0,
+          transfer_alias: data.transfer_alias || '',
+          transfer_cbu: data.transfer_cbu || '',
+          transfer_holder: data.transfer_holder || '',
+          contact_whatsapp: data.contact_whatsapp || ''
         }));
       }
     } catch (error) {
@@ -149,6 +158,9 @@ export function StoreProvider({ children }) {
       if (newSettings.store_name !== undefined) payload.store_name = newSettings.store_name;
       if (newSettings.store_email !== undefined) payload.store_email = newSettings.store_email;
       if (newSettings.shipping_cost !== undefined) payload.shipping_cost = Math.max(0, Number(newSettings.shipping_cost) || 0);
+      for (const field of ['transfer_alias','transfer_cbu','transfer_holder','contact_whatsapp']) {
+        if (newSettings[field] !== undefined) payload[field] = String(newSettings[field]).trim() || null;
+      }
 
       if (Object.keys(payload).length > 0) {
         // Las tiendas nuevas todavía no tienen fila: se crea al guardar por primera vez.

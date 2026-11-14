@@ -11,6 +11,7 @@ export const DEMO_STORE = {
   status: 'active',
   template: 'ropa',
   branding: {},
+  mp_connected: true,
   isDemo: true
 };
 
@@ -20,7 +21,10 @@ export const DEMO_SETTINGS = {
   campaign_image_url: 'preset:verano',
   store_name: 'NORTE.',
   store_email: '',
-  shipping_cost: 3500
+  shipping_cost: 3500,
+  transfer_alias: 'norte.tienda',
+  transfer_holder: 'NORTE.',
+  contact_whatsapp: ''
 };
 
 const product = (id, name, description, price, discount, stock, category, image, inCampaign) => ({

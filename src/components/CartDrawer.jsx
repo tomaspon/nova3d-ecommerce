@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { itemsTotal, formatMoney } from '../pricing';
 import { useStore } from '../context/StoreContext';
+import { availablePaymentMethods, storeWhatsappLink } from '../paymentMethods';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2, Loader2, MapPin, Phone, User, Mail, CreditCard, Landmark } from 'lucide-react';
 
 export default function CartDrawer() {
   const navigate = useNavigate();
-  const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, checkoutOrder, user, storeSettings } = useStore();
+  const { store, cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, checkoutOrder, user, storeSettings } = useStore();
+  // Solo los medios de pago que esta tienda configuró
+  const paymentMethods = availablePaymentMethods(store, storeSettings);
   const [checkoutStep, setCheckoutStep] = useState('cart'); // cart, form, loading, success
   const [orderInfo, setOrderInfo] = useState(null);
   
@@ -30,6 +33,13 @@ export default function CartDrawer() {
     }
   }, [user, isCartOpen]);
 
+
+  // Si el medio elegido no está disponible en esta tienda, se elige el primero que sí
+  React.useEffect(() => {
+    if (paymentMethods.length && !paymentMethods.includes(formData.paymentMethod)) {
+      setFormData(prev => ({ ...prev, paymentMethod: paymentMethods[0] }));
+    }
+  }, [paymentMethods.join(), formData.paymentMethod]);
 
   // El envío es un costo fijo definido en Configuración; la base lo suma igual al crear la orden
   const subtotal = itemsTotal(cart);
@@ -61,14 +71,12 @@ export default function CartDrawer() {
           if (mpData.init_point) {
             window.location.href = mpData.init_point;
           } else {
-            alert('Error al conectar con MercadoPago. Mostrando datos manuales.');
-            setOrderInfo({ id: res.orderId, total: res.total, method: formData.paymentMethod });
+            setOrderInfo({ id: res.orderId, total: res.total, method: 'MercadoPagoError' });
             setCheckoutStep('success');
           }
         } catch (error) {
           console.error(error);
-          alert('Error de conexión con MercadoPago. Mostrando datos manuales.');
-          setOrderInfo({ id: res.orderId, total: res.total, method: formData.paymentMethod });
+          setOrderInfo({ id: res.orderId, total: res.total, method: 'MercadoPagoError' });
           setCheckoutStep('success');
         }
       } else {
@@ -115,39 +123,12 @@ export default function CartDrawer() {
                 Guardá tu número de pedido: lo podés seguir desde la sección Seguimiento con tu DNI.
               </p>
               
-              {orderInfo?.method === 'Transferencia' ? (
-                <div className="w-full space-y-4">
-                  <div className="bg-zinc-100 dark:bg-white/5 p-4 rounded-xl border border-zinc-200 dark:border-white/10 mb-4">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Para terminar tu pedido, envianos el comprobante de transferencia bancaria por WhatsApp.</p>
-                    <p className="text-xl font-black text-black dark:text-white mb-2">Total a transferir: ${orderInfo?.total.toLocaleString('es-AR')}</p>
-                  </div>
-                  <a 
-                    href={`https://wa.me/5492915751347?text=${encodeURIComponent(`Hola! Acabo de realizar el pedido #${orderInfo?.id?.split('-')[0]} en la tienda por ${orderInfo?.total.toLocaleString('es-AR')}. Te paso el comprobante bancario:`)}`} 
-                    target="_blank" rel="noreferrer"
-                    className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:-translate-y-0.5"
-                  >
-                    Enviar Comprobante por WhatsApp
-                  </a>
-                </div>
-              ) : (
-                <div className="w-full space-y-4">
-                  <div className="bg-[#009EE3]/10 p-5 rounded-xl border border-[#009EE3]/20 mb-4">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 font-medium">Transferí el total desde tu app de MercadoPago al siguiente Alias:</p>
-                    <div className="bg-white dark:bg-[#121212] rounded-xl p-4 border border-[#009EE3]/20 flex flex-col items-center justify-center text-center shadow-sm">
-                      <span className="text-2xl font-black text-[#009EE3] mb-1 tracking-wider selection:bg-[#009EE3]/20">tomizinho</span>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Tomas Pon Oses</span>
-                    </div>
-                    <p className="text-xl font-black text-[#009EE3] mt-5 text-center">Total a pagar: ${orderInfo?.total.toLocaleString('es-AR')}</p>
-                  </div>
-                  <a 
-                    href={`https://wa.me/5492915751347?text=${encodeURIComponent(`Hola! Acabo de realizar el pedido #${orderInfo?.id?.split('-')[0]} por ${orderInfo?.total.toLocaleString('es-AR')} y ya te transferí a tu MercadoPago (tomizinho). Te paso el comprobante:`)}`} 
-                    target="_blank" rel="noreferrer"
-                    className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:-translate-y-0.5 gap-2"
-                  >
-                    Ya pagué <span className="font-normal opacity-70">|</span> Enviar comprobante
-                  </a>
-                </div>
+              {orderInfo?.method === 'MercadoPagoError' && (
+                <p className="w-full mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-sm text-amber-800 dark:text-amber-200">
+                  No pudimos abrir MercadoPago. Tu pedido quedó reservado: {paymentMethods.includes('Transferencia') ? 'podés pagarlo por transferencia con estos datos.' : 'escribile a la tienda para coordinar el pago.'}
+                </p>
               )}
+              <TransferDetails settings={storeSettings} order={orderInfo} showTransfer={orderInfo?.method === 'Transferencia' || (orderInfo?.method === 'MercadoPagoError' && paymentMethods.includes('Transferencia'))} />
             </div>
           ) : checkoutStep === 'form' || checkoutStep === 'loading' ? (
             <form id="checkout-form" onSubmit={handleCheckoutSubmit} className="space-y-6 animate-in slide-in-from-right-4 duration-300 pb-20">
@@ -206,7 +187,13 @@ export default function CartDrawer() {
               {/* Sección Pago */}
               <div>
                 <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Método de Pago</h3>
+                {paymentMethods.length === 0 && (
+                  <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-sm text-amber-800 dark:text-amber-200">
+                    Esta tienda todavía no configuró sus medios de pago.
+                  </p>
+                )}
                 <div className="grid grid-cols-1 gap-3">
+                  {paymentMethods.includes('MercadoPago') && (
                   <label className={`border p-4 rounded-xl cursor-pointer transition-colors flex items-center gap-3 ${formData.paymentMethod === 'MercadoPago' ? 'border-[#009EE3] bg-[#009EE3]/5' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}>
                     <input type="radio" name="payment" value="MercadoPago" checked={formData.paymentMethod === 'MercadoPago'} onChange={() => setFormData({...formData, paymentMethod: 'MercadoPago'})} className="sr-only" />
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${formData.paymentMethod === 'MercadoPago' ? 'border-[#009EE3]' : 'border-zinc-400'}`}>
@@ -214,7 +201,9 @@ export default function CartDrawer() {
                     </div>
                     <span className="font-bold text-sm text-zinc-900 dark:text-white flex-1">MercadoPago</span>
                   </label>
-                  
+                  )}
+
+                  {paymentMethods.includes('Transferencia') && (
                   <label className={`border p-4 rounded-xl cursor-pointer transition-colors flex items-center gap-3 ${formData.paymentMethod === 'Transferencia' ? 'border-indigo-500 bg-indigo-500/5' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}>
                     <input type="radio" name="payment" value="Transferencia" checked={formData.paymentMethod === 'Transferencia'} onChange={() => setFormData({...formData, paymentMethod: 'Transferencia'})} className="sr-only" />
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${formData.paymentMethod === 'Transferencia' ? 'border-indigo-500' : 'border-zinc-400'}`}>
@@ -223,6 +212,7 @@ export default function CartDrawer() {
                     <span className="font-bold text-sm text-zinc-900 dark:text-white flex-1">Transferencia Bancaria</span>
                     <Landmark className="w-4 h-4 text-zinc-400" />
                   </label>
+                  )}
                 </div>
               </div>
 
@@ -307,7 +297,7 @@ export default function CartDrawer() {
               <button 
                 type="submit" 
                 form="checkout-form"
-                disabled={checkoutStep === 'loading'}
+                disabled={checkoutStep === 'loading' || paymentMethods.length === 0}
                 className="w-full bg-black dark:bg-white hover:bg-zinc-900 dark:hover:bg-zinc-200 text-white dark:text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 hover:-translate-y-0.5"
               >
                 {checkoutStep === 'loading' ? (
@@ -325,5 +315,40 @@ export default function CartDrawer() {
         )}
       </div>
     </>
+  );
+}
+
+// Datos para pagar por transferencia y avisar por WhatsApp: los de la tienda, no fijos
+function TransferDetails({ settings, order, showTransfer }) {
+  const shortId = order?.id?.split('-')[0];
+  const total = order?.total?.toLocaleString('es-AR');
+  const whatsapp = storeWhatsappLink(settings, showTransfer
+    ? `Hola! Hice el pedido #${shortId} por $${total} y ya transferí. Te paso el comprobante:`
+    : `Hola! Hice el pedido #${shortId} por $${total}.`);
+
+  return (
+    <div className="w-full space-y-4">
+      {showTransfer && (
+        <div className="bg-zinc-100 dark:bg-white/5 p-5 rounded-xl border border-zinc-200 dark:border-white/10">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 font-medium">Transferí el total a esta cuenta:</p>
+          <div className="bg-white dark:bg-[#121212] rounded-xl p-4 border border-zinc-200 dark:border-white/10 text-center space-y-1">
+            {settings?.transfer_alias && <p className="text-xl font-black text-zinc-900 dark:text-white break-all">{settings.transfer_alias}</p>}
+            {settings?.transfer_cbu && <p className="text-xs font-mono text-zinc-600 dark:text-zinc-300 break-all">CBU/CVU {settings.transfer_cbu}</p>}
+            {settings?.transfer_holder && <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{settings.transfer_holder}</p>}
+          </div>
+          <p className="text-xl font-black text-zinc-900 dark:text-white mt-5 text-center">Total: ${total}</p>
+        </div>
+      )}
+      {whatsapp && (
+        <a
+          href={whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:-translate-y-0.5"
+        >
+          {showTransfer ? 'Ya pagué · Enviar comprobante' : 'Escribirle a la tienda'}
+        </a>
+      )}
+    </div>
   );
 }

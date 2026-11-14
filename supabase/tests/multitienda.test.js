@@ -283,3 +283,23 @@ describe('007 · mis tiendas', () => {
     expect(rows.find(r => r.slug === 'minimal').role).toBe('platform');
   });
 });
+
+describe('008 · cobros por tienda', () => {
+  it('las cuentas de MercadoPago son privadas; la marca de conectada y los datos de transferencia, públicos', async () => {
+    await db.exec(sql('008_cobros_por_tienda.sql'));
+    await db.exec(sql('008_cobros_por_tienda.sql')); // se puede correr dos veces
+
+    await db.query(`insert into store_payment_accounts (store_id, access_token_enc) values ($1, 'v1.cifrado')`, [STORE_B]);
+    for (const who of ['anon', 'customer', 'ownerB', 'admin']) {
+      await expect(as(who, `select * from store_payment_accounts`)).rejects.toThrow(/permission denied/);
+    }
+    await expect(as('ownerB', `update stores set mp_connected = true where id = $1`, [STORE_B])).rejects.toThrow(/permission denied/);
+
+    await db.query(`update stores set mp_connected = true where id = $1`, [STORE_B]);
+    expect((await as('anon', `select public.get_store_by_slug('velas-luna') as s`))[0].s.mp_connected).toBe(true);
+
+    // MINIMAL conserva el alias que antes estaba escrito en el código
+    const [minimal] = await as('anon', `select transfer_alias, contact_whatsapp from store_settings where store_id = $1`, [MINIMAL]);
+    expect(minimal).toEqual({ transfer_alias: 'tomizinho', contact_whatsapp: '5492915751347' });
+  });
+});

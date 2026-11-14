@@ -4,8 +4,9 @@ import { supabase } from '../../supabaseClient';
 import { parseBannerUrl, buildBannerUrl, DEFAULT_BANNER_Y } from '../../bannerPosition';
 import { BANNER_PRESETS, isPresetBanner, findPreset, presetValue, isDefaultTitle } from '../../bannerPresets';
 import CampaignHero from '../../components/CampaignHero';
+import PaymentSettings from './PaymentSettings';
 import { SEASON_ART } from '../../components/campaignArt';
-import { Settings, Bell, Shield, Store, CreditCard, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
+import { Settings, Bell, Shield, Store, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
 
 export default function SettingsPage() {
   const { storeSettings, updateStoreSettings, products, toggleProductCampaign, storeId } = useStore();
@@ -227,23 +228,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-2">
-                <h2 className="text-xl font-bold text-white mb-2">Pasarelas de Pago</h2>
-                <p className="text-zinc-400 text-sm mb-6 border-b border-white/10 pb-4">Configuración de cobros en tu tienda.</p>
-                
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-white font-bold text-sm">MercadoPago</div>
-                      <div className="text-blue-400 text-xs">Conectado exitosamente</div>
-                    </div>
-                  </div>
-                  <CheckCircle2 className="w-5 h-5 text-blue-400" />
-                </div>
-              </div>
+              <PaymentSettings />
             </>
           )}
 

@@ -1,5 +1,6 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { getSupabase, RESERVATION_MINUTES } from './_lib/payments.js';
+import { getStoreMpToken, platformFee } from './_lib/mercadopago.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, items, status, shipping_cost, store_id')
+      .select('id, items, status, total, shipping_cost, store_id')
       .eq('id', orderId)
       .maybeSingle();
 
@@ -54,9 +55,12 @@ export default async function handler(req, res) {
       mpItems.push({ id: 'envio', title: 'Envío', quantity: 1, unit_price: shippingCost, currency_id: 'ARS' });
     }
 
-    const client = new MercadoPagoConfig({
-      accessToken: process.env.MP_ACCESS_TOKEN || ''
-    });
+    // Se cobra con la cuenta de MercadoPago de la tienda (o la de la plataforma, para la principal)
+    const credentials = await getStoreMpToken(supabase, order.store_id);
+    if (!credentials) {
+      return res.status(409).json({ message: 'Esta tienda todavía no conectó MercadoPago. Elegí transferencia.' });
+    }
+    const client = new MercadoPagoConfig({ accessToken: credentials.token });
 
     const preference = new Preference(client);
 
@@ -80,9 +84,14 @@ export default async function handler(req, res) {
       external_reference: orderId,
       expires: true,
       expiration_date_to: expirationDate,
-      notification_url: `${baseUrl}/api/webhook`,
+      // El webhook sabe con qué cuenta consultar el pago
+      notification_url: `${baseUrl}/api/webhook?store=${order.store_id}`,
       statement_descriptor: statementDescriptor,
     };
+
+    // Comisión de la plataforma: solo cuando cobra la cuenta del vendedor
+    const fee = credentials.source === 'seller' ? platformFee(order.total) : 0;
+    if (fee > 0) body.marketplace_fee = fee;
 
     const response = await preference.create({ body });
 

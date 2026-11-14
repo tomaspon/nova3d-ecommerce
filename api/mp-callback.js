@@ -1,0 +1,40 @@
+import { getSupabase } from './_lib/payments.js';
+import { verifyState } from './_lib/secrets.js';
+import { exchangeCode, saveAccount } from './_lib/mercadopago.js';
+import { siteUrl } from './_lib/platformAdmin.js';
+
+// A donde vuelve MercadoPago después de que el vendedor autoriza (GET ?code=...&state=...).
+// El state firmado dice qué tienda y qué usuario empezaron la conexión: así nadie puede
+// conectar su cuenta a una tienda ajena. Al final se vuelve a Configuración de la tienda.
+
+function settingsUrl(req, store, result) {
+  const base = siteUrl(req);
+  const params = new URLSearchParams({ mp: result });
+  if (store?.custom_domain) return `https://${store.custom_domain}/admin/settings?${params}`;
+  if (store?.slug && process.env.PLATFORM_DOMAIN) return `https://${store.slug}.${process.env.PLATFORM_DOMAIN}/admin/settings?${params}`;
+  if (store?.slug) params.set('tienda', store.slug);
+  return `${base}/admin/settings?${params}`;
+}
+
+export default async function handler(req, res) {
+  const { code, state, error: deniedError } = req.query || {};
+  const payload = verifyState(state);
+  let store = null;
+
+  try {
+    const supabase = getSupabase();
+    if (payload) {
+      const { data } = await supabase.from('stores').select('id, slug, custom_domain').eq('id', payload.s).maybeSingle();
+      store = data;
+    }
+    if (!payload || !store) return res.redirect(302, settingsUrl(req, store, 'invalido'));
+    if (deniedError || !code) return res.redirect(302, settingsUrl(req, store, 'cancelado'));
+
+    const tokens = await exchangeCode(String(code));
+    await saveAccount(supabase, store.id, tokens, payload.u);
+    return res.redirect(302, settingsUrl(req, store, 'conectado'));
+  } catch (err) {
+    console.error('mp-callback:', err);
+    return res.redirect(302, settingsUrl(req, store, 'error'));
+  }
+}

@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { escapeHtml } from '../../src/escapeHtml.js';
 import { lineTotal, formatMoney } from '../../src/pricing.js';
+import { getStoreMpToken } from './mercadopago.js';
+import { DEFAULT_STORE_ID } from '../../src/storeIds.js';
 
 // Los clientes se crean dentro de la función: construirlos al cargar el módulo
 // tira la función entera si falta una variable de entorno (Resend y Supabase lanzan con claves vacías).
@@ -98,12 +100,14 @@ async function sendReceiptEmail(order, orderId) {
 
 // Consulta el pago en MercadoPago y, si está aprobado, marca la orden como pagada y descuenta stock.
 // Lo usan el webhook y la verificación al volver del checkout; es seguro llamarlo más de una vez.
-export async function processPayment(paymentId) {
-  if (!process.env.MP_ACCESS_TOKEN) {
-    throw new Error('MP_ACCESS_TOKEN no está configurado en Vercel.');
+// storeId: la tienda cuya cuenta de MercadoPago recibió el pago (con su token se consulta).
+export async function processPayment(paymentId, storeId = DEFAULT_STORE_ID, supabase = getSupabase()) {
+  const credentials = await getStoreMpToken(supabase, storeId);
+  if (!credentials) {
+    throw new Error(`La tienda ${storeId} no tiene MercadoPago conectado.`);
   }
 
-  const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
+  const client = new MercadoPagoConfig({ accessToken: credentials.token });
   const paymentInfo = await new Payment(client).get({ id: paymentId });
 
   const orderId = paymentInfo.external_reference;
@@ -115,7 +119,6 @@ export async function processPayment(paymentId) {
     return { orderId: orderId || null, paymentStatus, orderStatus: null };
   }
 
-  const supabase = getSupabase();
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select('*')
@@ -123,6 +126,13 @@ export async function processPayment(paymentId) {
     .single();
 
   if (orderError) throw orderError;
+
+  // El pago tiene que ser de la misma tienda que la orden: si no, un vendedor podría usar
+  // un pago de su propia cuenta para marcar como pagada la orden de otra tienda.
+  if ((order.store_id || DEFAULT_STORE_ID) !== storeId) {
+    console.error(`Pago ${paymentId} de la tienda ${storeId} apunta a la orden ${orderId} de otra tienda.`);
+    return { orderId, paymentStatus: 'store_mismatch', orderStatus: order.status };
+  }
 
   if (!isAwaitingPayment(order.status)) {
     console.log(`La orden ${orderId} ya estaba en estado: ${order.status}.`);
