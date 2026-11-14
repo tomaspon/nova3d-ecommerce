@@ -133,7 +133,10 @@ function StoreStep({ onCreated }) {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         setErrors(body.errors || {});
-        setMessage(response.status === 404 ? 'El alta funciona en la versión publicada.' : body.message || 'No pudimos crear tu tienda.');
+        // En localhost no existen las funciones del servidor (viven en Vercel)
+        setMessage(response.status === 404
+          ? <>Estás en la versión local: crear la tienda necesita el servidor publicado. Seguí en <a className="underline font-semibold" href="https://nova3d-ecommerce.vercel.app/plataforma/crear">nova3d-ecommerce.vercel.app/plataforma/crear</a> e iniciá sesión con esta misma cuenta.</>
+          : body.message || 'No pudimos crear tu tienda.');
       } else {
         try { localStorage.removeItem(PENDING_KEY); } catch { /* sin almacenamiento */ }
         onCreated(body.store);
