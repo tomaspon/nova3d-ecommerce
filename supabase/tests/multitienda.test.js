@@ -250,3 +250,33 @@ describe('006 · alta por autoservicio', () => {
     expect((await as('anon', `select name from products where store_id = $1`, [STORE_B])).length).toBeGreaterThan(0);
   });
 });
+
+describe('007 · arreglo de la numeración de store_settings', () => {
+  it('con el contador atrasado (como en producción) las tiendas nuevas vuelven a poder guardarse', async () => {
+    // Reproduce el problema: el contador vuelve a 1 aunque ya existe la fila con id = 1
+    await db.exec(`alter sequence store_settings_id_seq restart with 1`);
+    const [nueva] = (await db.query(`insert into stores (slug, name) values ('sin-config', 'Sin config') returning id`)).rows;
+    await expect(db.query(`insert into store_settings (store_id) values ($1)`, [nueva.id])).rejects.toThrow(/store_settings_pkey/);
+
+    await db.exec(sql('007_arreglo_configuracion.sql'));
+    await db.exec(sql('007_arreglo_configuracion.sql')); // se puede correr dos veces
+
+    // Completó la configuración que faltaba, con el nombre de la tienda
+    const [cfg] = (await db.query(`select store_name from store_settings where store_id = $1`, [nueva.id])).rows;
+    expect(cfg.store_name).toBe('Sin config');
+    const sinConfig = (await db.query(`select count(*)::int as n from stores s where not exists (select 1 from store_settings x where x.store_id = s.id)`)).rows[0].n;
+    expect(sinConfig).toBe(0);
+    // Y la próxima tienda se guarda sin chocar
+    const [otra] = (await db.query(`insert into stores (slug, name) values ('otra-nueva', 'Otra') returning id`)).rows;
+    await db.query(`insert into store_settings (store_id) values ($1)`, [otra.id]);
+  });
+});
+
+describe('007 · mis tiendas', () => {
+  it('un administrador de plataforma que además es dueño figura como dueño', async () => {
+    await db.query(`insert into store_members (store_id, user_id, role) values ($1, $2, 'owner')`, [STORE_B, ADMIN]);
+    const rows = await as('admin', `select slug, role from public.my_stores()`);
+    expect(rows.find(r => r.slug === 'velas-luna').role).toBe('owner');
+    expect(rows.find(r => r.slug === 'minimal').role).toBe('platform');
+  });
+});

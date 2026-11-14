@@ -86,8 +86,11 @@ export default async function handler(req, res) {
       supabase.from('store_settings').insert({ store_id: store.id, store_name: data.name }),
       supabase.from('store_members').insert({ store_id: store.id, user_id: user.id, role: 'owner' })
     ]);
-    if (settingsRes.error) throw settingsRes.error;
-    if (memberRes.error) throw memberRes.error;
+    if (settingsRes.error || memberRes.error) {
+      // No dejar tiendas a medias: se deshace todo (la membresía cae con la tienda)
+      await supabase.from('stores').delete().eq('id', store.id);
+      throw settingsRes.error || memberRes.error;
+    }
 
     return res.status(200).json({ message: '¡Tu tienda está creada!', store });
   } catch (error) {

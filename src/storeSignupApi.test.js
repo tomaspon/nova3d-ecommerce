@@ -18,9 +18,11 @@ function makeClient() {
   const from = (table) => {
     const filters = [];
     let op = 'select', payload = null, head = false;
+    const failInsert = tables.failInsert;
     const matches = (r) => filters.every(f => f(r));
     const exec = () => {
       const rows = tables[table];
+      if (op === 'insert' && failInsert === table) return { data: null, error: { code: '23505', message: 'duplicate key' } };
       if (op === 'insert') {
         const row = { id: `id-${nextId++}`, created_at: new Date().toISOString(), ...payload };
         if (table === 'stores' && rows.some(r => r.slug === row.slug)) return { data: null, error: { code: '23505' } };
@@ -28,6 +30,7 @@ function makeClient() {
         return { data: [row], error: null };
       }
       if (op === 'update') { rows.filter(matches).forEach(r => Object.assign(r, payload)); return { data: [], error: null }; }
+      if (op === 'delete') { tables[table] = rows.filter(r => !matches(r)); return { data: [], error: null }; }
       const found = rows.filter(matches);
       return head ? { count: found.length, error: null } : { data: found, error: null };
     };
@@ -37,6 +40,7 @@ function makeClient() {
       gte: (k, v) => { filters.push(r => r[k] >= v); return b; },
       insert: (p) => { op = 'insert'; payload = p; return b; },
       update: (p) => { op = 'update'; payload = p; return b; },
+      delete: () => { op = 'delete'; return b; },
       single: async () => { const r = exec(); return { data: r.data?.[0] ?? null, error: r.error }; },
       maybeSingle: async () => { const r = exec(); return { data: r.data?.[0] ?? null, error: r.error }; },
       then: (resolve, reject) => Promise.resolve(exec()).then(resolve, reject)
@@ -85,6 +89,15 @@ describe('api/store-signup', () => {
     expect((await call('ana', { ...valid, slug: 'otra' })).statusCode).toBe(409);
     expect((await call('admin', { ...valid })).statusCode).toBe(409); // el enlace ya existe
     expect((await call('admin', { ...valid, slug: 'otra-mas' })).statusCode).toBe(200); // la plataforma no tiene límite
+  });
+
+  it('si falla un paso, la tienda se deshace y no queda a medias', async () => {
+    fake.client.tables.failInsert = 'store_settings';
+    expect((await call('ana', valid)).statusCode).toBe(500);
+    expect(fake.client.tables.stores.some(s => s.slug === 'velas-luna')).toBe(false);
+    // Y se puede volver a intentar con el mismo enlace
+    fake.client.tables.failInsert = null;
+    expect((await call('ana', valid)).statusCode).toBe(200);
   });
 
   it('pide la activación solo quien administra la tienda', async () => {
