@@ -5,17 +5,18 @@ import { supabase } from '../../supabaseClient';
 import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
 import { STORE_TEMPLATES, storeUrls } from '../../platformStores';
 import { validateStoreSignup, slugify, TERMS_VERSION } from '../../storeSignup';
+import DesignStep from './DesignStep';
 
-// Alta de tienda por autoservicio, en tres pasos: cuenta → tienda → lista.
+// Alta de tienda por autoservicio: cuenta → tienda → diseño → lista.
 // La tienda se crea al instante; las ventas se habilitan después de verificar al titular.
 
 const PENDING_KEY = 'pending_store_name';
 const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition';
 
 function Steps({ current }) {
-  const steps = ['Tu cuenta', 'Tu tienda', 'Lista'];
+  const steps = ['Tu cuenta', 'Tu tienda', 'Diseño', 'Lista'];
   return (
-    <ol className="flex items-center gap-2 text-sm mb-8" aria-label="Pasos">
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-3 text-sm mb-8" aria-label="Pasos">
       {steps.map((label, i) => {
         const done = i < current, active = i === current;
         return (
@@ -23,8 +24,8 @@ function Steps({ current }) {
             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${done ? 'bg-emerald-500 text-white' : active ? 'bg-indigo-600 text-white' : 'bg-zinc-200 text-zinc-500'}`}>
               {done ? <Check className="w-4 h-4" /> : i + 1}
             </span>
-            <span className={active ? 'font-semibold text-zinc-900' : 'text-zinc-500'}>{label}</span>
-            {i < steps.length - 1 && <span className="w-6 h-px bg-zinc-300 mx-1" />}
+            <span className={`${active ? 'font-semibold text-zinc-900' : 'text-zinc-500'} ${active ? '' : 'hidden sm:inline'}`}>{label}</span>
+            {i < steps.length - 1 && <span className="w-4 sm:w-6 h-px bg-zinc-300 mx-1" />}
           </li>
         );
       })}
@@ -207,6 +208,7 @@ export default function CreateStorePage() {
   const [session, setSession] = useState(undefined);
   const [store, setStore] = useState(null);
   const [existing, setExisting] = useState(false);
+  const [designDone, setDesignDone] = useState(false);
 
   useEffect(() => {
     document.title = `Creá tu tienda | ${PLATFORM_BRAND.name}`;
@@ -225,7 +227,10 @@ export default function CreateStorePage() {
     });
   }, [userId]);
 
-  const step = !session ? 0 : store ? 2 : 1;
+  // Quien ya tenía tienda va directo al final; el diseño se elige solo al crearla
+  const step = !session ? 0 : !store ? 1 : existing || designDone ? 3 : 2;
+  const TITLES = ['Creá tu tienda gratis', 'Contanos de tu tienda', 'Elegí cómo se ve', 'Listo'];
+  const SUBTITLES = ['En 2 minutos tenés tu tienda online. Sin tarjeta.', 'Lo podés cambiar después desde tu panel.', 'Elegí lo básico; lo vas viendo en la vista previa.'];
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -235,20 +240,21 @@ export default function CreateStorePage() {
           {session && <button type="button" onClick={() => supabase.auth.signOut()} className="text-sm text-zinc-500 hover:text-zinc-900">Salir</button>}
         </div>
       </header>
-      <main className="max-w-lg mx-auto px-4 sm:px-6 py-10 md:py-16">
+      <main className={`${step === 2 ? 'max-w-4xl' : 'max-w-lg'} mx-auto px-4 sm:px-6 py-10 md:py-16`}>
         {session === undefined ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>
         ) : (
           <>
             <Steps current={step} />
             <h1 className="text-3xl font-extrabold tracking-tight">
-              {step === 0 ? 'Creá tu tienda gratis' : step === 1 ? 'Contanos de tu tienda' : 'Listo'}
+              {TITLES[step]}
             </h1>
-            {step < 2 && <p className="mt-2 mb-8 text-zinc-600">{step === 0 ? 'En 2 minutos tenés tu tienda online. Sin tarjeta.' : 'Lo podés cambiar después desde tu panel.'}</p>}
-            <div className={`rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm ${step === 2 ? 'mt-6' : ''}`}>
+            {step < 3 && <p className="mt-2 mb-8 text-zinc-600">{SUBTITLES[step]}</p>}
+            <div className={`rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm ${step === 3 ? 'mt-6' : ''}`}>
               {step === 0 && <AccountStep onDone={() => supabase.auth.getSession().then(({ data }) => setSession(data.session))} />}
               {step === 1 && <StoreStep onCreated={(s) => setStore(s)} />}
-              {step === 2 && <DoneStep store={store} existing={existing} />}
+              {step === 2 && <DesignStep store={store} onDone={() => setDesignDone(true)} />}
+              {step === 3 && <DoneStep store={store} existing={existing} />}
             </div>
           </>
         )}
