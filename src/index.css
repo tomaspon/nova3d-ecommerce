@@ -20,6 +20,9 @@
   --color-store-dark: var(--store-bg-dark);
   --color-announce: var(--announce-bg, var(--brand));
   --color-announce-ink: var(--announce-ink, var(--brand-ink));
+  /* "font-sans" (lo usan la tienda y los paneles) toma la tipografía elegida en Panel > Diseño.
+     Sin elegir (y en los paneles), Plus Jakarta Sans. */
+  --font-sans: var(--font-store, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
 }
 
 :root {
