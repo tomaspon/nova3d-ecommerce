@@ -498,6 +498,7 @@ export function StoreProvider({ children }) {
   };
 
   return (
+    // La tienda de ejemplo nunca usa la sesión de quien la mira: ni datos guardados, ni perfil, ni favoritos
     <StoreContext.Provider value={{
       store,
       storeId,
@@ -505,7 +506,7 @@ export function StoreProvider({ children }) {
       categories,
       products,
       cart,
-      user,
+      user: store?.isDemo ? null : user,
       favorites,
       isCartOpen,
       isLoading,

@@ -4,6 +4,7 @@ import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, Boo
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
 import SalesActivationBanner from '../components/SalesActivationBanner';
+import StoreSwitcher from '../components/StoreSwitcher';
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -38,7 +39,8 @@ export default function AdminLayout() {
             </div>
           </Link>
         </div>
-        
+        <StoreSwitcher className="px-4 pt-3" />
+
         <nav className="flex-1 p-3 flex flex-col gap-0.5">
           <div className="text-[9px] font-black text-zinc-600 tracking-widest uppercase mb-2 px-3 mt-2">Panel Principal</div>
           {menuItems.map((item) => {
@@ -76,7 +78,10 @@ export default function AdminLayout() {
         <header className="h-16 border-b border-white/5 bg-black/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-30">
           <div className="flex items-center gap-3 md:hidden">
             <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-xs">M</div>
-            <span className="font-black text-white text-sm truncate max-w-[10rem]">{store?.name} Admin</span>
+            <div className="min-w-0">
+              <span className="font-black text-white text-sm truncate max-w-[11rem] block leading-tight">{store?.name}</span>
+              <StoreSwitcher className="max-w-[11rem] mt-0.5" />
+            </div>
           </div>
           <div className="hidden md:flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>

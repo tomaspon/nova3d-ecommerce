@@ -278,7 +278,7 @@ export default function CartDrawer() {
 
         {/* Footer */}
         {cart.length > 0 && checkoutStep !== 'success' && (
-          <div className="border-t border-zinc-100 dark:border-white/10 p-6 bg-[#fafafa] dark:bg-[#121212] transition-colors">
+          <div className="border-t border-zinc-100 dark:border-white/10 p-6 bg-store dark:bg-store-dark transition-colors">
             {shippingCost > 0 && (
               <div className="space-y-1 mb-3 text-sm text-zinc-500 dark:text-zinc-400">
                 <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(subtotal)}</span></div>

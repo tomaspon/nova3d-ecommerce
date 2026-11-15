@@ -150,7 +150,7 @@ export default function TrackingPage() {
 
   if (isOpeningLink && !selectedOrder) {
     return (
-      <div className="min-h-[60vh] bg-[#FAFAFA] dark:bg-[#121212] flex items-center justify-center" role="status" aria-live="polite">
+      <div className="min-h-[60vh] bg-store dark:bg-store-dark flex items-center justify-center" role="status" aria-live="polite">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
         <span className="sr-only">Cargando tu pedido</span>
       </div>
@@ -158,7 +158,7 @@ export default function TrackingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] py-10 sm:py-14 lg:py-16 px-4 sm:px-8 lg:px-12 flex flex-col items-center">
+    <div className="min-h-screen bg-store dark:bg-store-dark py-10 sm:py-14 lg:py-16 px-4 sm:px-8 lg:px-12 flex flex-col items-center">
       {isSearching ? (
         /* ── Búsqueda: dos columnas en escritorio, apiladas en celular ── */
         // Mismo contenedor que el catálogo (max-w-screen-2xl + px-12): las páginas de la tienda

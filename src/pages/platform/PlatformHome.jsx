@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import { ArrowRight, CreditCard, Truck, LayoutDashboard, Globe, Smartphone, Package, MessageCircle, Check } from 'lucide-react';
+import { ArrowRight, CreditCard, Truck, LayoutDashboard, Globe, Smartphone, Package, MessageCircle, Check, ChevronDown } from 'lucide-react';
 import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
 import { SUPPORT_WHATSAPP } from '../../storeContact';
 import { storeUrls } from '../../platformStores';
@@ -28,11 +28,24 @@ const STEPS = [
 
 const EXAMPLE_STORE = { slug: 'demo', custom_domain: null };
 
+// Los enlaces internos (#ejemplo, #como-funciona) deslizan hasta la sección en vez de saltar.
+// Quien pidió menos movimiento en su sistema va directo.
+function scrollToSection(event) {
+  const id = event.currentTarget.getAttribute('href')?.slice(1);
+  const target = id && document.getElementById(id);
+  if (!target) return;
+  event.preventDefault();
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  window.history.replaceState(null, '', `#${id}`);
+}
+
 export default function PlatformHome() {
   useEffect(() => {
     document.title = `${PLATFORM_BRAND.name} | ${PLATFORM_BRAND.tagline}`;
   }, []);
   const exampleUrl = storeUrls(EXAMPLE_STORE, { origin: window.location.origin, platformDomain: PLATFORM_DOMAIN || null }).storefront;
+  const [showRequest, setShowRequest] = useState(false);
   const contactUrl = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`¡Hola! Quiero mi tienda online con ${PLATFORM_BRAND.name}.`)}`;
 
   return (
@@ -41,8 +54,8 @@ export default function PlatformHome() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <span className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></span>
           <nav className="flex items-center gap-2 sm:gap-6 text-sm font-semibold">
-            <a href="#como-funciona" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Cómo funciona</a>
-            <a href="#ejemplo" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
+            <a href="#como-funciona" onClick={scrollToSection} className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Cómo funciona</a>
+            <a href="#ejemplo" onClick={scrollToSection} className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
             <Link to="/plataforma/crear" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Creá tu tienda</Link>
           </nav>
         </div>
@@ -61,7 +74,7 @@ export default function PlatformHome() {
           <Link to="/plataforma/crear" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
             Creá tu tienda gratis <ArrowRight className="w-4 h-4" />
           </Link>
-          <a href="#ejemplo" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
+          <a href="#ejemplo" onClick={scrollToSection} className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
             Ver una tienda de ejemplo <ArrowRight className="w-4 h-4" />
           </a>
         </div>
@@ -121,21 +134,42 @@ export default function PlatformHome() {
       </section>
 
       {/* Solicitud */}
-      <section id="solicitar" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-10">
-        <div>
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">¿Arrancamos tu tienda?</h2>
-          <p className="mt-4 text-zinc-600 text-lg leading-relaxed">Creala vos en 2 minutos, gratis. Cargás tus productos y cuando esté lista te habilitamos las ventas.</p>
-          <Link to="/plataforma/crear" className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
-            <Sparkles className="w-5 h-5" /> Creá tu tienda gratis
-          </Link>
-          <p className="mt-10 font-bold text-zinc-900">¿Preferís que te la armemos nosotros?</p>
-          <p className="mt-1 text-zinc-600">Dejanos tus datos y te mandamos un presupuesto para armarla por vos.</p>
-          <p className="mt-6 text-sm text-zinc-500">¿Preferís hablar primero?</p>
-          <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 font-bold text-zinc-900 underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900">
-            <MessageCircle className="w-5 h-5" /> Escribinos por WhatsApp
-          </a>
+      {/* El formulario de presupuesto queda plegado: lo principal es crear la tienda */}
+      <section id="solicitar" className="scroll-mt-16 max-w-3xl mx-auto px-4 sm:px-6 py-16 md:py-24 text-center">
+        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">¿Arrancamos tu tienda?</h2>
+        <p className="mt-4 text-zinc-600 text-lg leading-relaxed">Creala vos en 2 minutos, gratis. Cargás tus productos y cuando esté lista te habilitamos las ventas.</p>
+        <Link to="/plataforma/crear" className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
+          <Sparkles className="w-5 h-5" /> Creá tu tienda gratis
+        </Link>
+
+        <div className="mt-12 rounded-2xl border border-zinc-200 bg-zinc-50 text-left">
+          <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1">
+              <p className="font-bold text-zinc-900">¿Preferís que te la armemos nosotros?</p>
+              <p className="mt-0.5 text-sm text-zinc-600">
+                Dejanos tus datos y te mandamos un presupuesto, o{' '}
+                <a href={contactUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-zinc-900 underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900">
+                  <MessageCircle className="w-4 h-4" /> escribinos por WhatsApp
+                </a>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowRequest(open => !open)}
+              aria-expanded={showRequest}
+              aria-controls="pedido-presupuesto"
+              className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 bg-white px-5 py-2.5 text-sm font-bold hover:bg-zinc-100 transition"
+            >
+              {showRequest ? 'Ocultar' : 'Pedir presupuesto'}
+              <ChevronDown className={`w-4 h-4 transition-transform ${showRequest ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+          {showRequest && (
+            <div id="pedido-presupuesto" className="border-t border-zinc-200 p-3 sm:p-4">
+              <StoreRequestForm />
+            </div>
+          )}
         </div>
-        <StoreRequestForm />
       </section>
 
       <footer className="border-t border-zinc-200">

@@ -11,7 +11,7 @@ const DEVICES = {
 };
 
 const PHONE_WIDTH = 270;
-const DESKTOP_MAX_WIDTH = 1152;
+const DESKTOP_MAX_WIDTH = 900;
 
 export default function DemoPreview({ url, title }) {
   // La barra de dirección muestra la dirección real (sin "https://") y lleva a la tienda

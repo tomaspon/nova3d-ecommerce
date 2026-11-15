@@ -6,7 +6,10 @@ import { parseBannerUrl } from '../../bannerPosition';
 import { findPreset } from '../../bannerPresets';
 import CampaignHero from '../../components/CampaignHero';
 import { storeWhatsappLink } from '../../paymentMethods';
-import { instagramUrl } from '../../branding';
+import { instagramUrl, normalizeBranding, SORT_OPTIONS } from '../../branding';
+
+// Columnas del catálogo en computadora (Panel > Diseño). Clases completas para que Tailwind las genere.
+const GRID_CLASSES = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-4 xl:grid-cols-5' };
 
 const BENEFITS = [
   { icon: CreditCard, title: 'Pagá como quieras', text: 'MercadoPago o transferencia' },
@@ -21,14 +24,13 @@ export default function HomePage() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortRef = useRef(null);
 
-  const searchQuery = searchParams.get('q') || '';
-  const sortBy = searchParams.get('sort') || 'destacados';
+  // Opciones de diseño de la tienda (Panel > Diseño)
+  const design = normalizeBranding(store?.branding);
 
-  const sortOptions = [
-    { value: 'destacados', label: 'Destacados' },
-    { value: 'precio_menor', label: 'Menor Precio' },
-    { value: 'precio_mayor', label: 'Mayor Precio' }
-  ];
+  const searchQuery = searchParams.get('q') || '';
+  const sortBy = searchParams.get('sort') || design.default_sort;
+
+  const sortOptions = SORT_OPTIONS;
 
   const currentSortLabel = sortOptions.find(o => o.value === sortBy)?.label || 'Destacados';
 
@@ -44,7 +46,7 @@ export default function HomePage() {
 
     if (isLoading) {
       return (
-        <div className="bg-[#FAFAFA] dark:bg-[#121212] min-h-screen pb-12 flex flex-col items-center justify-center">
+        <div className="bg-store dark:bg-store-dark min-h-screen pb-12 flex flex-col items-center justify-center">
           <div className="w-12 h-12 border-4 border-zinc-200 border-t-black dark:border-zinc-800 dark:border-t-white rounded-full animate-spin"></div>
         </div>
       );
@@ -79,11 +81,12 @@ export default function HomePage() {
     : instagramLink ? { href: instagramLink, cta: 'Seguinos en Instagram' }
     : { href: undefined, cta: null };
 
+  if (sortBy === 'nuevos') activeProducts.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
   if (sortBy === 'precio_menor') activeProducts.sort((a, b) => a.price - b.price);
   if (sortBy === 'precio_mayor') activeProducts.sort((a, b) => b.price - a.price);
 
   return (
-    <div className="bg-[#FAFAFA] dark:bg-[#121212] transition-colors duration-300 min-h-screen pb-12">
+    <div className="bg-store dark:bg-store-dark transition-colors duration-300 min-h-screen pb-12">
       
       {/* CAMPAÑA ACTIVA (Fase 3) */}
       {storeSettings?.campaign_active && !searchQuery && (
@@ -134,10 +137,10 @@ export default function HomePage() {
                   const finalPrice = p.price * (1 - (p.discount || 0) / 100);
                   return (
                     <div key={p.id} onClick={() => navigate(`/producto/${p.id}`)} className="w-36 md:w-48 shrink-0 snap-start group cursor-pointer">
-                      <div className="aspect-[4/5] bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl relative overflow-hidden mb-3 border border-zinc-100 dark:border-white/5 transition-colors">
+                      <div className="aspect-[var(--card-aspect)] bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl relative overflow-hidden mb-3 border border-zinc-100 dark:border-white/5 transition-colors">
                         {p.discount > 0 && (
                           <div className="absolute top-2 left-2 z-20">
-                            <div className="bg-red-500/90 backdrop-blur-md border border-red-400/20 text-white px-2.5 py-1 rounded-md text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest shadow-sm">
+                            <div className="bg-accent text-accent-ink px-2.5 py-1 rounded-md text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest shadow-sm">
                               {p.discount}% OFF
                             </div>
                           </div>
@@ -183,7 +186,7 @@ export default function HomePage() {
       )}
 
       {/* BENEFICIOS */}
-      {!searchQuery && (
+      {!searchQuery && design.show_benefits && (
         <div className="border-b border-zinc-200 dark:border-white/5">
           <ul className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200 dark:divide-white/5">
             {BENEFITS.map(({ icon: Icon, title, text }) => (
@@ -298,7 +301,7 @@ export default function HomePage() {
             <p className="text-zinc-500 dark:text-zinc-400 max-w-md">Intentá ajustar tu búsqueda o explorá otras categorías para encontrar lo que buscás.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6 lg:gap-x-8">
+          <div className={`grid grid-cols-2 md:grid-cols-3 ${GRID_CLASSES[design.grid_columns]} gap-x-4 gap-y-10 md:gap-x-6 lg:gap-x-8`}>
             {activeProducts.map(product => {
               const finalPrice = product.price * (1 - (product.discount || 0) / 100);
               const isFavorite = favorites.includes(product.id);
@@ -306,7 +309,7 @@ export default function HomePage() {
               return (
                 <div key={product.id} className="group cursor-pointer" onClick={() => navigate(`/producto/${product.id}`)}>
                   
-                  <div className="aspect-[4/5] bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl relative overflow-hidden mb-4 border border-zinc-100 dark:border-white/5 shadow-sm group-hover:shadow-xl transition-all duration-500">
+                  <div className="aspect-[var(--card-aspect)] bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl relative overflow-hidden mb-4 border border-zinc-100 dark:border-white/5 shadow-sm group-hover:shadow-xl transition-all duration-500">
                     
                     {/* Tags */}
                     <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
@@ -320,7 +323,7 @@ export default function HomePage() {
                       )}
                       
                       {product.discount > 0 && (
-                        <div className="bg-red-500/90 backdrop-blur-md border border-red-400/20 text-white px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest uppercase shadow-sm">
+                        <div className="bg-accent text-accent-ink px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest uppercase shadow-sm">
                           {product.discount}% OFF
                         </div>
                       )}
@@ -333,7 +336,7 @@ export default function HomePage() {
                       <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-zinc-600 dark:text-white'}`} />
                     </button>
 
-                    <button 
+                    {design.quick_add && <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         if (product.available_stock > 0) {
@@ -345,7 +348,7 @@ export default function HomePage() {
                       className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-brand text-brand-ink rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
                     >
                       <Plus className="w-6 h-6" />
-                    </button>
+                    </button>}
 
                     {product.imageUrl ? (
                       <img loading="lazy" src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
@@ -357,7 +360,7 @@ export default function HomePage() {
                   </div>
 
                   <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm md:text-base leading-tight mb-0.5 group-hover:underline underline-offset-4 truncate">{product.name}</h3>
-                  {product.category && <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">{product.category}</span>}
+                  {design.show_category && product.category && <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">{product.category}</span>}
                   
                   <div className="flex items-center gap-2">
                     <span className="font-black text-zinc-900 dark:text-white">${finalPrice.toLocaleString('es-AR')}</span>
@@ -370,12 +373,12 @@ export default function HomePage() {
             })}
 
             {/* Con pocos productos la grilla queda vacía: invitamos a enterarse de lo próximo */}
-            {!searchQuery && activeProducts.length < 4 && (
+            {!searchQuery && design.show_coming_soon && activeProducts.length < 4 && (
               <a
                 href={comingSoon.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group col-span-1 sm:col-span-2 self-start aspect-[4/5] sm:aspect-[8.2/5] rounded-2xl md:rounded-3xl border border-dashed border-zinc-300 dark:border-white/15 p-4 sm:p-6 md:p-8 flex flex-col justify-between hover:border-zinc-500 dark:hover:border-white/40 transition-colors"
+                className="group col-span-1 sm:col-span-2 self-start aspect-[var(--card-aspect)] sm:aspect-[var(--card-span-aspect)] rounded-2xl md:rounded-3xl border border-dashed border-zinc-300 dark:border-white/15 p-4 sm:p-6 md:p-8 flex flex-col justify-between hover:border-zinc-500 dark:hover:border-white/40 transition-colors"
               >
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-400" strokeWidth={1.75} />
                 <div>

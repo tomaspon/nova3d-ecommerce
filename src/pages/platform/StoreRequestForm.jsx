@@ -12,14 +12,14 @@ const EMPTY = {
   accepted_terms: false, website: ''
 };
 
-const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition';
+const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition';
 
 function Field({ label, error, hint, children, className = '' }) {
   return (
     <label className={`block ${className}`}>
-      <span className="block text-sm font-semibold text-zinc-700 mb-1.5">{label}</span>
+      <span className="block text-xs font-semibold text-zinc-700 mb-1">{label}</span>
       {children}
-      {error ? <span className="block mt-1.5 text-sm text-red-600">{error}</span> : hint && <span className="block mt-1.5 text-xs text-zinc-500">{hint}</span>}
+      {error ? <span className="block mt-1 text-xs text-red-600">{error}</span> : hint && <span className="block mt-1 text-[11px] text-zinc-500">{hint}</span>}
     </label>
   );
 }
@@ -70,7 +70,7 @@ export default function StoreRequestForm() {
 
   if (status === 'sent') {
     return (
-      <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+      <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
         <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
         <h3 className="mt-4 text-xl font-bold text-zinc-900">{serverMessage}</h3>
         <p className="mt-2 text-zinc-600">Te vamos a escribir a <b>{form.email}</b> o por WhatsApp con el presupuesto y los próximos pasos.</p>
@@ -79,13 +79,13 @@ export default function StoreRequestForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 space-y-8 shadow-sm">
+    <form onSubmit={handleSubmit} noValidate className="rounded-xl bg-white p-4 sm:p-5 space-y-5">
       {/* Trampa para bots: invisible para las personas */}
       <input type="text" name="website" value={form.website} onChange={set('website')} tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
 
-      <fieldset className="space-y-4">
-        <legend className="text-lg font-bold text-zinc-900 mb-1">Tus datos</legend>
-        <div className="grid sm:grid-cols-2 gap-4">
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-bold text-zinc-900 mb-1">Tus datos</legend>
+        <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Nombre y apellido" error={errors.owner_name}>
             <input className={inputClass} autoComplete="name" value={form.owner_name} onChange={set('owner_name')} />
           </Field>
@@ -110,9 +110,9 @@ export default function StoreRequestForm() {
         </div>
       </fieldset>
 
-      <fieldset className="space-y-4">
-        <legend className="text-lg font-bold text-zinc-900 mb-1">Tu negocio</legend>
-        <div className="grid sm:grid-cols-2 gap-4">
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-bold text-zinc-900 mb-1">Tu negocio</legend>
+        <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Nombre de la marca" error={errors.business_name}>
             <input className={inputClass} value={form.business_name} onChange={set('business_name')} />
           </Field>
@@ -126,8 +126,8 @@ export default function StoreRequestForm() {
             <input className={inputClass} placeholder="instagram.com/tumarca" value={form.social_url} onChange={set('social_url')} />
           </Field>
         </div>
-        <label className="flex items-center gap-3 text-sm text-zinc-700">
-          <input type="checkbox" className="w-5 h-5 rounded accent-indigo-600" checked={form.has_domain} onChange={set('has_domain')} />
+        <label className="flex items-center gap-3 text-xs text-zinc-700">
+          <input type="checkbox" className="w-4 h-4 rounded accent-indigo-600" checked={form.has_domain} onChange={set('has_domain')} />
           Ya tengo un dominio (por ejemplo, tumarca.com.ar)
         </label>
         {form.has_domain && (
@@ -136,13 +136,13 @@ export default function StoreRequestForm() {
           </Field>
         )}
         <Field label="¿Algo más que quieras contarnos? (opcional)">
-          <textarea className={`${inputClass} min-h-24`} value={form.message} onChange={set('message')} placeholder="Cantidad de productos, si vendés por Instagram, etc." />
+          <textarea className={`${inputClass} min-h-16`} value={form.message} onChange={set('message')} placeholder="Cantidad de productos, si vendés por Instagram, etc." />
         </Field>
       </fieldset>
 
-      <div className="space-y-4">
-        <label className="flex items-start gap-3 text-sm text-zinc-700">
-          <input type="checkbox" className="mt-0.5 w-5 h-5 rounded accent-indigo-600 shrink-0" checked={form.accepted_terms} onChange={set('accepted_terms')} />
+      <div className="space-y-3">
+        <label className="flex items-start gap-3 text-xs text-zinc-700">
+          <input type="checkbox" className="mt-0.5 w-4 h-4 rounded accent-indigo-600 shrink-0" checked={form.accepted_terms} onChange={set('accepted_terms')} />
           <span>
             Acepto los <Link to="/plataforma/terminos" target="_blank" className="font-semibold text-indigo-600 underline">términos del servicio y la política de privacidad</Link>, y que mis datos se usen para contactarme, verificar mi identidad y prestar el servicio.
           </span>
@@ -150,7 +150,7 @@ export default function StoreRequestForm() {
         {errors.accepted_terms && <p className="text-sm text-red-600">{errors.accepted_terms}</p>}
         {serverMessage && <p role="alert" className="text-sm text-red-600">{serverMessage}</p>}
 
-        <button type="submit" disabled={status === 'sending'} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-8 py-4 hover:bg-indigo-500 transition disabled:opacity-60">
+        <button type="submit" disabled={status === 'sending'} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white text-sm font-bold px-6 py-3 hover:bg-indigo-500 transition disabled:opacity-60">
           {status === 'sending' && <Loader2 className="w-5 h-5 animate-spin" />} Solicitar mi tienda
         </button>
         <p className="flex items-center gap-2 text-xs text-zinc-500">

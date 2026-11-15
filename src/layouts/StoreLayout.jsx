@@ -66,7 +66,7 @@ export default function StoreLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
+    <div className="min-h-screen bg-store dark:bg-store-dark text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
       <CartDrawer />
 
       {/* Con el menú móvil abierto, tocar fuera de él lo cierra */}
@@ -75,18 +75,12 @@ export default function StoreLayout() {
       )}
 
       {branding.announcement_active && branding.announcement_text && (
-        <div className="bg-brand text-brand-ink text-center text-xs sm:text-sm font-semibold px-4 py-2">
+        <div className="bg-announce text-announce-ink text-center text-xs sm:text-sm font-semibold px-4 py-2">
           {branding.announcement_text}
         </div>
       )}
 
-      {store?.sales_enabled === false && (
-        <div className="bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200 text-center text-xs sm:text-sm font-medium px-4 py-2">
-          Tienda en preparación: todavía no recibe pedidos.
-        </div>
-      )}
-
-      <header className="h-16 md:h-24 bg-[#FAFAFA]/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-2 md:px-8 lg:px-12 sticky top-0 z-40 transition-colors duration-300">
+      <header className="h-16 md:h-24 bg-store/80 dark:bg-store-dark/80 backdrop-blur-xl border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-2 md:px-8 lg:px-12 sticky top-0 z-40 transition-colors duration-300">
 
         {/* MENÚ (móvil) + LOGO */}
         <div className="flex items-center min-w-0">
@@ -104,7 +98,7 @@ export default function StoreLayout() {
             ) : (
               <div className="w-7 h-7 md:w-9 md:h-9 shrink-0 bg-brand rounded-full flex items-center justify-center text-brand-ink font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">{storeInitial}</div>
             )}
-            <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden truncate max-w-[11rem] md:max-w-none">{storeName}</span>
+            {(branding.show_store_name || !branding.logo_url) && <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden truncate max-w-[11rem] md:max-w-none">{storeName}</span>}
           </Link>
         </div>
         
@@ -162,7 +156,7 @@ export default function StoreLayout() {
 
         {/* MENÚ DESPLEGABLE (móvil) */}
         {isMenuOpen && (
-          <nav className="md:hidden absolute top-full left-0 w-full bg-[#FAFAFA] dark:bg-[#121212] border-b border-zinc-200 dark:border-white/5 px-4 py-2 flex flex-col text-[15px] font-bold shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <nav className="md:hidden absolute top-full left-0 w-full bg-store dark:bg-store-dark border-b border-zinc-200 dark:border-white/5 px-4 py-2 flex flex-col text-[15px] font-bold shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
             {[
               { to: '/', label: 'Catálogo' },
               { to: '/nosotros', label: 'Nosotros' },

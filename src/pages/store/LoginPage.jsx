@@ -97,8 +97,19 @@ export default function LoginPage() {
     }
   };
 
+  // En la tienda de ejemplo no se inicia sesión: es solo una muestra
+  if (store?.isDemo) {
+    return (
+      <div className="min-h-[calc(100vh-6rem)] bg-store dark:bg-store-dark flex flex-col items-center justify-center text-center p-8">
+        <h1 className="text-2xl font-black text-zinc-900 dark:text-white">Tienda de ejemplo</h1>
+        <p className="mt-2 max-w-sm text-sm text-zinc-500">Acá no se crean cuentas ni se guardan datos. Es una muestra de cómo se ve una tienda.</p>
+        <button type="button" onClick={() => navigate('/')} className="mt-6 rounded-full bg-brand text-brand-ink font-bold px-6 py-3 hover:opacity-90 transition">Volver al catálogo</button>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-[calc(100vh-6rem)] bg-zinc-50 dark:bg-[#121212] flex items-center justify-center p-8">
+    <div className="min-h-[calc(100vh-6rem)] bg-store dark:bg-store-dark flex items-center justify-center p-8">
       <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/10 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
         
         <div className="p-8 text-center border-b border-zinc-100 dark:border-white/10 bg-[#f4f4f5] dark:bg-zinc-950">

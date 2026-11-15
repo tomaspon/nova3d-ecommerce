@@ -19,7 +19,54 @@ export const FONT_OPTIONS = [
   { id: 'redondeada', label: 'Redondeada', family: "'Nunito', system-ui, sans-serif", css: 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap' }
 ];
 
+export const BUTTON_SHAPES = [
+  { id: 'pill', label: 'Redondos' },
+  { id: 'soft', label: 'Suaves' },
+  { id: 'square', label: 'Rectos' }
+];
+
+export const IMAGE_RATIOS = [
+  { id: 'portrait', label: 'Vertical', aspect: '4 / 5', spanAspect: '8.2 / 5' },
+  { id: 'square', label: 'Cuadrada', aspect: '1 / 1', spanAspect: '2.05 / 1' },
+  { id: 'landscape', label: 'Horizontal', aspect: '4 / 3', spanAspect: '2.7 / 1' }
+];
+
+export const BACKGROUNDS = [
+  { id: 'hueso', label: 'Hueso', color: '#fafafa' },
+  { id: 'blanco', label: 'Blanco', color: '#ffffff' },
+  { id: 'crema', label: 'Crema', color: '#fbf7f0' },
+  { id: 'niebla', label: 'Niebla', color: '#f1f3f6' }
+];
+
+export const DARK_BACKGROUNDS = [
+  { id: 'carbon', label: 'Carbón', color: '#121212' },
+  { id: 'noche', label: 'Azul noche', color: '#0d1320' },
+  { id: 'calido', label: 'Cálido', color: '#17130f' }
+];
+
+// Color de las etiquetas de oferta ("% OFF")
+export const ACCENT_COLORS = [
+  { label: 'Rojo', value: '' },
+  { label: 'Coral', value: '#e2553f' },
+  { label: 'Rosa', value: '#db2777' },
+  { label: 'Violeta', value: '#7c3aed' },
+  { label: 'Verde', value: '#16a34a' },
+  { label: 'Negro', value: '#0b0b0b' }
+];
+
+const DEFAULT_ACCENT = '#ef4444';
+
+export const SORT_OPTIONS = [
+  { value: 'destacados', label: 'Destacados' },
+  { value: 'nuevos', label: 'Más nuevos' },
+  { value: 'precio_menor', label: 'Menor precio' },
+  { value: 'precio_mayor', label: 'Mayor precio' }
+];
+
+export const GRID_COLUMNS = [3, 4, 5];
+
 const HEX = /^#[0-9a-f]{6}$/i;
+const oneOf = (value, options, fallback) => (options.includes(value) ? value : fallback);
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
 
 // Siempre devuelve una marca completa, con lo que falte en sus valores por defecto
@@ -39,7 +86,24 @@ export function normalizeBranding(input = {}) {
     announcement_text: clean(b.announcement_text, 120),
     instagram: clean(b.instagram, 60).replace(/^@/, ''),
     tiktok: clean(b.tiktok, 60).replace(/^@/, ''),
-    whatsapp_button: Boolean(b.whatsapp_button)
+    whatsapp_button: Boolean(b.whatsapp_button),
+    // Catálogo y estilo
+    button_shape: oneOf(b.button_shape, BUTTON_SHAPES.map(o => o.id), 'pill'),
+    image_ratio: oneOf(b.image_ratio, IMAGE_RATIOS.map(o => o.id), 'portrait'),
+    grid_columns: oneOf(Number(b.grid_columns), GRID_COLUMNS, 4),
+    background: oneOf(b.background, BACKGROUNDS.map(o => o.id), 'hueso'),
+    // Colores extra: fondo a elección, fondo oscuro, ofertas y barra de anuncio
+    background_custom: HEX.test(b.background_custom || '') ? b.background_custom.toLowerCase() : '',
+    dark_background: oneOf(b.dark_background, DARK_BACKGROUNDS.map(o => o.id), 'carbon'),
+    accent_color: HEX.test(b.accent_color || '') ? b.accent_color.toLowerCase() : '',
+    announcement_color: HEX.test(b.announcement_color || '') ? b.announcement_color.toLowerCase() : '',
+    default_sort: oneOf(b.default_sort, SORT_OPTIONS.map(o => o.value), 'destacados'),
+    // Lo que se muestra (por defecto, todo visible)
+    show_store_name: b.show_store_name !== false,
+    show_category: b.show_category !== false,
+    quick_add: b.quick_add !== false,
+    show_benefits: b.show_benefits !== false,
+    show_coming_soon: b.show_coming_soon !== false
   };
 }
 
@@ -74,6 +138,25 @@ export function applyBranding(branding, doc = document) {
     doc.head.appendChild(link);
   }
   root.style.setProperty('--font-store', font.family);
+
+  // Forma de los botones (index.css), formato de las fotos y fondo de la tienda
+  root.dataset.buttons = b.button_shape;
+  const ratio = IMAGE_RATIOS.find(r => r.id === b.image_ratio);
+  root.style.setProperty('--card-aspect', ratio.aspect);
+  root.style.setProperty('--card-span-aspect', ratio.spanAspect);
+  root.style.setProperty('--store-bg', b.background_custom || BACKGROUNDS.find(o => o.id === b.background).color);
+  root.style.setProperty('--store-bg-dark', DARK_BACKGROUNDS.find(o => o.id === b.dark_background).color);
+  const accent = b.accent_color || DEFAULT_ACCENT;
+  root.style.setProperty('--accent', accent);
+  root.style.setProperty('--accent-ink', inkFor(accent));
+  // La barra de anuncio usa su color propio o, si no tiene, el principal
+  if (b.announcement_color) {
+    root.style.setProperty('--announce-bg', b.announcement_color);
+    root.style.setProperty('--announce-ink', inkFor(b.announcement_color));
+  } else {
+    root.style.removeProperty('--announce-bg');
+    root.style.removeProperty('--announce-ink');
+  }
 
   const icon = doc.querySelector('link[rel="icon"]');
   if (icon) {

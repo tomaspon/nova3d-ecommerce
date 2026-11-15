@@ -45,7 +45,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-[#121212] transition-colors">
+      <div className="min-h-screen flex items-center justify-center bg-store dark:bg-store-dark transition-colors">
         <div className="text-center">
           <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-4 uppercase tracking-tighter">Producto no encontrado</h2>
           <button onClick={() => navigate('/')} className="text-sm font-bold uppercase tracking-widest underline decoration-2 underline-offset-4 text-zinc-500 hover:text-black dark:hover:text-white transition-colors">
@@ -81,7 +81,7 @@ export default function ProductDetailPage() {
   const prevImage = () => setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121212] transition-colors pb-32 lg:pb-12">
+    <div className="min-h-screen bg-store dark:bg-store-dark transition-colors pb-32 lg:pb-12">
       
       {/* HEADER NAVEGACION (MOBILE & DESKTOP) */}
       {/* Se pega debajo del header de la tienda (16/24) y por debajo de su menú */}

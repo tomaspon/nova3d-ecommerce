@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Monitor, Smartphone, Upload, Loader2, Trash2, CheckCircle2, AlertTriangle, ExternalLink, Palette, Type, Megaphone, AtSign, BookOpen, Image as ImageIcon } from 'lucide-react';
+import { Monitor, Smartphone, Upload, Loader2, Trash2, CheckCircle2, AlertTriangle, ExternalLink, Palette, Type, Megaphone, AtSign, BookOpen, Image as ImageIcon, LayoutGrid, Square } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
-import { BRAND_COLORS, FONT_OPTIONS, normalizeBranding, inkFor } from '../../branding';
+import { BRAND_COLORS, FONT_OPTIONS, BUTTON_SHAPES, IMAGE_RATIOS, BACKGROUNDS, DARK_BACKGROUNDS, ACCENT_COLORS, SORT_OPTIONS, GRID_COLUMNS, normalizeBranding, inkFor } from '../../branding';
 
 // Panel > Diseño: el dueño cambia la marca de su tienda y la ve en vivo antes de publicarla.
 // La vista previa es la tienda real en un iframe; el borrador le llega por postMessage.
@@ -38,6 +38,39 @@ function Toggle({ checked, onChange, label }) {
         <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
       </button>
     </label>
+  );
+}
+
+function Choices({ options, value, onChange, columns = 3 }) {
+  return (
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      {options.map(o => (
+        <button key={String(o.value)} type="button" onClick={() => onChange(o.value)} aria-pressed={value === o.value}
+          className={`rounded-xl px-2 py-2 text-xs font-semibold border transition ${value === o.value ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-white/10 text-zinc-400 hover:text-white'}`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Swatches({ options, value, onChange, customLabel = 'Otro color', allowCustom = true }) {
+  const isCustom = value && !options.some(o => o.value === value);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(o => (
+        <button key={o.label} type="button" title={o.label} aria-label={o.label} aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={`w-8 h-8 rounded-full border-2 transition ${value === o.value ? 'border-white scale-110' : 'border-white/10'}`}
+          style={{ background: o.swatch || o.value }} />
+      ))}
+      {allowCustom && <label title={customLabel} className={`relative w-8 h-8 rounded-full border-2 flex items-center justify-center cursor-pointer overflow-hidden ${isCustom ? 'border-white scale-110' : 'border-dashed border-white/30'}`}
+        style={isCustom ? { background: value } : undefined}>
+        {/* El selector nativo solo acepta colores #rrggbb: con una opción predefinida arranca en gris */}
+        <input type="color" aria-label={customLabel} value={isCustom ? value : '#888888'} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
+        {!isCustom && <span className="text-[11px] text-zinc-400">+</span>}
+      </label>}
+    </div>
   );
 }
 
@@ -154,27 +187,32 @@ export default function DesignPage() {
                 <p className="text-[11px] text-zinc-500">PNG con fondo transparente, hasta 2 MB. También se usa como ícono de la pestaña.</p>
               </div>
             </div>
+            {draft.logo_url && <Toggle checked={draft.show_store_name} onChange={set('show_store_name')} label="Mostrar el nombre al lado del logo" />}
           </Section>
 
           <Section icon={Palette} title="Colores">
-            <Field label="Color principal" hint="Botones, etiquetas y detalles de la tienda.">
-              <div className="flex flex-wrap gap-2">
-                {BRAND_COLORS.map(c => (
-                  <button key={c.label} type="button" title={c.label} aria-label={c.label} aria-pressed={draft.primary_color === c.value}
-                    onClick={() => set('primary_color')(c.value)}
-                    className={`w-9 h-9 rounded-full border-2 transition ${draft.primary_color === c.value ? 'border-white scale-110' : 'border-transparent'}`}
-                    style={{ background: c.value || 'linear-gradient(135deg,#0b0b0b 50%,#ffffff 50%)' }} />
-                ))}
-                <label className="w-9 h-9 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center cursor-pointer overflow-hidden" title="Otro color">
-                  <input type="color" value={draft.primary_color || '#4f46e5'} onChange={setFromInput('primary_color')} className="opacity-0 absolute w-0 h-0" />
-                  <span className="text-[10px] text-zinc-400">+</span>
-                </label>
-              </div>
+            <Field label="Color principal" hint="Botones, menú y detalles de la tienda.">
+              <Swatches options={BRAND_COLORS.map(c => ({ ...c, swatch: c.value || 'linear-gradient(135deg,#0b0b0b 50%,#ffffff 50%)' }))} value={draft.primary_color} onChange={set('primary_color')} />
               {draft.primary_color && (
                 <span className="mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold" style={{ background: draft.primary_color, color: inkFor(draft.primary_color) }}>
                   Así se ve un botón
                 </span>
               )}
+            </Field>
+            <Field label="Color de las ofertas" hint='Etiquetas "% OFF" de los productos.'>
+              <Swatches options={ACCENT_COLORS.map(c => ({ ...c, swatch: c.value || '#ef4444' }))} value={draft.accent_color} onChange={set('accent_color')} />
+            </Field>
+            <Field label="Fondo (modo claro)">
+              <Swatches
+                options={BACKGROUNDS.map(b => ({ label: b.label, value: b.id, swatch: b.color }))}
+                value={draft.background_custom || draft.background}
+                onChange={(v) => setDraft(prev => (v.startsWith('#') ? { ...prev, background_custom: v } : { ...prev, background: v, background_custom: '' }))}
+                customLabel="Otro fondo"
+              />
+            </Field>
+            <Field label="Fondo (modo oscuro)">
+              <Swatches options={DARK_BACKGROUNDS.map(b => ({ label: b.label, value: b.id, swatch: b.color }))} value={draft.dark_background}
+                onChange={set('dark_background')} allowCustom={false} />
             </Field>
             <Field label="Modo por defecto" hint="El visitante igual puede cambiarlo con el botón de sol y luna.">
               <div className="grid grid-cols-2 gap-2">
@@ -199,6 +237,26 @@ export default function DesignPage() {
             </div>
           </Section>
 
+          <Section icon={Square} title="Botones">
+            <Choices options={BUTTON_SHAPES.map(b => ({ value: b.id, label: b.label }))} value={draft.button_shape} onChange={set('button_shape')} />
+          </Section>
+
+          <Section icon={LayoutGrid} title="Catálogo">
+            <Field label="Formato de las fotos">
+              <Choices options={IMAGE_RATIOS.map(r => ({ value: r.id, label: r.label }))} value={draft.image_ratio} onChange={set('image_ratio')} />
+            </Field>
+            <Field label="Columnas en computadora">
+              <Choices options={GRID_COLUMNS.map(n => ({ value: n, label: `${n} columnas` }))} value={draft.grid_columns} onChange={set('grid_columns')} />
+            </Field>
+            <Field label="Orden por defecto">
+              <Choices options={SORT_OPTIONS} value={draft.default_sort} onChange={set('default_sort')} columns={2} />
+            </Field>
+            <Toggle checked={draft.show_category} onChange={set('show_category')} label="Mostrar la categoría en cada producto" />
+            <Toggle checked={draft.quick_add} onChange={set('quick_add')} label='Botón rápido "Agregar al carrito"' />
+            <Toggle checked={draft.show_benefits} onChange={set('show_benefits')} label="Franja de beneficios" />
+            <Toggle checked={draft.show_coming_soon} onChange={set('show_coming_soon')} label='Tarjeta "Próximamente" (con pocos productos)' />
+          </Section>
+
           <Section icon={Megaphone} title="Portada y anuncio">
             <Field label="Titular: parte suave" hint='Se muestra cuando no hay un banner de campaña activo. Ej: "Lo nuevo de"'>
               <input className={inputClass} value={draft.headline_light} onChange={setFromInput('headline_light')} placeholder="Lo nuevo de" maxLength={60} />
@@ -211,9 +269,14 @@ export default function DesignPage() {
             </Field>
             <Toggle checked={draft.announcement_active} onChange={set('announcement_active')} label="Barra de anuncio arriba de todo" />
             {draft.announcement_active && (
-              <Field label="Texto del anuncio">
-                <input className={inputClass} value={draft.announcement_text} onChange={setFromInput('announcement_text')} placeholder="Envío gratis desde $50.000 · 3 cuotas sin interés" maxLength={120} />
-              </Field>
+              <>
+                <Field label="Texto del anuncio">
+                  <input className={inputClass} value={draft.announcement_text} onChange={setFromInput('announcement_text')} placeholder="Envío gratis desde $50.000 · 3 cuotas sin interés" maxLength={120} />
+                </Field>
+                <Field label="Color de la barra" hint="Sin elegir, usa el color principal.">
+                  <Swatches options={[{ label: 'Color principal', value: '', swatch: draft.primary_color || 'linear-gradient(135deg,#0b0b0b 50%,#ffffff 50%)' }, ...ACCENT_COLORS.slice(1)]} value={draft.announcement_color} onChange={set('announcement_color')} />
+                </Field>
+              </>
             )}
           </Section>
 

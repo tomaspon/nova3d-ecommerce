@@ -14,13 +14,29 @@
 @theme inline {
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-store: var(--store-bg);
+  --color-store-dark: var(--store-bg-dark);
+  --color-announce: var(--announce-bg, var(--brand));
+  --color-announce-ink: var(--announce-ink, var(--brand-ink));
 }
 
 :root {
   color-scheme: light dark;
   --brand: #0b0b0b;
   --brand-ink: #ffffff;
+  /* Fondo de la tienda en modo claro y formato de las fotos (Panel > Diseño) */
+  --store-bg: #fafafa;
+  --store-bg-dark: #121212;
+  --card-aspect: 4 / 5;
+  --accent: #ef4444;
+  --accent-ink: #ffffff;
 }
+
+/* Forma de los botones principales (los que llevan el color de marca) */
+html[data-buttons="soft"] :is(button, a).bg-brand { border-radius: 0.75rem; }
+html[data-buttons="square"] :is(button, a).bg-brand { border-radius: 0.25rem; }
 
 html.dark {
   color-scheme: dark;
