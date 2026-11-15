@@ -3,6 +3,7 @@ import { Monitor, Smartphone, Upload, Loader2, Trash2, CheckCircle2, AlertTriang
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { storesOrigin } from '../../platformBrand';
+import { compressImage } from '../../imageCompression';
 
 // La tienda se previsualiza en la dirección de las tiendas (el panel puede estar en la de la plataforma)
 const PREVIEW_ORIGIN = storesOrigin() || window.location.origin;
@@ -116,18 +117,26 @@ export default function DesignPage() {
   }, [isDirty]);
 
   const uploadLogo = async (e) => {
-    const file = e.target.files?.[0];
+    const original = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) {
+    if (!original) return;
+    if (!original.type.startsWith('image/')) {
       setStatus('error');
-      setMessage('El logo tiene que ser una imagen de hasta 2 MB.');
+      setMessage('El logo tiene que ser una imagen.');
       return;
     }
     setIsUploading(true);
+    // Se achica (conservando la transparencia); un logo no necesita más de 600 px
+    const file = await compressImage(original, { maxSize: 600, keepTransparency: true });
+    if (file.size > 2 * 1024 * 1024) {
+      setIsUploading(false);
+      setStatus('error');
+      setMessage('El logo es demasiado pesado (más de 2 MB). Probá con otra imagen.');
+      return;
+    }
     const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
     const path = `${storeId}/branding/logo-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('images').upload(path, file);
+    const { error } = await supabase.storage.from('images').upload(path, file, { contentType: file.type, cacheControl: '31536000' });
     if (error) {
       setStatus('error');
       setMessage('No se pudo subir el logo.');

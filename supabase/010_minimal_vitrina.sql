@@ -1,14 +1,29 @@
 -- ============================================================================
 -- 010 · MINIMAL COMO TIENDA DE MUESTRA
--- MINIMAL (la plantilla base) es la tienda que muestra la página oficial. Esto le carga
--- los productos de ejemplo (fotos en /demo/*.svg) y la campaña de temporada.
+-- MINIMAL (la plantilla base) es la tienda que muestra la página oficial. Esto:
+--   1) BORRA los productos que tenía (y su historial de stock y favoritos). No se puede deshacer.
+--   2) Le carga los productos de ejemplo (fotos en /demo/*.svg) y la campaña de temporada.
 -- En la web, MINIMAL no deja comprar: el botón de confirmar se presiona pero no hace nada.
--- Los productos que ya tenía se pausan (no se borran: se pueden reactivar desde el panel).
+-- Después de 011, los productos de ejemplo tienen talles.
 --
--- Se puede ejecutar más de una vez: no duplica productos.
+-- Se puede ejecutar más de una vez: no duplica productos ni borra los de ejemplo.
 -- Dónde: Supabase > SQL Editor > New query > pegar todo > Run.
 -- ============================================================================
 
+-- 1) Productos anteriores de MINIMAL (todo lo que no es de ejemplo)
+create temp table if not exists minimal_viejos (id uuid primary key);
+truncate minimal_viejos;
+insert into minimal_viejos
+select p.id from public.products p
+where p.store_id = '00000000-0000-0000-0000-000000000001'
+  and coalesce(p.image_url, '') not like '/demo/%';
+
+delete from public.favorites      where product_id in (select id from minimal_viejos);
+delete from public.inventory_logs where product_id in (select id from minimal_viejos);
+delete from public.products       where id in (select id from minimal_viejos);
+drop table minimal_viejos;
+
+-- 2) Productos de ejemplo
 insert into public.products (store_id, name, description, price, discount, stock, category, image_url, is_active, in_campaign)
 select '00000000-0000-0000-0000-000000000001', p.name, p.description, p.price, p.discount, p.stock, p.category, p.image_url, true, p.in_campaign
 from (values
@@ -24,14 +39,7 @@ where not exists (
   where x.store_id = '00000000-0000-0000-0000-000000000001' and x.name = p.name
 );
 
--- Los productos anteriores de MINIMAL se pausan: en la tienda de muestra solo se ven los de ejemplo
-update public.products
-set is_active = false
-where store_id = '00000000-0000-0000-0000-000000000001'
-  and is_active
-  and coalesce(image_url, '') not like '/demo/%';
-
--- Campaña de temporada (banner de la portada)
+-- 3) Campaña de temporada (banner de la portada)
 update public.store_settings
 set campaign_active = true,
     campaign_name = coalesce(nullif(campaign_name, ''), 'Summer Sale'),

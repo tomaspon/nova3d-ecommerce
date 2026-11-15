@@ -4,6 +4,7 @@ import { itemsTotal, formatMoney } from '../pricing';
 import { useStore } from '../context/StoreContext';
 import { availablePaymentMethods, storeWhatsappLink } from '../paymentMethods';
 import { isShowcaseStore } from '../currentStore';
+import { cartKey } from '../productMapping';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2, Loader2, MapPin, Phone, User, Mail, CreditCard, Landmark } from 'lucide-react';
 
 export default function CartDrawer() {
@@ -13,9 +14,9 @@ export default function CartDrawer() {
   const paymentMethods = availablePaymentMethods(store, storeSettings);
   const [checkoutStep, setCheckoutStep] = useState('cart'); // cart, form, loading, success
   const [orderInfo, setOrderInfo] = useState(null);
-  
-  const [formData, setFormData] = useState({ 
-    name: '', 
+
+  const [formData, setFormData] = useState({
+    name: '',
     email: '',
     phone: '',
     document: '',
@@ -51,7 +52,7 @@ export default function CartDrawer() {
     e.preventDefault();
     if (isShowcaseStore(store)) return; // tienda de muestra: no se hacen pedidos
     setCheckoutStep('loading');
-    
+
     const res = await checkoutOrder(formData);
     if (res.success) {
       if (formData.paymentMethod === 'MercadoPago') {
@@ -68,7 +69,7 @@ export default function CartDrawer() {
               }
             })
           });
-          
+
           const mpData = await mpResponse.json();
           if (mpData.init_point) {
             window.location.href = mpData.init_point;
@@ -97,14 +98,14 @@ export default function CartDrawer() {
   return (
     <>
       {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity animate-in fade-in" 
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity animate-in fade-in"
         onClick={toggleCart}
       />
-      
+
       {/* Drawer */}
       <div className="fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white dark:bg-zinc-950 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out animate-in slide-in-from-right">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-white/10 transition-colors">
           <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2 transition-colors">
@@ -124,7 +125,7 @@ export default function CartDrawer() {
               <p className="text-zinc-500 dark:text-zinc-400 transition-colors mb-8">
                 Guardá tu número de pedido: lo podés seguir desde la sección Seguimiento con tu DNI.
               </p>
-              
+
               {orderInfo?.method === 'MercadoPagoError' && (
                 <p className="w-full mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-sm text-amber-800 dark:text-amber-200">
                   No pudimos abrir MercadoPago. Tu pedido quedó reservado: {paymentMethods.includes('Transferencia') ? 'podés pagarlo por transferencia con estos datos.' : 'escribile a la tienda para coordinar el pago.'}
@@ -134,18 +135,18 @@ export default function CartDrawer() {
             </div>
           ) : checkoutStep === 'form' || checkoutStep === 'loading' ? (
             <form id="checkout-form" onSubmit={handleCheckoutSubmit} className="space-y-6 animate-in slide-in-from-right-4 duration-300 pb-20">
-              
+
               {/* Sección Datos de Contacto */}
               <div>
                 <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Datos de Contacto</h3>
                 <div className="space-y-3">
                   <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Nombre Completo" disabled={checkoutStep === 'loading'} />
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <input required type="text" value={formData.document} onChange={e => setFormData({...formData, document: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="DNI / Documento" disabled={checkoutStep === 'loading'} />
                     <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-base" placeholder="Teléfono" disabled={checkoutStep === 'loading'} />
                   </div>
-                  
+
                   {user ? (
                     // Con cuenta: el pedido queda asociado a su email y aparece en "Mis pedidos"
                     <div className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm">
@@ -226,7 +227,7 @@ export default function CartDrawer() {
               </div>
               <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight transition-colors">Tu carrito está vacío</h3>
               <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 font-medium transition-colors">Aún no elegiste ningún producto.</p>
-              <button 
+              <button
                 onClick={() => { toggleCart(); navigate('/'); }}
                 className="bg-brand hover:opacity-90 text-brand-ink font-bold py-3.5 px-8 rounded-full transition-all duration-300 shadow-lg shadow-black/10 dark:shadow-white/10 hover:shadow-black/20"
               >
@@ -237,9 +238,9 @@ export default function CartDrawer() {
             cart.map(item => {
               const hasDiscount = item.discount > 0;
               const finalPrice = hasDiscount ? item.price * (1 - item.discount / 100) : item.price;
-              
+
               return (
-                <div key={item.id} className="flex gap-4 group">
+                <div key={cartKey(item)} className="flex gap-4 group">
                   <div className="w-20 h-24 bg-[#f4f4f5] dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-2 group-hover:border-zinc-300 dark:group-hover:border-white/20 transition-colors">
                     {item.imageUrl ? (
                       <img loading="lazy" decoding="async" src={item.imageUrl} alt={item.name} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-300" />
@@ -247,25 +248,28 @@ export default function CartDrawer() {
                       <ShoppingBag className="w-6 h-6 text-zinc-300 dark:text-zinc-600" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-zinc-900 dark:text-white leading-tight pr-4 transition-colors">{item.name}</h3>
-                        <button onClick={() => removeFromCart(item.id)} className="text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-500 transition-colors">
+                        <div className="pr-4">
+                          <h3 className="font-bold text-zinc-900 dark:text-white leading-tight transition-colors">{item.name}</h3>
+                          {item.variant && <p className="text-xs font-semibold text-zinc-500 mt-0.5">{item.variantLabel || 'Talle'}: {item.variant}</p>}
+                        </div>
+                        <button onClick={() => removeFromCart(cartKey(item))} className="text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-500 transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="text-sm font-black text-zinc-900 dark:text-white mt-1 transition-colors">${Math.round(finalPrice).toLocaleString('es-AR')}</div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 mt-3">
                       <div className="flex items-center border border-zinc-200 dark:border-white/20 rounded-lg bg-white dark:bg-zinc-800 overflow-hidden shadow-sm transition-colors">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                        <button onClick={() => updateQuantity(cartKey(item), item.quantity - 1)} className="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                           <Minus className="w-3.5 h-3.5" />
                         </button>
                         <span className="w-8 text-center text-xs font-bold dark:text-white">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                        <button onClick={() => updateQuantity(cartKey(item), item.quantity + 1)} className="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -290,7 +294,7 @@ export default function CartDrawer() {
               <span className="text-zinc-500 dark:text-zinc-400 font-medium transition-colors">Total a pagar</span>
               <span className="text-2xl font-black text-zinc-900 dark:text-white transition-colors">{formatMoney(total)}</span>
             </div>
-            
+
             {checkoutStep === 'cart' ? (
               <button onClick={() => setCheckoutStep('form')} className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-xl shadow-black/10 hover:-translate-y-0.5 active:scale-[0.98]">
                 Siguiente Paso
@@ -310,7 +314,7 @@ export default function CartDrawer() {
                 )}
               </button>
             )}
-            
+
             <p className="text-center text-[10px] font-bold text-zinc-400 dark:text-zinc-600 mt-4 uppercase tracking-widest transition-colors">
               {checkoutStep === 'cart' ? 'Pago seguro encriptado' : 'Transacción segura cifrada'}
             </p>

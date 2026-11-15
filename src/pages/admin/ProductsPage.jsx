@@ -3,6 +3,11 @@ import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { Plus, Trash2, Power, PowerOff, Image as ImageIcon, ArchiveRestore, Upload, Loader2, Search, Download, AlertTriangle, Minus, X, Activity, ScanBarcode, ChevronDown } from 'lucide-react';
 import { fetchReservedMap } from '../../reservations';
+import { compressImage } from '../../imageCompression';
+import VariantEditor from './VariantEditor';
+
+const NO_VARIANTS = { enabled: false, label: 'Talle', rows: [] };
+const variantNames = (v) => (v.enabled ? v.rows.map(r => r.name) : []);
 import { mapProduct } from '../../productMapping';
 
 // El lector de códigos pesa ~400 kB: se descarga recién al abrirlo
@@ -12,13 +17,13 @@ export default function ProductsPage() {
   const { addProduct, updateProduct, categories, storeId } = useStore();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isFetchingBarcode, setIsFetchingBarcode] = useState(false);
   const [filterTab, setFilterTab] = useState('inStock');
-  const [selectedCategory, setSelectedCategory] = useState('all'); 
-  
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [productLogs, setProductLogs] = useState([]);
@@ -32,7 +37,9 @@ export default function ProductsPage() {
   });
 
     const [showAdjustForm, setShowAdjustForm] = useState(false);
-  const [adjustForm, setAdjustForm] = useState({ type: 'inc', qty: '', reason: 'Ingreso', note: '' });
+  const [adjustForm, setAdjustForm] = useState({ type: 'inc', qty: '', reason: 'Ingreso', note: '', variant: '' });
+  // Talles / colores del producto que se está editando (VariantEditor)
+  const [variantForm, setVariantForm] = useState(NO_VARIANTS);
 
   const addFeatureRow = () => {
     setFormData(prev => ({
@@ -64,6 +71,11 @@ export default function ProductsPage() {
     if (!editingId) return;
     const qty = parseInt(adjustForm.qty);
     if (!qty || qty <= 0) return;
+    const current = products.find(p => p.id === editingId);
+    if (current?.variants?.length && !adjustForm.variant) {
+      alert(`Elegí a qué ${current.variantLabel.toLowerCase()} le ajustás el stock.`);
+      return;
+    }
 
     try {
       // La base aplica el ajuste sobre el stock que hay en ese instante (no el que mostraba el
@@ -72,17 +84,18 @@ export default function ProductsPage() {
         p_product_id: editingId,
         p_delta: adjustForm.type === 'inc' ? qty : -qty,
         p_reason: adjustForm.reason,
-        p_note: adjustForm.note
+        p_note: adjustForm.note,
+        ...(adjustForm.variant ? { p_variant: adjustForm.variant } : {})
       });
       if (error) throw error;
 
       setFormData(prev => ({ ...prev, stock: newStock }));
-      setAdjustForm({ type: 'inc', qty: '', reason: 'Ingreso', note: '' });
+      setAdjustForm(prev => ({ type: 'inc', qty: '', reason: 'Ingreso', note: '', variant: prev.variant }));
       setShowAdjustForm(false);
-      
+
       const { data } = await supabase.from('inventory_logs').select('*').eq('product_id', editingId).order('created_at', { ascending: false });
       setProductLogs(data || []);
-      
+
       fetchData();
     } catch (error) {
       console.error(error);
@@ -122,22 +135,24 @@ export default function ProductsPage() {
     try {
       setIsUploading(true);
       const newImages = [];
-      
-      for (const file of files) {
+
+      for (const original of files) {
+        // Se achica antes de subir: carga más rápido en la tienda y ocupa menos espacio
+        const file = await compressImage(original);
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
         const filePath = `${storeId}/products/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
+        const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file, { contentType: file.type, cacheControl: '31536000' });
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(filePath);
         newImages.push(publicUrl);
       }
 
-      setFormData(prev => ({ 
-        ...prev, 
-        images: [...(prev.images || []), ...newImages] 
+      setFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...newImages]
       }));
     } catch (error) {
       console.error('Error uploading images:', error);
@@ -162,8 +177,12 @@ export default function ProductsPage() {
         discount: product.discount || '0', stock: Number(product.stock), category: product.category || '',
         newCategory: '', imageUrl: product.imageUrl || '', images: product.images?.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []),
           barcode: product.barcode || '',
-        
+
       });
+      setVariantForm(product.variants?.length
+        ? { enabled: true, label: product.variantLabel, rows: product.variants.map(v => ({ name: v.name, stock: v.stock })) }
+        : NO_VARIANTS);
+      setAdjustForm({ type: 'inc', qty: '', reason: 'Ingreso', note: '', variant: '' });
       // Fetch history for this product
       const { data } = await supabase.from('inventory_logs').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
       setProductLogs(data || []);
@@ -173,8 +192,9 @@ export default function ProductsPage() {
         name: '', description: '', price: '', discount: '0', stock: 0, adjustmentAmount: 0,
         category: categories[0] || '', newCategory: '', imageUrl: '', images: [],
           barcode: '',
-        
+
       });
+      setVariantForm(NO_VARIANTS);
       setProductLogs([]);
     }
     setIsModalOpen(true);
@@ -183,8 +203,8 @@ export default function ProductsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const finalCategory = formData.newCategory.trim() ? formData.newCategory.trim() : formData.category;
-    
-    
+
+
 
     // El stock no viaja en la edición: se maneja con los ajustes de inventario
     const payload = {
@@ -194,11 +214,56 @@ export default function ProductsPage() {
       features: formData.features, barcode: formData.barcode
     };
 
+    if (variantForm.enabled && variantForm.rows.length === 0) {
+      alert(`Agregá al menos un ${variantForm.label.toLowerCase()}, o destildá "Tiene talles o colores".`);
+      return;
+    }
+
+    // Producto nuevo: los talles viajan con su stock inicial
+    if (!editingId && variantForm.enabled) {
+      payload.variants = variantForm.rows.map(r => ({ name: r.name, stock: Number(r.stock) || 0 }));
+      payload.variantLabel = variantForm.label;
+      payload.stock = payload.variants.reduce((sum, v) => sum + v.stock, 0);
+    }
+
+    // Producto existente: si cambiaron los talles, avisar lo que pasa con el stock antes de guardar
+    const current = editingId ? products.find(p => p.id === editingId) : null;
+    const savedNames = current?.variants?.map(v => v.name) || [];
+    const newNames = variantNames(variantForm);
+    const variantsChanged = editingId && (
+      JSON.stringify(savedNames) !== JSON.stringify(newNames) ||
+      (variantForm.enabled && variantForm.label !== current?.variantLabel)
+    );
+    if (variantsChanged) {
+      const removedStock = (current?.variants || [])
+        .filter(v => !newNames.some(n => n.toLowerCase() === v.name.toLowerCase()))
+        .reduce((sum, v) => sum + v.stock, 0);
+      const loose = savedNames.length === 0 && newNames.length > 0 ? Number(current?.stock) || 0 : 0;
+      const warning = loose
+        ? `Este producto tiene ${loose} unidades sin ${variantForm.label.toLowerCase()}. Al pasar a ${variantForm.label.toLowerCase()}s quedan en 0 y después cargás el stock de cada uno con "Ajustar stock". ¿Seguimos?`
+        : removedStock
+          ? `Las opciones que quitaste tienen ${removedStock} unidades en stock: se descuentan. ¿Seguimos?`
+          : null;
+      if (warning && !window.confirm(warning)) return;
+    }
+
     const result = editingId ? await updateProduct(editingId, payload) : await addProduct(payload);
     if (!result.success) {
       // El formulario queda abierto para no perder lo cargado
-      alert(`No se pudo guardar el producto: ${result.error}`);
+      alert(`No se pudo guardar el producto: ${/variant/i.test(result.error) ? 'falta actualizar la base (supabase/011_talles.sql).' : result.error}`);
       return;
+    }
+
+    if (variantsChanged) {
+      // La base conserva el stock real de cada talle que sigue (por si entró una venta mientras se editaba)
+      const { error } = await supabase.rpc('set_product_variants', {
+        p_product_id: editingId, p_label: variantForm.label, p_names: newNames
+      });
+      if (error) {
+        alert(`Se guardaron los datos, pero no los talles: ${/set_product_variants|function/i.test(error.message) ? 'falta actualizar la base (supabase/011_talles.sql).' : error.message}`);
+        fetchData();
+        return;
+      }
     }
 
     setIsModalOpen(false);
@@ -253,7 +318,7 @@ export default function ProductsPage() {
       const onHand = log.stock_after ?? '-';
       return [date, reason, cant, onHand].join(',');
     });
-    
+
     const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -302,12 +367,12 @@ export default function ProductsPage() {
       }
 
       const headers = ['Fecha', 'Hora', 'ID Producto', 'Producto', 'Ajuste', 'Stock Final', 'Motivo', 'Nota'];
-      
+
       const rows = logs.map(log => {
         const product = products.find(p => p.id === log.product_id);
         const productName = product ? product.name : 'Producto Eliminado';
         const dateObj = new Date(log.created_at);
-        
+
         return [
           dateObj.toLocaleDateString('es-AR'),
           dateObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -353,18 +418,18 @@ export default function ProductsPage() {
   // Encontrar estado del producto editado
   const editingProductData = editingId ? products.find(p => p.id === editingId) : null;
 
-  
+
   if (selectedCategory !== 'all') {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
   }
-  
+
   // Ordenar alfabéticamente por nombre
   filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
   const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
   return (
     <>
     <div className="space-y-6 animate-in fade-in duration-500">
-      
+
       {/* HEADER Y ACCIONES */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -395,9 +460,9 @@ export default function ProductsPage() {
         </div>
         <div className="relative w-full md:w-64">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-          <input 
-            type="text" 
-            placeholder="Buscar producto..." 
+          <input
+            type="text"
+            placeholder="Buscar producto..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/5 border border-transparent focus:border-indigo-500/50 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition"
@@ -421,12 +486,12 @@ export default function ProductsPage() {
                ))}
              </div>
           </div>
-          
+
           <div className="flex-1 w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            
+
             {/* BOTÓN CREAR NUEVO (Tarjeta 1) */}
-            <div 
-              onClick={() => openModal()} 
+            <div
+              onClick={() => openModal()}
               className="aspect-[4/5] bg-zinc-900 border-2 border-dashed border-white/10 hover:border-indigo-500/50 rounded-2xl flex flex-col items-center justify-center cursor-pointer group transition-colors shadow-sm"
             >
               <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-indigo-500/20 transition-all">
@@ -437,8 +502,8 @@ export default function ProductsPage() {
 
             {/* PRODUCTOS */}
             {filteredProducts.map(product => (
-              <div 
-                key={product.id} 
+              <div
+                key={product.id}
                 onClick={() => openModal(product)}
                 className="group cursor-pointer relative bg-zinc-950 rounded-2xl border border-white/5 shadow-sm hover:border-indigo-500/30 transition-all hover:shadow-lg overflow-hidden flex flex-col"
               >
@@ -452,6 +517,11 @@ export default function ProductsPage() {
                     ) : (
                       <div className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] font-bold tracking-widest uppercase backdrop-blur-md">
                         Stock: {product.stock}
+                      </div>
+                    )}
+                    {product.variants?.length > 0 && (
+                      <div className="bg-black/60 text-zinc-200 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider backdrop-blur-md" title={product.variants.map(v => `${v.name}: ${v.stock}`).join(' · ')}>
+                        {product.variants.map(v => v.name).join(' · ')}
                       </div>
                     )}
                     {!product.is_active && (
@@ -469,7 +539,7 @@ export default function ProductsPage() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Info Text */}
                 <div className="p-3 flex-1 flex flex-col justify-end">
                   <h3 className="font-bold text-white text-sm truncate">{product.name}</h3>
@@ -486,14 +556,14 @@ export default function ProductsPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-zinc-950 border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            
+
             {/* Modal Header */}
             <div className="p-4 border-b border-white/10 bg-zinc-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-20">
               <div>
                 <h2 className="text-2xl font-black text-white">{editingId ? 'Detalle del Producto' : 'Crear Nuevo Producto'}</h2>
                 <p className="text-sm text-zinc-400">{editingId ? 'Modifica la Información, ajusta el stock o revisa su historial.' : 'Completa los datos para publicar en el catálogo.'}</p>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {editingId && editingProductData && (
                   <>
@@ -515,19 +585,19 @@ export default function ProductsPage() {
             {/* Scrollable Content */}
             <div className="overflow-y-auto custom-scrollbar flex-1">
               <form id="product-form" onSubmit={handleSubmit} className="p-4">
-                
+
                 {/* 2 Column Layout para Datos Principales */}
                 <div className="grid md:grid-cols-3 gap-8">
-                  
+
                   {/* IMAGEN UPLOADER MULTIPLE */}
                     <div className="md:col-span-1 space-y-3">
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Fotos del Producto</label>
-                      
+
                       <div className={`grid ${formData.images?.length > 0 ? 'grid-cols-2 gap-2' : 'grid-cols-1'}`}>
                         {formData.images?.map((url, idx) => (
                           <div key={idx} className="relative aspect-square bg-black border border-white/10 rounded-xl overflow-hidden group">
                             <img loading="lazy" decoding="async" src={url} alt={`Preview ${idx}`} className="w-full h-full object-contain p-1" />
-                            <button 
+                            <button
                               type="button"
                               onClick={() => removeImage(idx)}
                               className="absolute top-1 right-1 bg-red-500/80 text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition"
@@ -536,8 +606,8 @@ export default function ProductsPage() {
                             </button>
                           </div>
                         ))}
-                        
-                        <div 
+
+                        <div
                           onClick={() => !isUploading && fileInputRef.current?.click()}
                           className={`${formData.images?.length > 0 ? 'aspect-square' : 'aspect-square w-full'} bg-black border-2 border-dashed border-white/10 hover:border-indigo-500/50 rounded-xl flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition group`}
                         >
@@ -591,6 +661,12 @@ export default function ProductsPage() {
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">DESCRIPCIÓN</label>
                       <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 resize-none transition custom-scrollbar text-sm"></textarea>
                     </div>
+
+                    <VariantEditor
+                      value={variantForm}
+                      onChange={setVariantForm}
+                      existing={editingId ? (products.find(p => p.id === editingId)?.variants || []) : null}
+                    />
                   </div>
                 </div>
 
@@ -607,9 +683,22 @@ export default function ProductsPage() {
                             </div>
                             <div className="flex-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2.5 flex items-center justify-between shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                               <span className="text-emerald-500/70 text-[10px] font-bold uppercase tracking-widest">On Hand</span>
-                              <span className="text-xl font-black text-emerald-400">{formData.stock}</span>
+                              <span className="text-xl font-black text-emerald-400">{products.find(p => p.id === editingId)?.stock ?? formData.stock}</span>
                               </div>
                             </div>
+                            {(() => {
+                              const curr = products.find(p => p.id === editingId);
+                              if (!curr?.variants?.length) return null;
+                              return (
+                                <div className="flex flex-wrap gap-2 -mt-3 mb-6">
+                                  {curr.variants.map(v => (
+                                    <span key={v.name} className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${v.stock > 0 ? 'border-white/10 text-zinc-200' : 'border-red-500/20 text-red-400'}`}>
+                                      {v.name} · {v.stock}{v.reserved ? <span className="text-zinc-500"> ({v.reserved} res.)</span> : null}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
 
                             {/* AJUSTE MANUAL DE STOCK Y LOGS */}
                             <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
@@ -617,9 +706,9 @@ export default function ProductsPage() {
                                 <ArchiveRestore className="w-4 h-4 text-zinc-500" />
                                 <h3 className="text-white font-bold text-sm">Historial de Stock</h3>
                               </div>
-                              <button 
+                              <button
                                 type="button"
-                                onClick={() => setShowAdjustForm(!showAdjustForm)} 
+                                onClick={() => setShowAdjustForm(!showAdjustForm)}
                                 className="bg-white text-black px-4 py-2 rounded-xl text-xs font-bold hover:bg-zinc-200 transition"
                               >
                                 Ajustar Stock On Hand
@@ -632,6 +721,23 @@ export default function ProductsPage() {
                                   <button type="button" onClick={() => handleAdjustTypeChange('inc')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${adjustForm.type === 'inc' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-black text-zinc-500 border border-white/5'}`}>Sumar</button>
                                   <button type="button" onClick={() => handleAdjustTypeChange('dec')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${adjustForm.type === 'dec' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-black text-zinc-500 border border-white/5'}`}>Restar</button>
                                 </div>
+                                {(() => {
+                                  const curr = products.find(p => p.id === editingId);
+                                  if (!curr?.variants?.length) return null;
+                                  return (
+                                    <div>
+                                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">{curr.variantLabel}</label>
+                                      <div className="flex flex-wrap gap-2">
+                                        {curr.variants.map(v => (
+                                          <button key={v.name} type="button" onClick={() => setAdjustForm({ ...adjustForm, variant: v.name })}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${adjustForm.variant === v.name ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-200' : 'border-white/10 text-zinc-400 hover:text-white'}`}>
+                                            {v.name} <span className="opacity-60">({v.stock})</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Cantidad</label>
@@ -670,7 +776,7 @@ export default function ProductsPage() {
                                 <span>Ver Historial de Movimientos</span>
                                 <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
                               </summary>
-                              
+
                               <div className="overflow-x-auto custom-scrollbar">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                   <thead>

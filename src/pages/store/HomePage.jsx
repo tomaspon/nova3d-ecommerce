@@ -339,9 +339,8 @@ export default function HomePage() {
                     {design.quick_add && <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (product.available_stock > 0) {
-                          addToCart(product);
-                        }
+                        if (product.variants?.length) navigate(`/producto/${product.id}`); // primero se elige el talle
+                        else if (product.available_stock > 0) addToCart(product);
                       }}
                       disabled={product.available_stock <= 0}
                       aria-label={`Agregar ${product.name} al carrito`}

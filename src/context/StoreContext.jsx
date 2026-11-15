@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
-import { mapProduct } from '../productMapping';
+import { mapProduct, cartKey, availableFor } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID, isShowcaseStore } from '../currentStore';
 import { isPlatformPath } from '../sitePaths';
@@ -9,9 +9,9 @@ import { platformOrigin } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
 import { DEMO_PRODUCTS, DEMO_SETTINGS, DEMO_CHECKOUT_MESSAGE } from '../demoStore';
 
-const DEFAULT_CATEGORIES = ['Tecnología', 'Indumentaria', 'Accesorios', 'Hogar'];
+const DEFAULT_CATEGORIES = ['TecnologÃ­a', 'Indumentaria', 'Accesorios', 'Hogar'];
 
-// Carrito y categorías se guardan por tienda: en un mismo navegador pueden convivir varias.
+// Carrito y categorÃ­as se guardan por tienda: en un mismo navegador pueden convivir varias.
 // La tienda original usaba claves sin tienda; se leen como respaldo para no perder carritos.
 function loadSaved(key, storeId, fallback) {
   try {
@@ -28,17 +28,17 @@ const StoreContext = createContext();
 export function StoreProvider({ children }) {
   const hasLoadedProductsRef = useRef(false);
 
-  // TIENDA ACTUAL (según el dominio). Todo lo demás se carga recién cuando se conoce.
+  // TIENDA ACTUAL (segÃºn el dominio). Todo lo demÃ¡s se carga reciÃ©n cuando se conoce.
   const [store, setStore] = useState(null);
   const storeId = store?.id;
 
   // ESTADO BASE
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  
+
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // CONFIGURACIONES Y CAMPAÑAS
+  // CONFIGURACIONES Y CAMPAÃ‘AS
   const [storeSettings, setStoreSettings] = useState({
     campaign_active: false,
     campaign_name: 'Ofertas Especiales',
@@ -62,7 +62,7 @@ export function StoreProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // MODO OSCURO GLOBAL
-  // Si el visitante eligió un modo, se respeta; si no, se usa el que eligió la tienda (Panel > Diseño)
+  // Si el visitante eligiÃ³ un modo, se respeta; si no, se usa el que eligiÃ³ la tienda (Panel > DiseÃ±o)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
@@ -84,10 +84,10 @@ export function StoreProvider({ children }) {
     localStorage.setItem(`store_cart_${storeId}`, JSON.stringify(cart));
   }, [storeId, categories, cart]);
 
-  // Marca en borrador que mandó el panel de Diseño (puede llegar antes de que cargue la tienda)
+  // Marca en borrador que mandÃ³ el panel de DiseÃ±o (puede llegar antes de que cargue la tienda)
   const previewBrandingRef = useRef(null);
 
-  // INICIO: identificar la tienda y la sesión
+  // INICIO: identificar la tienda y la sesiÃ³n
   useEffect(() => {
     resolveStore().then(resolved => setStore(
       previewBrandingRef.current ? { ...resolved, branding: previewBrandingRef.current } : resolved
@@ -104,17 +104,17 @@ export function StoreProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // MARCA DE LA TIENDA: color, tipografía, ícono y modo por defecto
+  // MARCA DE LA TIENDA: color, tipografÃ­a, Ã­cono y modo por defecto
   useEffect(() => {
     if (!store || isPlatformPath(window.location.pathname)) return;
     applyBranding(store.branding);
     if (localStorage.getItem('theme') === null) setIsDarkMode(normalizeBranding(store.branding).theme === 'dark');
   }, [store]);
 
-  // Vista previa en vivo del panel de Diseño: la página que encuadra la tienda le manda la marca en borrador
+  // Vista previa en vivo del panel de DiseÃ±o: la pÃ¡gina que encuadra la tienda le manda la marca en borrador
   useEffect(() => {
     const onMessage = (event) => {
-      // La vista previa la manda el panel, que puede estar en la dirección de la plataforma
+      // La vista previa la manda el panel, que puede estar en la direcciÃ³n de la plataforma
       if (![window.location.origin, platformOrigin()].includes(event.origin) || event.data?.type !== 'store-branding-preview') return;
       previewBrandingRef.current = event.data.branding;
       setStore(prev => (prev ? { ...prev, branding: event.data.branding } : prev));
@@ -135,7 +135,7 @@ export function StoreProvider({ children }) {
   // DATOS DE LA TIENDA
   useEffect(() => {
     if (!storeId) return;
-    // Las páginas de la plataforma (alta, paneles, superadmin) llevan su propio título
+    // Las pÃ¡ginas de la plataforma (alta, paneles, superadmin) llevan su propio tÃ­tulo
     if (store?.name && !isPlatformPath(window.location.pathname)) document.title = `${store.name} | Tienda online`;
     setCart(loadSaved('store_cart', storeId, []));
     setCategories(loadSaved('store_categories', storeId, DEFAULT_CATEGORIES));
@@ -143,7 +143,7 @@ export function StoreProvider({ children }) {
 
     fetchProducts();
     fetchStoreSettings();
-    // Refresco de stock cada minuto, solo mientras la pestaña está a la vista
+    // Refresco de stock cada minuto, solo mientras la pestaÃ±a estÃ¡ a la vista
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchProducts();
     }, 60000);
@@ -184,7 +184,7 @@ export function StoreProvider({ children }) {
   const updateStoreSettings = async (newSettings) => {
     try {
       setStoreSettings(prev => ({ ...prev, ...newSettings }));
-      
+
       const payload = {};
       if (newSettings.campaign_name !== undefined) payload.campaign_name = newSettings.campaign_name;
       if (newSettings.campaign_active !== undefined) payload.campaign_active = newSettings.campaign_active;
@@ -197,13 +197,13 @@ export function StoreProvider({ children }) {
       }
 
       if (Object.keys(payload).length > 0) {
-        // Las tiendas nuevas todavía no tienen fila: se crea al guardar por primera vez.
-        // .select() permite detectar cuando la base no guardó nada (sin permiso).
+        // Las tiendas nuevas todavÃ­a no tienen fila: se crea al guardar por primera vez.
+        // .select() permite detectar cuando la base no guardÃ³ nada (sin permiso).
         const { data, error } = await supabase.from('store_settings')
           .upsert({ ...payload, store_id: storeId }, { onConflict: 'store_id' })
           .select();
         if (error) throw error;
-        if (!data || data.length === 0) throw new Error('store_settings no se actualizó');
+        if (!data || data.length === 0) throw new Error('store_settings no se actualizÃ³');
       }
       return true;
     } catch (error) {
@@ -223,7 +223,7 @@ export function StoreProvider({ children }) {
     }
   };
 
-  
+
   const fetchProducts = async () => {
     if (!storeId) return;
     if (store?.isDemo) {
@@ -232,7 +232,7 @@ export function StoreProvider({ children }) {
       setIsLoading(false);
       return;
     }
-    // El indicador de carga solo en la primera carga: las recargas automáticas no deben tapar el catálogo
+    // El indicador de carga solo en la primera carga: las recargas automÃ¡ticas no deben tapar el catÃ¡logo
     if (!hasLoadedProductsRef.current) setIsLoading(true);
     try {
       // Liberar vencidas no hace falta esperarlo: las reservas ya se cuentan por plazo
@@ -246,7 +246,7 @@ export function StoreProvider({ children }) {
 
       const mappedProducts = productsRes.data.map(row => mapProduct(row, reservedMap));
 
-      // Sumar las categorías de los productos sin pisar las creadas a mano que todavía no tienen productos
+      // Sumar las categorÃ­as de los productos sin pisar las creadas a mano que todavÃ­a no tienen productos
       const productCats = mappedProducts.map(p => p.category).filter(Boolean);
       if (productCats.length > 0) {
         setCategories(prev => [...new Set([...productCats, ...prev])]);
@@ -273,7 +273,7 @@ export function StoreProvider({ children }) {
 
   const toggleFavorite = async (productId) => {
     if (!user) {
-      alert("Iniciá sesión o registrate para guardar tus productos favoritos.");
+      alert("IniciÃ¡ sesiÃ³n o registrate para guardar tus productos favoritos.");
       return;
     }
     const isFavorite = favorites.includes(productId);
@@ -290,32 +290,38 @@ export function StoreProvider({ children }) {
     }
   };
 
-  const addToCart = (product, quantityToAdd = 1) => {
+  // Cada renglÃ³n del carrito es producto + opciÃ³n (talle, color...): se identifica con cartKey
+  const addToCart = (product, quantityToAdd = 1, variant = null) => {
+    // Un producto con talles no entra al carrito sin talle elegido
+    if (product.variants?.length && !product.variants.some(v => v.name === variant)) return;
+    const key = cartKey({ id: product.id, variant });
+    const available = availableFor(product, variant);
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      
-      // Nunca más unidades que las disponibles (stock físico menos lo reservado por otros)
+      const existing = prev.find(item => cartKey(item) === key);
+
+      // Nunca mÃ¡s unidades que las disponibles (stock fÃ­sico menos lo reservado por otros)
       if (existing) {
-        const newQty = Math.min(existing.quantity + quantityToAdd, product.available_stock);
-        return prev.map(item => item.id === product.id ? { ...item, quantity: newQty } : item);
+        const newQty = Math.min(existing.quantity + quantityToAdd, available);
+        return prev.map(item => cartKey(item) === key ? { ...item, quantity: newQty } : item);
       }
 
-      if (product.available_stock < 1) return prev;
+      if (available < 1) return prev;
 
-      return [...prev, { ...product, quantity: Math.min(quantityToAdd, product.available_stock) }];
+      return [...prev, { ...product, variant: variant || null, cartKey: key, quantity: Math.min(quantityToAdd, available) }];
     });
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId) => setCart(prev => prev.filter(item => item.id !== productId));
+  const removeFromCart = (key) => setCart(prev => prev.filter(item => cartKey(item) !== key));
 
-  const updateQuantity = (productId, quantity) => {
-    if (quantity < 1) return removeFromCart(productId);
-    
-    const productInStore = products.find(p => p.id === productId);
-    const newQty = productInStore ? Math.min(quantity, productInStore.available_stock) : quantity;
-    if (newQty < 1) return removeFromCart(productId);
-    setCart(prev => prev.map(item => item.id === productId ? { ...item, quantity: newQty } : item));
+  const updateQuantity = (key, quantity) => {
+    if (quantity < 1) return removeFromCart(key);
+
+    const line = cart.find(item => cartKey(item) === key);
+    const productInStore = line && products.find(p => p.id === line.id);
+    const newQty = productInStore ? Math.min(quantity, availableFor(productInStore, line.variant)) : quantity;
+    if (newQty < 1) return removeFromCart(key);
+    setCart(prev => prev.map(item => cartKey(item) === key ? { ...item, quantity: newQty } : item));
   };
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
@@ -357,9 +363,14 @@ export function StoreProvider({ children }) {
         barcode: productData.barcode || null,
         store_id: storeId
       };
+      // Talles o colores (solo si los tiene: asÃ­ funciona aunque la base no tenga la migraciÃ³n 011)
+      if (productData.variants?.length) {
+        payload.variants = productData.variants;
+        payload.variant_label = productData.variantLabel || 'Talle';
+      }
       const { data, error } = await supabase.from('products').insert([payload]).select();
       if (error) throw error;
-      
+
       if (data && data[0] && productData.stock > 0) {
         await logInventoryChange(data[0].id, productData.stock, productData.stock, 'Ingreso', 'Carga inicial del producto');
       }
@@ -371,8 +382,8 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // Edita los datos del producto. El stock no se toca acá: cambia solo con ventas o ajustes
-  // de inventario, así una edición no pisa una venta que entró mientras el formulario estaba abierto.
+  // Edita los datos del producto. El stock no se toca acÃ¡: cambia solo con ventas o ajustes
+  // de inventario, asÃ­ una ediciÃ³n no pisa una venta que entrÃ³ mientras el formulario estaba abierto.
   const updateProduct = async (id, updatedData) => {
     try {
       const payload = {
@@ -383,7 +394,7 @@ export function StoreProvider({ children }) {
         category: updatedData.category,
         image_url: updatedData.images && updatedData.images.length > 0 ? JSON.stringify(updatedData.images) : (updatedData.imageUrl || null)
       };
-      // Solo se tocan si el formulario los envía; si no, quedan como están en la base
+      // Solo se tocan si el formulario los envÃ­a; si no, quedan como estÃ¡n en la base
       if (updatedData.features !== undefined) payload.features = updatedData.features;
       if (updatedData.barcode !== undefined) payload.barcode = updatedData.barcode || null;
 
@@ -418,14 +429,14 @@ export function StoreProvider({ children }) {
     }
   };
 
-  
+
   const updateOrderStatus = async (order, newStatus) => {
     try {
       const confirmStatuses = ['pagado', 'preparando', 'enviado', 'entregado'];
       const confirmsPayment = isAwaitingPayment(order.status) && confirmStatuses.includes(newStatus);
 
       // Al confirmar el pago, lo reservado pasa a ser una venta. La base descuenta el stock
-      // y registra el movimiento en una sola operación (mark_order_paid).
+      // y registra el movimiento en una sola operaciÃ³n (mark_order_paid).
       if (confirmsPayment) {
         const { error: paidError } = await supabase.rpc('mark_order_paid', { p_order_id: order.id });
         if (paidError) throw paidError;
@@ -455,8 +466,8 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // La orden se crea dentro de la base (create_order): ahí se validan el stock disponible,
-  // los precios y el envío, con el producto bloqueado para que dos compras no reserven la misma unidad.
+  // La orden se crea dentro de la base (create_order): ahÃ­ se validan el stock disponible,
+  // los precios y el envÃ­o, con el producto bloqueado para que dos compras no reserven la misma unidad.
   const checkoutOrder = async (checkoutData) => {
     if (isShowcaseStore(store)) return { success: false, errorMessage: DEMO_CHECKOUT_MESSAGE };
     try {
@@ -467,12 +478,12 @@ export function StoreProvider({ children }) {
         p_document: checkoutData.document,
         p_address: checkoutData.address,
         p_payment_method: checkoutData.paymentMethod,
-        p_items: cart.map(item => ({ id: item.id, quantity: item.quantity })),
+        p_items: cart.map(item => ({ id: item.id, quantity: item.quantity, ...(item.variant ? { variant: item.variant } : {}) })),
         p_store_id: storeId
       });
       if (orderError) throw orderError;
 
-      // Guardar los datos de envío en la cuenta para la próxima compra
+      // Guardar los datos de envÃ­o en la cuenta para la prÃ³xima compra
       if (user) {
         await supabase.auth.updateUser({
           data: {
@@ -487,7 +498,7 @@ export function StoreProvider({ children }) {
         });
       }
 
-      // El stock físico no se descuenta acá: queda reservado hasta que se pague o venza
+      // El stock fÃ­sico no se descuenta acÃ¡: queda reservado hasta que se pague o venza
       setCart([]);
       setIsCartOpen(false);
       await fetchProducts();
@@ -501,7 +512,7 @@ export function StoreProvider({ children }) {
   };
 
   return (
-    // La tienda de ejemplo nunca usa la sesión de quien la mira: ni datos guardados, ni perfil, ni favoritos
+    // La tienda de ejemplo nunca usa la sesiÃ³n de quien la mira: ni datos guardados, ni perfil, ni favoritos
     <StoreContext.Provider value={{
       store,
       storeId,
@@ -509,7 +520,7 @@ export function StoreProvider({ children }) {
       categories,
       products,
       cart,
-      // En la tienda de muestra no se usa la sesión de quien mira (sí en su panel)
+      // En la tienda de muestra no se usa la sesiÃ³n de quien mira (sÃ­ en su panel)
       user: isShowcaseStore(store) && !isPlatformPath(window.location.pathname) ? null : user,
       favorites,
       isCartOpen,

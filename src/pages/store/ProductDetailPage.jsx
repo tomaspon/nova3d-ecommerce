@@ -1,6 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../../context/StoreContext';
+import { availableFor } from '../../productMapping';
+
+// Botones de talle (o color): los agotados se ven tachados y no se pueden elegir
+function VariantPicker({ product, value, onChange, showError }) {
+  if (!product.variants?.length) return null;
+  return (
+    <fieldset className="mb-6">
+      <legend className="text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white mb-3">
+        {product.variantLabel}{value ? <span className="ml-2 font-semibold normal-case tracking-normal text-zinc-500">{value}</span> : null}
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {product.variants.map(v => {
+          const soldOut = v.available <= 0;
+          const selected = v.name === value;
+          return (
+            <button
+              key={v.name}
+              type="button"
+              disabled={soldOut}
+              aria-pressed={selected}
+              onClick={() => onChange(v.name)}
+              title={soldOut ? 'Sin stock' : undefined}
+              className={`min-w-12 h-11 px-4 rounded-xl border text-sm font-bold transition ${selected
+                ? 'bg-brand text-brand-ink border-transparent'
+                : 'bg-white dark:bg-black border-zinc-300 dark:border-white/15 text-zinc-900 dark:text-white hover:border-zinc-900 dark:hover:border-white'}
+                disabled:opacity-40 disabled:line-through disabled:cursor-not-allowed disabled:hover:border-zinc-300`}
+            >
+              {v.name}
+            </button>
+          );
+        })}
+      </div>
+      {showError && <p role="alert" className="mt-2 text-sm font-semibold text-red-500">Elegí un {product.variantLabel.toLowerCase()} para agregarlo al carrito.</p>}
+      {value && availableFor(product, value) > 0 && availableFor(product, value) <= 3 && (
+        <p className="mt-2 text-sm font-semibold text-amber-600">¡Quedan {availableFor(product, value)}!</p>
+      )}
+    </fieldset>
+  );
+}
 import { ShoppingBag, Heart, Share2, ChevronLeft, ChevronRight, Check, Minus, Plus, Truck, ArrowRightLeft } from 'lucide-react';
 
 const Accordion = ({ title, children, defaultOpen = false }) => {
@@ -30,6 +69,8 @@ export default function ProductDetailPage() {
   const [copied, setCopied] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [variant, setVariant] = useState(null);
+  const [variantError, setVariantError] = useState(false);
 
   const product = products.find(p => p.id === id);
   const relatedProducts = products.filter(p => p.category === product?.category && p.id !== product?.id).slice(0, 4);
@@ -41,6 +82,8 @@ export default function ProductDetailPage() {
     window.scrollTo(0, 0);
     setCurrentImageIndex(0);
     setQuantity(1);
+    setVariant(null);
+    setVariantError(false);
   }, [id]);
 
   if (!product) {
@@ -57,7 +100,10 @@ export default function ProductDetailPage() {
   }
 
   const isFavorite = favorites.includes(product.id);
+  const hasVariants = product.variants?.length > 0;
   const isOutOfStock = product.available_stock <= 0;
+  // Con talles, el máximo es lo disponible del talle elegido
+  const maxQuantity = hasVariants ? (variant ? availableFor(product, variant) : 1) : product.available_stock;
   const hasDiscount = product.discount > 0;
   const finalPrice = hasDiscount ? product.price * (1 - product.discount / 100) : product.price;
 
@@ -72,9 +118,19 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
-    if (!isOutOfStock) {
-      addToCart(product, quantity);
+    if (isOutOfStock) return;
+    if (hasVariants && !variant) {
+      setVariantError(true);
+      document.getElementById('elegir-opcion')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
+    addToCart(product, quantity, variant);
+  };
+
+  const chooseVariant = (name) => {
+    setVariant(name);
+    setVariantError(false);
+    setQuantity(q => Math.max(1, Math.min(q, availableFor(product, name))));
   };
 
   const nextImage = () => setCurrentImageIndex(prev => (prev + 1) % images.length);
@@ -196,6 +252,11 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
+            {/* Talle / color */}
+            <div id="elegir-opcion">
+              <VariantPicker product={product} value={variant} onChange={chooseVariant} showError={variantError} />
+            </div>
+
             {/* Controles de Compra (Desktop) */}
             <div className="hidden lg:block bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl p-5 border border-zinc-200 dark:border-white/5 mb-6 transition-colors">
               <div className="flex items-center gap-4 mb-6">
@@ -204,7 +265,7 @@ export default function ProductDetailPage() {
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="w-12 text-center font-bold text-zinc-900 dark:text-white text-lg">{quantity}</span>
-                  <button onClick={() => setQuantity(Math.min(product.available_stock, quantity + 1))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                  <button onClick={() => setQuantity(Math.max(1, Math.min(maxQuantity, quantity + 1)))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>

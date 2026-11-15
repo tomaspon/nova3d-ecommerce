@@ -327,12 +327,85 @@ describe('009 · seguridad del superadmin', () => {
 });
 
 describe('010 · MINIMAL como tienda de muestra', () => {
-  it('carga los productos de ejemplo una sola vez, aunque se corra dos veces', async () => {
+  it('borra los productos viejos de MINIMAL (no los de otras tiendas) y carga los de ejemplo una sola vez', async () => {
+    await db.query(`insert into inventory_logs (product_id, change_amount, stock_after, reason, store_id) values ($1, 1, 5, 'Ingreso', $2)`, [ids.minimal, MINIMAL]);
     await db.exec(sql('010_minimal_vitrina.sql'));
     await db.exec(sql('010_minimal_vitrina.sql'));
-    const rows = await as('anon', `select name, image_url from products where store_id = $1 and image_url like '/demo/%' order by name`, [MINIMAL]);
+    const rows = await as('admin', `select name from products where store_id = $1 order by name`, [MINIMAL]);
     expect(rows.map(r => r.name)).toEqual([
       'Bermuda Gabardina Mostaza', 'Buzo Canguro Lila', 'Camisa de Lino Celeste', 'Campera Bomber Oliva', 'Jean Recto Azul', 'Remera Oversize Terracota'
     ]);
+    expect((await db.query(`select 1 from inventory_logs where product_id = $1`, [ids.minimal])).rows).toHaveLength(0);
+    expect((await db.query(`select 1 from products where id = $1`, [ids.velas])).rows).toHaveLength(1);
+  });
+});
+
+describe('011 · talles con stock propio', () => {
+  it('el stock total es la suma de los talles, y se limpian opciones vacías y repetidas', async () => {
+    await db.exec(sql('011_talles.sql'));
+    await db.exec(sql('011_talles.sql')); // se puede correr dos veces
+
+    const variants = JSON.stringify([{ name: 'S', stock: 2 }, { name: ' M ', stock: 1 }, { name: 'm', stock: 9 }, { name: '', stock: 4 }, { name: 'L', stock: -3 }]);
+    const [p] = await as('ownerB', `insert into products (name, price, stock, store_id, variants) values ('Remera talles', 100, 99, $1, $2::jsonb) returning id, stock, variants`, [STORE_B, variants]);
+    ids.talles = p.id;
+    expect(p.variants).toEqual([{ name: 'S', stock: 2 }, { name: 'M', stock: 1 }, { name: 'L', stock: 0 }]);
+    expect(p.stock).toBe(3);
+
+    // Los productos de muestra de MINIMAL (010) quedan con talles y el stock como la suma
+    const demo = (await db.query(`select name, stock, variants from products where store_id = $1 order by name`, [MINIMAL])).rows;
+    expect(demo.every(d => d.variants.length === 4)).toBe(true);
+    expect(demo.find(d => d.name === 'Jean Recto Azul').variants.map(v => v.name)).toEqual(['38', '40', '42', '44']);
+    expect(demo.find(d => d.name === 'Remera Oversize Terracota').stock).toBe(9);
+  });
+
+  it('al comprar hay que elegir el talle, y se valida el stock de ese talle', async () => {
+    await expect(as('anon', createOrder, orderArgs([{ id: ids.talles, quantity: 1 }], STORE_B))).rejects.toThrow(/Elegí el talle/);
+    await expect(as('anon', createOrder, orderArgs([{ id: ids.talles, variant: 'XL', quantity: 1 }], STORE_B))).rejects.toThrow(/ya no tiene el talle XL/);
+    await expect(as('anon', createOrder, orderArgs([{ id: ids.talles, variant: 'M', quantity: 2 }], STORE_B))).rejects.toThrow(/suficiente stock .*talle M/);
+
+    const [{ o }] = await as('anon', createOrder, orderArgs([{ id: ids.talles, variant: 'M', quantity: 1 }], STORE_B));
+    ids.orderTalle = o.id;
+    const [order] = (await db.query(`select items from orders where id = $1`, [o.id])).rows;
+    expect(order.items[0]).toMatchObject({ name: 'Remera talles — Talle M', product_name: 'Remera talles', variant: 'M', quantity: 1 });
+
+    // El talle M quedó reservado: nadie más lo puede comprar; el S sigue disponible
+    await expect(as('anon', createOrder, orderArgs([{ id: ids.talles, variant: 'M', quantity: 1 }], STORE_B))).rejects.toThrow(/suficiente stock/);
+    const reserved = await as('anon', `select variant, reserved from public.get_reserved_variants($1) where product_id = $2`, [STORE_B, ids.talles]);
+    expect(reserved).toEqual([{ variant: 'M', reserved: 1 }]);
+  });
+
+  it('al pagar se descuenta del talle vendido', async () => {
+    expect((await as('ownerB', `select public.mark_order_paid($1) as s`, [ids.orderTalle]))[0].s).toBe('pagado');
+    const [p] = (await db.query(`select stock, variants from products where id = $1`, [ids.talles])).rows;
+    expect(p.variants).toEqual([{ name: 'S', stock: 2 }, { name: 'M', stock: 0 }, { name: 'L', stock: 0 }]);
+    expect(p.stock).toBe(2);
+    const [log] = (await db.query(`select change_amount, stock_after, note from inventory_logs where product_id = $1`, [ids.talles])).rows;
+    expect({ change: Number(log.change_amount), after: Number(log.stock_after) }).toEqual({ change: -1, after: 2 });
+    expect(log.note).toMatch(/· M$/);
+  });
+
+  it('el ajuste manual se hace por talle; los productos sin talles siguen igual', async () => {
+    await expect(as('ownerB', `select public.adjust_stock($1, 5, 'Ingreso')`, [ids.talles])).rejects.toThrow(/Elegí a qué talle/);
+    expect((await as('ownerB', `select public.adjust_stock($1, 5, 'Ingreso', '', 'L') as s`, [ids.talles]))[0].s).toBe(7);
+    expect((await as('ownerB', `select public.adjust_stock($1, 2, 'Ingreso') as s`, [ids.velas]))[0].s).toBeGreaterThan(0);
+    const [{ o }] = await as('anon', createOrder, orderArgs([{ id: ids.velas, quantity: 1 }], STORE_B));
+    expect(o.id).toBeTruthy();
+  });
+
+  it('cambiar los talles conserva el stock real de los que siguen y registra lo que cambia', async () => {
+    // Talles actuales: S 2, M 0, L 5. Se quita S, se agrega XL
+    const [{ v }] = await as('ownerB', `select public.set_product_variants($1, 'Talle', $2::jsonb) as v`, [ids.talles, JSON.stringify(['M', 'L', 'XL'])]);
+    expect(v).toEqual([{ name: 'M', stock: 0 }, { name: 'L', stock: 5 }, { name: 'XL', stock: 0 }]);
+    const logs = (await db.query(`select change_amount, reason from inventory_logs where product_id = $1 and reason = 'Cambio de talles'`, [ids.talles])).rows;
+    expect(logs.map(l => Number(l.change_amount))).toEqual([-2]);
+
+    // Un dueño no puede tocar productos de otra tienda
+    await expect(as('ownerB', `select public.set_product_variants($1, 'Talle', '["S"]'::jsonb)`, [ids.off])).rejects.toThrow(/No autorizado/);
+
+    // Un producto sin talles que pasa a tenerlos: sus unidades sueltas quedan registradas
+    const [p] = await as('ownerB', `insert into products (name, price, stock, store_id) values ('Gorra', 10, 4, $1) returning id`, [STORE_B]);
+    await as('ownerB', `select public.set_product_variants($1, 'Color', '["Negro", "Blanco"]'::jsonb)`, [p.id]);
+    const [g] = (await db.query(`select stock, variant_label from products where id = $1`, [p.id])).rows;
+    expect({ stock: Number(g.stock), label: g.variant_label }).toEqual({ stock: 0, label: 'Color' });
   });
 });
