@@ -6,6 +6,7 @@ import CompleteProfile from '../components/CompleteProfile';
 import { needsProfile } from '../profileCompletion';
 import { supabase } from '../supabaseClient';
 import CartDrawer from '../components/CartDrawer';
+import DesignFocus from '../components/DesignFocus';
 import { normalizeBranding, instagramUrl, tiktokUrl } from '../branding';
 import { storeWhatsappLink } from '../paymentMethods';
 
@@ -71,6 +72,8 @@ export default function StoreLayout() {
   return (
     <div className="min-h-screen bg-store dark:bg-store-dark text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
       <CartDrawer />
+      {/* Vista previa del panel de Diseño: ilumina la parte que cambia */}
+      <DesignFocus />
 
       {/* Cuenta sin nombre, celular o email real (p. ej. recién entrada con Google o Apple): se completan antes de seguir */}
       {/* Recién con la tienda cargada: en la de muestra no se usa la sesión y el cartel no va */}
@@ -88,7 +91,7 @@ export default function StoreLayout() {
       )}
 
       {branding.announcement_active && branding.announcement_text && (
-        <div className="bg-announce text-announce-ink text-center text-xs sm:text-sm font-semibold px-4 py-2">
+        <div data-design="announcement" className="bg-announce text-announce-ink text-center text-xs sm:text-sm font-semibold px-4 py-2">
           {branding.announcement_text}
         </div>
       )}
@@ -105,7 +108,7 @@ export default function StoreLayout() {
           >
             {isMenuOpen ? <X className="w-5 h-5" strokeWidth={2} /> : <Menu className="w-5 h-5" strokeWidth={2} />}
           </button>
-          <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 md:gap-3 group min-w-0">
+          <Link to="/" data-design="logo" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 md:gap-3 group min-w-0">
             {branding.logo_url ? (
               <img src={branding.logo_url} alt="" className="h-8 md:h-10 w-auto max-w-[7rem] object-contain shrink-0" />
             ) : (
@@ -208,7 +211,7 @@ export default function StoreLayout() {
         )}
       </main>
       
-      <footer className="border-t border-zinc-200 dark:border-white/5 mt-auto">
+      <footer data-design="footer" className="border-t border-zinc-200 dark:border-white/5 mt-auto">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-14 pb-8">
           <div className="grid grid-cols-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr] gap-x-6 gap-y-10">
             <div className="col-span-2 md:col-span-1">
@@ -252,6 +255,7 @@ export default function StoreLayout() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Escribinos por WhatsApp"
+          data-design="whatsapp"
           className="fixed bottom-5 right-5 z-30 w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xl shadow-black/20 hover:scale-105 transition"
         >
           <MessageCircle className="w-7 h-7" />

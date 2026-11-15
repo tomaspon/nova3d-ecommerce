@@ -59,6 +59,9 @@ body {
   /* El color-scheme fuerza que las barras de scroll nativas se vean oscuras */
 }
 
+/* Vista previa de Diseño: la parte iluminada muestra lo que aparece al pasar el mouse */
+[data-design-active] .opacity-0 { opacity: 1 !important; }
+
 /* Dentro de la vista en vivo de la página oficial se scrollea igual, sin barra visible */
 html.embedded {
   scrollbar-width: none;

@@ -22,7 +22,7 @@ export default function AboutPage() {
 
   return (
     <div className="bg-white dark:bg-zinc-950 min-h-[calc(100vh-6rem)]">
-      <section className="bg-[#f4f4f5] dark:bg-zinc-900 px-4 sm:px-8 py-20 md:py-28">
+      <section data-design="about" className="bg-[#f4f4f5] dark:bg-zinc-900 px-4 sm:px-8 py-20 md:py-28">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-xs font-bold text-zinc-400 uppercase tracking-[0.25em] mb-4">Nosotros</p>
           <h1 className="text-4xl md:text-6xl font-black text-zinc-900 dark:text-white tracking-tighter">{title}</h1>

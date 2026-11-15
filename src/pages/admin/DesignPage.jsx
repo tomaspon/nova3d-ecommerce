@@ -14,6 +14,20 @@ import { CAMPAIGN_POSITIONS, BRAND_COLORS, FONT_OPTIONS, BUTTON_SHAPES, IMAGE_RA
 // Panel > Diseño: el dueño cambia la marca de su tienda y la ve en vivo antes de publicarla.
 // La vista previa es la tienda real en un iframe; el borrador le llega por postMessage.
 
+// Qué parte de la tienda cambia cada opción: la vista previa va ahí y la ilumina (DesignFocus)
+const FIELD_TARGET = {
+  logo_url: 'logo', show_store_name: 'logo',
+  primary_color: 'product-card', accent_color: 'product-card-offer',
+  background: 'page', background_custom: 'page', dark_background: 'page', theme: 'page',
+  font: 'catalog-title', button_shape: 'catalog-toolbar',
+  image_ratio: 'product-grid', grid_columns: 'product-grid', default_sort: 'product-grid',
+  show_category: 'product-card', quick_add: 'product-card', show_benefits: 'benefits', show_coming_soon: 'coming-soon',
+  campaign_position: 'campaign', headline_light: 'headline', headline_bold: 'headline', tagline: 'footer',
+  announcement_active: 'announcement', announcement_text: 'announcement', announcement_color: 'announcement',
+  instagram: 'footer', tiktok: 'footer', whatsapp_button: 'whatsapp',
+  about_title: 'about', about_text: 'about'
+};
+
 const DEVICES = { desktop: { width: 1366, height: 860 }, mobile: { width: 390, height: 780 } };
 const inputClass = 'w-full bg-black border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition';
 
@@ -94,14 +108,23 @@ export default function DesignPage() {
   const boxRef = useRef(null);
 
   const isDirty = JSON.stringify(draft) !== JSON.stringify(saved);
-  const set = (field) => (value) => setDraft(prev => ({ ...prev, [field]: value }));
+  // Última opción tocada: después de mandar el borrador, la vista previa va a esa parte
+  const lastFieldRef = useRef(null);
+  const set = (field) => (value) => { lastFieldRef.current = field; setDraft(prev => ({ ...prev, [field]: value })); };
   const setFromInput = (field) => (e) => set(field)(e.target.value);
 
   // La vista previa recibe el borrador cada vez que cambia (y cuando termina de cargar)
   const sendPreview = () => {
     iframeRef.current?.contentWindow?.postMessage({ type: 'store-branding-preview', branding: draft }, PREVIEW_ORIGIN);
   };
-  useEffect(sendPreview, [draft]);
+  useEffect(() => {
+    sendPreview();
+    const field = lastFieldRef.current;
+    lastFieldRef.current = null;
+    if (field && FIELD_TARGET[field]) {
+      iframeRef.current?.contentWindow?.postMessage({ type: 'store-design-focus', target: FIELD_TARGET[field] }, PREVIEW_ORIGIN);
+    }
+  }, [draft]);
 
   useEffect(() => {
     if (!boxRef.current) return;

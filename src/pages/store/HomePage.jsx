@@ -90,7 +90,7 @@ export default function HomePage() {
   const campaignAt = design.campaign_position;
   const compact = campaignAt === 'compact';
   const campaignSection = campaignOn ? (
-          <section className="bg-white dark:bg-transparent border-b border-zinc-200 dark:border-white/5 transition-colors">
+          <section data-design="campaign" className="bg-white dark:bg-transparent border-b border-zinc-200 dark:border-white/5 transition-colors">
             
             {/* Banner de temporada diseñado (preset) */}
             {campaignPreset && (
@@ -173,7 +173,7 @@ export default function HomePage() {
 
       {/* PRESENTACIÓN DE MARCA (cuando la oferta no ocupa la portada, y sin búsqueda) */}
       {!(campaignOn && campaignAt !== 'before_catalog') && !searchQuery && categoryFilter === 'all' && (
-        <section className="border-b border-zinc-200 dark:border-white/5">
+        <section data-design="headline" className="border-b border-zinc-200 dark:border-white/5">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-12 md:py-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             {/* Lo que sobra, fino y apagado; lo que importa, con peso */}
             <h1 className="text-[clamp(2.25rem,5vw,4rem)] leading-none tracking-[-0.03em]">
@@ -193,7 +193,7 @@ export default function HomePage() {
 
       {/* BENEFICIOS */}
       {!searchQuery && design.show_benefits && (
-        <div className="border-b border-zinc-200 dark:border-white/5">
+        <div data-design="benefits" className="border-b border-zinc-200 dark:border-white/5">
           <ul className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200 dark:divide-white/5">
             {BENEFITS.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex items-center gap-3.5 py-3.5 sm:py-4 sm:px-6 first:sm:pl-0">
@@ -216,7 +216,7 @@ export default function HomePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
           <div>
             <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 tracking-[0.2em] uppercase mb-2">Inicio / Catálogo {categoryFilter !== 'all' ? `/ ${categoryFilter}` : ''}</div>
-            <h2 className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+            <h2 data-design="catalog-title" className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
               {searchQuery ? `Resultados para "${searchQuery}"` : categoryFilter !== 'all' ? categoryFilter : 'Todos los productos'}
             </h2>
           </div>
@@ -224,7 +224,7 @@ export default function HomePage() {
         </div>
 
         {/* Barra de herramientas: categorías + orden */}
-        <div className="flex items-center justify-between gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-6">
+        <div data-design="catalog-toolbar" className="flex items-center justify-between gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-6">
         {storeCategories.length > 0 ? (
           <div className="flex overflow-x-auto hide-scrollbar gap-2 min-w-0">
             <button
@@ -309,13 +309,13 @@ export default function HomePage() {
             <p className="text-zinc-500 dark:text-zinc-400 max-w-md">Intentá ajustar tu búsqueda o explorá otras categorías para encontrar lo que buscás.</p>
           </div>
         ) : (
-          <div className={`grid grid-cols-2 md:grid-cols-3 ${GRID_CLASSES[design.grid_columns]} gap-x-4 gap-y-10 md:gap-x-6 lg:gap-x-8`}>
+          <div data-design="product-grid" className={`grid grid-cols-2 md:grid-cols-3 ${GRID_CLASSES[design.grid_columns]} gap-x-4 gap-y-10 md:gap-x-6 lg:gap-x-8`}>
             {activeProducts.map(product => {
               const finalPrice = product.price * (1 - (product.discount || 0) / 100);
               const isFavorite = favorites.includes(product.id);
               
               return (
-                <div key={product.id} className="group cursor-pointer" onClick={() => navigate(`/producto/${product.id}`)}>
+                <div key={product.id} data-design="product-card" data-offer={product.discount > 0 ? 'true' : undefined} className="group cursor-pointer" onClick={() => navigate(`/producto/${product.id}`)}>
                   
                   <div className="aspect-[var(--card-aspect)] bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl relative overflow-hidden mb-4 border border-zinc-100 dark:border-white/5 shadow-sm group-hover:shadow-xl transition-all duration-500">
                     
@@ -382,6 +382,7 @@ export default function HomePage() {
             {/* Con pocos productos la grilla queda vacía: invitamos a enterarse de lo próximo */}
             {!searchQuery && design.show_coming_soon && activeProducts.length < 4 && (
               <a
+                data-design="coming-soon"
                 href={comingSoon.href}
                 target="_blank"
                 rel="noopener noreferrer"
