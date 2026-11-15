@@ -1,19 +1,17 @@
 import { getSupabase } from './_lib/payments.js';
 import { verifyState } from './_lib/secrets.js';
 import { exchangeCode, saveAccount } from './_lib/mercadopago.js';
-import { siteUrl } from './_lib/platformAdmin.js';
+import { platformUrl } from './_lib/platformAdmin.js';
 
 // A donde vuelve MercadoPago después de que el vendedor autoriza (GET ?code=...&state=...).
 // El state firmado dice qué tienda y qué usuario empezaron la conexión: así nadie puede
-// conectar su cuenta a una tienda ajena. Al final se vuelve a Configuración de la tienda.
+// conectar su cuenta a una tienda ajena. Al final se vuelve a Configuración de la tienda,
+// en el panel de la plataforma (/panel/<tienda>/configuracion).
 
 function settingsUrl(req, store, result) {
-  const base = siteUrl(req);
   const params = new URLSearchParams({ mp: result });
-  if (store?.custom_domain) return `https://${store.custom_domain}/admin/settings?${params}`;
-  if (store?.slug && process.env.PLATFORM_DOMAIN) return `https://${store.slug}.${process.env.PLATFORM_DOMAIN}/admin/settings?${params}`;
-  if (store?.slug) params.set('tienda', store.slug);
-  return `${base}/admin/settings?${params}`;
+  const path = store?.slug ? `/panel/${store.slug}/configuracion` : '/panel';
+  return `${platformUrl(req)}${path}?${params}`;
 }
 
 export default async function handler(req, res) {

@@ -21,7 +21,7 @@ export const STORE_TEMPLATES = [
 ];
 
 // Nombres que no pueden ser tiendas: chocarían con subdominios o rutas de la plataforma
-const RESERVED_SLUGS = ['www', 'app', 'api', 'admin', 'plataforma', 'panel', 'mail', 'localhost', 'nova3d-ecommerce', 'demo'];
+const RESERVED_SLUGS = ['www', 'app', 'api', 'admin', 'plataforma', 'panel', 'superadmin', 'ingresar', 'crear', 'inicio', 'terminos', 'mail', 'localhost', 'nova3d-ecommerce', 'vitrina', 'vitrina-app', 'demo'];
 
 // Mismas reglas que la base (stores.slug): minúsculas, números y guiones, sin guion en los bordes
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/;
@@ -59,15 +59,12 @@ const DOMAIN_PATTERN = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-
 export const isValidDomain = (domain) => DOMAIN_PATTERN.test(domain || '');
 
 // A dónde lleva cada tienda: su dominio propio, su subdominio de la plataforma o,
-// mientras no haya dominio de plataforma, la dirección actual con ?tienda=<slug>.
-export function storeUrls(store, { origin, platformDomain } = {}) {
-  let base;
-  if (store.custom_domain) base = `https://${store.custom_domain}`;
-  else if (platformDomain) base = `https://${store.slug}.${platformDomain}`;
-
-  if (base) return { storefront: base, admin: `${base}/admin` };
-  return {
-    storefront: `${origin}/?tienda=${store.slug}`,
-    admin: `${origin}/admin?tienda=${store.slug}`
-  };
+// mientras no haya dominio de plataforma, la dirección de las tiendas con ?tienda=<slug>.
+// El panel siempre está en la plataforma: /panel/<slug>.
+export function storeUrls(store, { origin, platformDomain, platformOrigin } = {}) {
+  let storefront;
+  if (store.custom_domain) storefront = `https://${store.custom_domain}`;
+  else if (platformDomain) storefront = `https://${store.slug}.${platformDomain}`;
+  else storefront = `${origin}/?tienda=${store.slug}`;
+  return { storefront, admin: `${platformOrigin || origin}/panel/${store.slug}` };
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { ArrowRight, CreditCard, Truck, LayoutDashboard, Globe, Smartphone, Package, MessageCircle, Check, ChevronDown } from 'lucide-react';
-import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
+import { PLATFORM_BRAND, PLATFORM_DOMAIN, storesOrigin } from '../../platformBrand';
 import { SUPPORT_WHATSAPP } from '../../storeContact';
 import { storeUrls } from '../../platformStores';
 import StoreRequestForm from './StoreRequestForm';
@@ -62,7 +62,8 @@ export default function PlatformHome() {
   useEffect(() => {
     document.title = `${PLATFORM_BRAND.name} | ${PLATFORM_BRAND.tagline}`;
   }, []);
-  const exampleUrl = storeUrls(EXAMPLE_STORE, { origin: window.location.origin, platformDomain: PLATFORM_DOMAIN || null }).storefront;
+  // La tienda de ejemplo se ve en la dirección de las tiendas (en la de la plataforma, / es esta página)
+  const exampleUrl = storeUrls(EXAMPLE_STORE, { origin: storesOrigin() || window.location.origin, platformDomain: PLATFORM_DOMAIN || null }).storefront;
   const [showRequest, setShowRequest] = useState(false);
   const contactUrl = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`¡Hola! Quiero mi tienda online con ${PLATFORM_BRAND.name}.`)}`;
 
@@ -74,7 +75,8 @@ export default function PlatformHome() {
           <nav className="flex items-center gap-2 sm:gap-6 text-sm font-semibold">
             <a href="#como-funciona" onClick={scrollToSection} className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Cómo funciona</a>
             <a href="#ejemplo" onClick={scrollToSection} className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ejemplo</a>
-            <Link to="/plataforma/crear" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Creá tu tienda</Link>
+            <Link to="/ingresar" className="hidden sm:inline text-zinc-500 hover:text-zinc-900">Ingresar</Link>
+            <Link to="/crear" className="rounded-full bg-zinc-900 text-white px-4 py-2 hover:bg-zinc-700 transition">Creá tu tienda</Link>
           </nav>
         </div>
       </header>
@@ -89,7 +91,7 @@ export default function PlatformHome() {
           Catálogo, cobros con MercadoPago, envíos y un panel para manejar todo. Vos te ocupás de vender; nosotros, de la tecnología.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <Link to="/plataforma/crear" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
+          <Link to="/crear" className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
             Creá tu tienda gratis <ArrowRight className="w-4 h-4" />
           </Link>
           <a href="#ejemplo" onClick={scrollToSection} className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-7 py-4 hover:bg-zinc-50 transition">
@@ -157,7 +159,7 @@ export default function PlatformHome() {
       <section id="solicitar" className="scroll-mt-16 max-w-3xl mx-auto px-4 sm:px-6 py-16 md:py-24 text-center">
         <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">¿Arrancamos tu tienda?</h2>
         <p className="mt-4 text-zinc-600 text-lg leading-relaxed">Creala vos en 2 minutos, gratis. Cargás tus productos y cuando esté lista te habilitamos las ventas.</p>
-        <Link to="/plataforma/crear" className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
+        <Link to="/crear" className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-7 py-4 hover:bg-indigo-500 transition">
           <Sparkles className="w-5 h-5" /> Creá tu tienda gratis
         </Link>
 
@@ -194,7 +196,7 @@ export default function PlatformHome() {
       <footer className="border-t border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row gap-3 justify-between text-sm text-zinc-500">
           <p>© {new Date().getFullYear()} {PLATFORM_BRAND.name}</p>
-          <Link to="/plataforma" className="hover:text-zinc-900">Acceso administradores</Link>
+          <Link to="/ingresar" className="hover:text-zinc-900">Ingresar a mi tienda</Link>
         </div>
       </footer>
     </div>

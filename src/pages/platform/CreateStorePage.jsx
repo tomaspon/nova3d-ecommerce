@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Check, ArrowRight, Store, LayoutDashboard, ExternalLink, Mail } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
-import { PLATFORM_BRAND, PLATFORM_DOMAIN } from '../../platformBrand';
+import { PLATFORM_BRAND, PLATFORM_DOMAIN, onPlatformHost, platformOrigin, storesOrigin } from '../../platformBrand';
 import { STORE_TEMPLATES, storeUrls } from '../../platformStores';
 import { validateStoreSignup, slugify, TERMS_VERSION } from '../../storeSignup';
 import DesignStep from './DesignStep';
@@ -11,6 +11,7 @@ import DesignStep from './DesignStep';
 // La tienda se crea al instante; las ventas se habilitan después de verificar al titular.
 
 const PENDING_KEY = 'pending_store_name';
+const urlOptions = () => ({ origin: storesOrigin() || window.location.origin, platformDomain: PLATFORM_DOMAIN || null, platformOrigin: platformOrigin() });
 const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition';
 
 function Steps({ current }) {
@@ -58,7 +59,7 @@ function AccountStep({ onDone }) {
     setIsSending(true);
     if (mode === 'signup') {
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email, password, options: { emailRedirectTo: `${window.location.origin}/plataforma/crear` }
+        email, password, options: { emailRedirectTo: `${window.location.origin}/crear` }
       });
       if (signUpError) setError(/registered|already/i.test(signUpError.message) ? 'Ese email ya tiene cuenta. Iniciá sesión.' : 'No pudimos crear la cuenta. Revisá los datos.');
       else if (data.user?.identities?.length === 0) setError('Ese email ya tiene cuenta. Iniciá sesión.');
@@ -115,7 +116,7 @@ function StoreStep({ onCreated }) {
   const [isSending, setIsSending] = useState(false);
 
   const finalSlug = slugTouched ? slug : slugify(name);
-  const preview = storeUrls({ slug: finalSlug || 'tu-tienda' }, { origin: window.location.origin, platformDomain: PLATFORM_DOMAIN || null }).storefront.replace(/^https?:\/\//, '');
+  const preview = storeUrls({ slug: finalSlug || 'tu-tienda' }, urlOptions()).storefront.replace(/^https?:\/\//, '');
 
   const submit = async (e) => {
     e.preventDefault();
@@ -136,7 +137,7 @@ function StoreStep({ onCreated }) {
         setErrors(body.errors || {});
         // En localhost no existen las funciones del servidor (viven en Vercel)
         setMessage(response.status === 404
-          ? <>Estás en la versión local: crear la tienda necesita el servidor publicado. Seguí en <a className="underline font-semibold" href="https://nova3d-ecommerce.vercel.app/plataforma/crear">nova3d-ecommerce.vercel.app/plataforma/crear</a> e iniciá sesión con esta misma cuenta.</>
+          ? <>Estás en la versión local: crear la tienda necesita el servidor publicado. Seguí en <a className="underline font-semibold" href="https://nova3d-ecommerce.vercel.app/crear">nova3d-ecommerce.vercel.app/crear</a> e iniciá sesión con esta misma cuenta.</>
           : body.message || 'No pudimos crear tu tienda.');
       } else {
         try { localStorage.removeItem(PENDING_KEY); } catch { /* sin almacenamiento */ }
@@ -164,7 +165,7 @@ function StoreStep({ onCreated }) {
       </Field>
       <label className="flex items-start gap-3 text-sm text-zinc-700">
         <input type="checkbox" className="mt-0.5 w-5 h-5 rounded accent-indigo-600 shrink-0" checked={accepted} onChange={(e) => { setAccepted(e.target.checked); setErrors(x => ({ ...x, accepted_terms: undefined })); }} />
-        <span>Acepto los <Link to="/plataforma/terminos" target="_blank" className="font-semibold text-indigo-600 underline">términos del servicio y la política de privacidad</Link>.</span>
+        <span>Acepto los <Link to="/terminos" target="_blank" className="font-semibold text-indigo-600 underline">términos del servicio y la política de privacidad</Link>.</span>
       </label>
       {errors.accepted_terms && <p className="text-sm text-red-600">{errors.accepted_terms}</p>}
       {message && <p role="alert" className="text-sm text-red-600">{message}</p>}
@@ -176,7 +177,7 @@ function StoreStep({ onCreated }) {
 }
 
 function DoneStep({ store, existing }) {
-  const urls = storeUrls(store, { origin: window.location.origin, platformDomain: PLATFORM_DOMAIN || null });
+  const urls = storeUrls(store, urlOptions());
   return (
     <div>
       <div className="text-center">
@@ -236,7 +237,7 @@ export default function CreateStorePage() {
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <header className="bg-white border-b border-zinc-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/plataforma/inicio" className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
+          <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
           {session && <button type="button" onClick={() => supabase.auth.signOut()} className="text-sm text-zinc-500 hover:text-zinc-900">Salir</button>}
         </div>
       </header>

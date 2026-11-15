@@ -1,5 +1,5 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
-import { requirePlatformAdmin, listAllUsers, siteUrl } from './_lib/platformAdmin.js';
+import { requirePlatformAdmin, listAllUsers, platformUrl } from './_lib/platformAdmin.js';
 import { isVercelConfigured, addDomain, removeDomain, domainStatus } from './_lib/vercelDomains.js';
 import { STORE_TEMPLATES, slugError, normalizeDomain, isValidDomain } from '../src/platformStores.js';
 import { DEFAULT_STORE_ID } from '../src/storeIds.js';
@@ -34,7 +34,7 @@ async function findOrInviteUser(supabase, email, redirectTo) {
 }
 
 async function addOwner(supabase, req, store, email) {
-  const { user, invited } = await findOrInviteUser(supabase, email, `${siteUrl(req)}/admin?tienda=${store.slug}`);
+  const { user, invited } = await findOrInviteUser(supabase, email, `${platformUrl(req)}/panel/${store.slug}`);
   const { error } = await supabase.from('store_members')
     .upsert({ store_id: store.id, user_id: user.id, role: 'owner' }, { onConflict: 'store_id,user_id' });
   if (error) throw error;

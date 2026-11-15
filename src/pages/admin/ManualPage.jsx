@@ -9,9 +9,9 @@ const SECTIONS = [
     id: 'primeros-pasos', icon: Rocket, title: 'Primeros pasos',
     intro: 'Lo mínimo para que tu tienda esté lista para vender.',
     steps: [
-      ['Configurá tu tienda', <>En <Link to="/admin/settings">Config.</Link> completá el nombre del negocio, el email de contacto y el costo de envío.</>],
-      ['Creá tus categorías', <>En <Link to="/admin/categories">Categorías</Link> armá las secciones de tu catálogo (por ejemplo: Remeras, Buzos, Accesorios).</>],
-      ['Cargá tus productos', <>En <Link to="/admin/products">Productos</Link> tocá <b>Nuevo Producto</b>, subí fotos, poné precio y stock.</>],
+      ['Configurá tu tienda', <>En <Link to="../configuracion" relative="path">Config.</Link> completá el nombre del negocio, el email de contacto y el costo de envío.</>],
+      ['Creá tus categorías', <>En <Link to="../categorias" relative="path">Categorías</Link> armá las secciones de tu catálogo (por ejemplo: Remeras, Buzos, Accesorios).</>],
+      ['Cargá tus productos', <>En <Link to="../productos" relative="path">Productos</Link> tocá <b>Nuevo Producto</b>, subí fotos, poné precio y stock.</>],
       ['Revisá cómo se ve', <>Abrí tu tienda con <b>Ver la Tienda</b> (abajo en el menú) y recorrela como si fueras un cliente.</>],
       ['Pedí la activación', <>Las tiendas nuevas no reciben pedidos hasta que se verifica al titular. Cuando la tuya esté lista, tocá <b>Pedir activación</b> en el aviso de arriba del panel y te contactamos para habilitar las ventas.</>]
     ]

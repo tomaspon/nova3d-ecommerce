@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { Link } from 'react-router-dom';
+import { panelPath } from '../../sitePaths';
 import { isPaid, isCanceled, holdsReservation } from '../../orderStatus';
 import { ChevronRight, User, TrendingUp, Package, ShoppingBag, DollarSign, X, Clock, CheckCircle2, CreditCard, AlertTriangle, ChevronDown } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { products, updateOrderStatus, storeId } = useStore();
+  const { products, updateOrderStatus, storeId, store } = useStore();
   const [orders, setOrders] = useState([]);
   const [inventoryLogs, setInventoryLogs] = useState([]);
   const [timeFilter, setTimeFilter] = useState('all'); // all, today, week, month, year
@@ -473,7 +474,7 @@ export default function DashboardPage() {
               {/* La cancelación y la devolución se gestionan en Pedidos, donde está el flujo completo */}
               {!isCanceled(selectedOrder.status) && (
                 <Link
-                  to="/admin/orders"
+                  to={panelPath(store?.slug, 'ordenes')}
                   className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-6 py-3 rounded-xl font-bold transition w-full sm:w-auto text-center"
                 >
                   Gestionar Devolución / Cancelar

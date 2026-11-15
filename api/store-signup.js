@@ -1,5 +1,6 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { validateStoreSignup, TERMS_VERSION } from '../src/storeSignup.js';
+import { bearerToken, isPlatformAdmin as hasPlatformAccess } from './_lib/platformAdmin.js';
 
 // Alta de tiendas por autoservicio (como Shopify o Tiendanube): quien tiene cuenta crea
 // su tienda al instante y queda como dueño. La tienda nace con las ventas deshabilitadas:
@@ -15,7 +16,7 @@ const MAX_STORES_PER_IP_PER_DAY = 3;
 const clientIp = (req) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || null;
 
 async function sessionUser(supabase, req) {
-  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const token = bearerToken(req);
   if (!token) return null;
   const { data, error } = await supabase.auth.getUser(token);
   return error ? null : data.user;
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const user = await sessionUser(supabase, req);
     if (!user) return res.status(401).json({ message: 'Iniciá sesión para crear tu tienda.' });
-    const isPlatformAdmin = user.app_metadata?.role === 'admin';
+    const isPlatformAdmin = hasPlatformAccess(user, bearerToken(req));
     const body = req.body || {};
 
     if (body.action === 'requestActivation') {

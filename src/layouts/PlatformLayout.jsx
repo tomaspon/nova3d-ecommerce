@@ -2,20 +2,21 @@ import { Suspense } from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { BarChart3, Store, Inbox, Users, Globe, LogOut } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { onPlatformHost } from '../platformBrand';
 import { PLATFORM_BRAND } from '../platformBrand';
 
 // Panel del administrador de la plataforma: separado del panel de cada tienda.
 const NAV = [
-  { to: '/plataforma', label: 'Resumen', icon: BarChart3, end: true },
-  { to: '/plataforma/tiendas', label: 'Tiendas', icon: Store },
-  { to: '/plataforma/solicitudes', label: 'Solicitudes', icon: Inbox },
-  { to: '/plataforma/usuarios', label: 'Usuarios', icon: Users }
+  { to: '/superadmin', label: 'Resumen', icon: BarChart3, end: true },
+  { to: '/superadmin/tiendas', label: 'Tiendas', icon: Store },
+  { to: '/superadmin/solicitudes', label: 'Solicitudes', icon: Inbox },
+  { to: '/superadmin/usuarios', label: 'Usuarios', icon: Users }
 ];
 
 export default function PlatformLayout() {
   const logout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/plataforma/inicio';
+    window.location.href = '/';
   };
 
   const linkClass = ({ isActive }) =>
@@ -39,7 +40,7 @@ export default function PlatformLayout() {
           ))}
         </nav>
         <div className="p-3 border-t border-white/5 space-y-0.5">
-          <Link to="/plataforma/inicio" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-500 hover:text-white hover:bg-white/5 transition">
+          <Link to={onPlatformHost() ? '/' : '/inicio'} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-500 hover:text-white hover:bg-white/5 transition">
             <Globe className="w-4 h-4" /> Página oficial
           </Link>
           <button type="button" onClick={logout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition">

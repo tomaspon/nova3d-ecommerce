@@ -1,8 +1,10 @@
 import { lazy, Suspense } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { StoreProvider } from './context/StoreContext';
-import { isPlatformHost } from './platformBrand';
+import { onPlatformHost, hostsAreSplit } from './platformBrand';
+import { SUPERADMIN } from './sitePaths';
+import { ToPlatform, AdminToPanel, OldPlatformRedirect } from './components/SiteRedirects';
 
 // Layouts
 import StoreLayout from './layouts/StoreLayout';
@@ -34,10 +36,18 @@ const TermsPage = lazy(() => import('./pages/platform/TermsPage'));
 const CreateStorePage = lazy(() => import('./pages/platform/CreateStorePage'));
 const ManualPage = lazy(() => import('./pages/admin/ManualPage'));
 const DesignPage = lazy(() => import('./pages/admin/DesignPage'));
+const PanelHome = lazy(() => import('./pages/platform/PanelHome'));
 
-// En el dominio de la plataforma la dirección principal es la página oficial;
-// en cualquier otro (tiendas, Vercel, localhost) es una tienda.
-const onPlatformHost = isPlatformHost(window.location.hostname);
+// Dos sitios en un mismo despliegue (ver src/sitePaths.js):
+//  - la plataforma: página oficial, alta, panel de cada tienda y superadmin
+//  - las tiendas: lo que ve el comprador
+// Con la plataforma en su propia dirección, cada sitio muestra solo lo suyo y manda al otro
+// lo que no le corresponde. Sin dirección aparte (local), conviven y la página oficial está en /inicio.
+const isPlatform = onPlatformHost();
+const isStore = !isPlatform;
+const split = hostsAreSplit();
+// En una tienda, las páginas de la plataforma se abren en la dirección de la plataforma
+const platformPage = (element) => (split && isStore ? <ToPlatform /> : element);
 
 const adminFallback = <div className="min-h-screen bg-zinc-950" />;
 
@@ -48,45 +58,59 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={adminFallback}>
         <Routes>
-          {/* RUTA PÚBLICA: STOREFRONT (o la página oficial, en el dominio de la plataforma) */}
-          {onPlatformHost ? (
-            <Route path="/" element={<PlatformHome />} />
+          {isPlatform ? (
+            <>
+              <Route path="/" element={<PlatformHome />} />
+              <Route path="/inicio" element={<Navigate to="/" replace />} />
+              {/* Lo que no es de la plataforma vuelve a la página oficial */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </>
           ) : (
-          <Route path="/" element={<StoreLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="producto/:id" element={<ProductDetailPage />} />
-            <Route path="nosotros" element={<AboutPage />} />
-            <Route path="seguimiento" element={<TrackingPage />} />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="perfil" element={<ProfilePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
+            <>
+              {/* TIENDA: lo que ve el comprador */}
+              <Route path="/" element={<StoreLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="producto/:id" element={<ProductDetailPage />} />
+                <Route path="nosotros" element={<AboutPage />} />
+                <Route path="seguimiento" element={<TrackingPage />} />
+                <Route path="login" element={<LoginPage />} />
+                <Route path="perfil" element={<ProfilePage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+              {/* tienda.com/admin lleva al panel de esa tienda */}
+              <Route path="/admin/*" element={<AdminToPanel />} />
+              <Route path="/inicio" element={platformPage(<PlatformHome />)} />
+            </>
           )}
 
-          {/* Página oficial de la plataforma: vista previa en cualquier dominio */}
-          <Route path="/plataforma/inicio" element={<PlatformHome />} />
-          <Route path="/plataforma/terminos" element={<TermsPage />} />
-          <Route path="/plataforma/crear" element={<CreateStorePage />} />
+          {/* PLATAFORMA: alta y acceso */}
+          <Route path="/crear" element={platformPage(<CreateStorePage />)} />
+          <Route path="/terminos" element={platformPage(<TermsPage />)} />
+          <Route path="/ingresar" element={platformPage(<Navigate to="/panel" replace />)} />
 
-          {/* RUTA PRIVADA: PANEL DE PLATAFORMA (todas las tiendas) */}
-          <Route path="/plataforma" element={<AdminAuth platformOnly><PlatformLayout /></AdminAuth>}>
+          {/* PLATAFORMA: panel de cada tienda (la tienda va en la dirección) */}
+          <Route path="/panel" element={platformPage(<AdminAuth mode="account"><PanelHome /></AdminAuth>)} />
+          <Route path="/panel/:slug" element={platformPage(<AdminAuth mode="store"><AdminLayout /></AdminAuth>)}>
+            <Route index element={<DashboardPage />} />
+            <Route path="productos" element={<ProductsPage />} />
+            <Route path="ordenes" element={<OrdersPage />} />
+            <Route path="envios" element={<ShippingPage />} />
+            <Route path="categorias" element={<CategoriesPage />} />
+            <Route path="configuracion" element={<SettingsPage />} />
+            <Route path="diseno" element={<DesignPage />} />
+            <Route path="ayuda" element={<ManualPage />} />
+          </Route>
+
+          {/* PLATAFORMA: superadmin, con verificación en dos pasos */}
+          <Route path={SUPERADMIN} element={platformPage(<AdminAuth mode="platform"><PlatformLayout /></AdminAuth>)}>
             <Route index element={<PlatformDashboard />} />
             <Route path="tiendas" element={<PlatformPage view="stores" />} />
             <Route path="solicitudes" element={<PlatformPage view="requests" />} />
             <Route path="usuarios" element={<UsersPage />} />
           </Route>
 
-          {/* RUTA PRIVADA: CMS DASHBOARD */}
-          <Route path="/admin" element={<AdminAuth><AdminLayout /></AdminAuth>}>
-            <Route index element={<DashboardPage />} />
-            <Route path="products" element={<ProductsPage />} />
-            <Route path="orders" element={<OrdersPage />} />
-            <Route path="shipping" element={<ShippingPage />} />
-            <Route path="categories" element={<CategoriesPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="diseno" element={<DesignPage />} />
-            <Route path="ayuda" element={<ManualPage />} />
-          </Route>
+          {/* Direcciones viejas */}
+          <Route path="/plataforma/*" element={platformPage(<OldPlatformRedirect />)} />
         </Routes>
         </Suspense>
       </BrowserRouter>

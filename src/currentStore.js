@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { DEFAULT_STORE_ID } from './storeIds';
 import { DEMO_STORE, DEMO_SLUG } from './demoStore';
+import { panelSlugFromPath } from './sitePaths';
 
 // Qué tienda muestra este sitio. Un mismo despliegue sirve a todas las tiendas de la
 // plataforma: se elige por el dominio (supabase/003_multitienda.sql, get_store_by_host).
@@ -43,6 +44,19 @@ async function rpcStore(fn, args) {
 }
 
 export async function resolveStore(location = window.location, storage = window.sessionStorage) {
+  // En el panel (/panel/<tienda>/...) manda la dirección: nunca se cae a otra tienda
+  const panelSlug = panelSlugFromPath(location.pathname);
+  if (panelSlug) {
+    if (panelSlug === DEMO_SLUG) return DEMO_STORE;
+    try {
+      const store = await rpcStore('get_store_by_slug', { p_slug: panelSlug });
+      if (store) return store;
+    } catch (error) {
+      console.error('No se pudo identificar la tienda:', error);
+    }
+    return { id: null, slug: panelSlug, name: '', branding: {}, notFound: true };
+  }
+
   try {
     const byHost = await rpcStore('get_store_by_host', { p_host: location.host });
     if (byHost) return byHost;

@@ -144,7 +144,7 @@ export default function StoreRequestForm() {
         <label className="flex items-start gap-3 text-xs text-zinc-700">
           <input type="checkbox" className="mt-0.5 w-4 h-4 rounded accent-indigo-600 shrink-0" checked={form.accepted_terms} onChange={set('accepted_terms')} />
           <span>
-            Acepto los <Link to="/plataforma/terminos" target="_blank" className="font-semibold text-indigo-600 underline">términos del servicio y la política de privacidad</Link>, y que mis datos se usen para contactarme, verificar mi identidad y prestar el servicio.
+            Acepto los <Link to="/terminos" target="_blank" className="font-semibold text-indigo-600 underline">términos del servicio y la política de privacidad</Link>, y que mis datos se usen para contactarme, verificar mi identidad y prestar el servicio.
           </span>
         </label>
         {errors.accepted_terms && <p className="text-sm text-red-600">{errors.accepted_terms}</p>}

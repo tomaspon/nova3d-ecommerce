@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { keyOf, asToken } from './testJwt';
 
 // La función del panel de plataforma con un Supabase falso en memoria.
 const fake = vi.hoisted(() => ({ client: null }));
@@ -77,7 +78,7 @@ function makeClient() {
     tables,
     from: query,
     auth: {
-      getUser: async (token) => ({ data: { user: users[token] || null }, error: users[token] ? null : new Error('x') }),
+      getUser: async (token) => ({ data: { user: users[keyOf(token)] || null }, error: users[keyOf(token)] ? null : new Error('x') }),
       admin: {
         listUsers: async () => ({ data: { users: Object.values(users) }, error: null }),
         getUserById: async (id) => ({ data: { user: Object.values(users).find(u => u.id === id) || null } }),
@@ -88,7 +89,7 @@ function makeClient() {
 }
 
 function call(token, body) {
-  const req = { method: body ? 'POST' : 'GET', body, headers: { authorization: token ? `Bearer ${token}` : '', host: 'tienda.test' } };
+  const req = { method: body ? 'POST' : 'GET', body, headers: { authorization: token ? `Bearer ${asToken(token)}` : '', host: 'tienda.test' } };
   const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(d) { this.body = d; return this; } };
   return handler(req, res).then(() => res);
 }
@@ -133,7 +134,7 @@ describe('api/platform-stores', () => {
   it('invita por mail a un dueño que todavía no tiene cuenta', async () => {
     const res = await call('admin', { action: 'create', name: 'Velas', slug: 'velas', ownerEmail: 'nuevo@velas.com' });
     expect(res.body.message).toMatch(/Invitamos/);
-    expect(fake.client.auth.admin.inviteUserByEmail).toHaveBeenCalledWith('nuevo@velas.com', { redirectTo: 'https://tienda.test/admin?tienda=velas' });
+    expect(fake.client.auth.admin.inviteUserByEmail).toHaveBeenCalledWith('nuevo@velas.com', { redirectTo: 'https://tienda.test/panel/velas' });
   });
 
   it('rechaza enlaces inválidos, reservados o repetidos', async () => {

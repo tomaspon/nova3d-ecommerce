@@ -1,6 +1,7 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { signState } from './_lib/secrets.js';
 import { isMpOAuthConfigured, authorizationUrl, disconnectAccount } from './_lib/mercadopago.js';
+import { isPlatformAdmin } from './_lib/platformAdmin.js';
 
 // Conexión de MercadoPago desde el panel de una tienda (POST, con el token de sesión):
 //   status      { storeId }  → si está conectada y con qué cuenta
@@ -13,7 +14,7 @@ async function canManageStore(supabase, req, storeId) {
   if (!token || typeof storeId !== 'string') return null;
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user) return null;
-  if (data.user.app_metadata?.role === 'admin') return data.user;
+  if (isPlatformAdmin(data.user, token)) return data.user;
   const { data: member } = await supabase.from('store_members')
     .select('store_id').eq('store_id', storeId).eq('user_id', data.user.id).maybeSingle();
   return member ? data.user : null;

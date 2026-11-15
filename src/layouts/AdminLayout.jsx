@@ -5,6 +5,9 @@ import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
 import SalesActivationBanner from '../components/SalesActivationBanner';
 import StoreSwitcher from '../components/StoreSwitcher';
+import { panelPath } from '../sitePaths';
+import { storeUrls } from '../platformStores';
+import { PLATFORM_DOMAIN, platformOrigin, storesOrigin } from '../platformBrand';
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -12,26 +15,31 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/';
+    window.location.href = '/panel';
   };
 
+  // Todas las secciones llevan la tienda en la dirección: /panel/<tienda>/<sección>
+  const at = (section) => panelPath(store?.slug, section);
   const menuItems = [
-    { name: 'Resumen', path: '/admin', icon: LayoutDashboard },
-    { name: 'Productos', path: '/admin/products', icon: Package },
-    { name: 'Categorías', path: '/admin/categories', icon: Tag },
-    { name: 'Órdenes', path: '/admin/orders', icon: Box },
-    { name: 'Envíos', path: '/admin/shipping', icon: Truck },
-    { name: 'Diseño', path: '/admin/diseno', icon: Palette },
-    { name: 'Config.', path: '/admin/settings', icon: Settings },
-    { name: 'Ayuda', path: '/admin/ayuda', icon: BookOpen },
+    { name: 'Resumen', path: at(''), icon: LayoutDashboard },
+    { name: 'Productos', path: at('productos'), icon: Package },
+    { name: 'Categorías', path: at('categorias'), icon: Tag },
+    { name: 'Órdenes', path: at('ordenes'), icon: Box },
+    { name: 'Envíos', path: at('envios'), icon: Truck },
+    { name: 'Diseño', path: at('diseno'), icon: Palette },
+    { name: 'Config.', path: at('configuracion'), icon: Settings },
+    { name: 'Ayuda', path: at('ayuda'), icon: BookOpen },
   ];
+  const storefront = store?.slug
+    ? storeUrls(store, { origin: storesOrigin() || window.location.origin, platformDomain: PLATFORM_DOMAIN || null, platformOrigin: platformOrigin() }).storefront
+    : '/';
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">
       {/* Sidebar Oscuro */}
       <aside className="w-60 border-r border-white/5 bg-black flex flex-col hidden md:flex shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-white/5">
-          <Link to="/admin" className="flex items-center gap-3 group">
+          <Link to={at('')} className="flex items-center gap-3 group">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">M</div>
             <div>
               <span className="font-black text-white tracking-tight text-sm leading-none block truncate max-w-[9rem]">{store?.name}</span>
@@ -61,10 +69,10 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-3 border-t border-white/5">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
+          <a href={storefront} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-sm font-medium">
             <Store className="w-4 h-4" />
             Ver la Tienda
-          </Link>
+          </a>
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-all text-sm font-medium">
             <LogOut className="w-4 h-4" />
             Cerrar sesión
@@ -88,7 +96,7 @@ export default function AdminLayout() {
             <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">En línea</span>
           </div>
           <div className="flex items-center gap-3 ml-auto">
-            <Link to="/" className="text-xs font-bold text-zinc-500 hover:text-white transition-colors hidden sm:block">← Ver tienda</Link>
+            <a href={storefront} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-zinc-500 hover:text-white transition-colors hidden sm:block">Ver tienda ↗</a>
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500/20 to-indigo-700/20 border border-indigo-500/30 rounded-full flex items-center justify-center text-xs font-black text-indigo-400">
               A
             </div>

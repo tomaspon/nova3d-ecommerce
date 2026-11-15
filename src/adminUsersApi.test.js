@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fakeJwt, keyOf, asToken } from './testJwt';
 
 // La función del servidor se prueba con un Supabase falso: lo importante son los controles
 // de acceso (solo admins) y que nunca se pueda desactivar a un administrador.
@@ -18,7 +19,7 @@ const accounts = {
 function makeClient() {
   return {
     auth: {
-      getUser: vi.fn(async (token) => ({ data: { user: accounts[token] || null }, error: accounts[token] ? null : new Error('bad') })),
+      getUser: vi.fn(async (token) => ({ data: { user: accounts[keyOf(token)] || null }, error: accounts[keyOf(token)] ? null : new Error('bad') })),
       resetPasswordForEmail: vi.fn(async () => ({ error: null })),
       admin: {
         listUsers: vi.fn(async () => ({ data: { users: Object.values(accounts) }, error: null })),
@@ -31,7 +32,7 @@ function makeClient() {
 }
 
 function call({ token, method = 'GET', body }) {
-  const req = { method, body, headers: { authorization: token ? `Bearer ${token}` : '', host: 'tienda.test' } };
+  const req = { method, body, headers: { authorization: token ? `Bearer ${asToken(token)}` : '', host: 'tienda.test' } };
   const res = { statusCode: 0, body: null, status(code) { this.statusCode = code; return this; }, json(data) { this.body = data; return this; } };
   return handler(req, res).then(() => res);
 }
@@ -43,6 +44,10 @@ describe('api/admin-users', () => {
     expect((await call({})).statusCode).toBe(401);
     expect((await call({ token: 'client' })).statusCode).toBe(401);
     expect(fake.client.auth.admin.listUsers).not.toHaveBeenCalled();
+  });
+
+  it('al admin con solo la contraseña (sin el código del celular) no lo deja entrar', async () => {
+    expect((await call({ token: fakeJwt('admin', 'aal1') })).statusCode).toBe(401);
   });
 
   it('le lista los usuarios al admin', async () => {

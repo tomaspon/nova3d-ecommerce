@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
+import { panelPath, panelSectionFromPath } from '../sitePaths';
 
-// Todas las tiendas comparten la dirección /admin: el panel administra la tienda que se está
-// viendo (por su dominio, o por ?tienda=<nombre> en la dirección de la plataforma). Quien maneja
-// más de una tienda la elige acá; cambiar recarga el panel con la tienda elegida.
+// Quien maneja más de una tienda la elige acá: lleva a la misma sección del panel de la otra
+// tienda (/panel/<tienda>/<sección>), con recarga completa para cargar sus datos.
 export default function StoreSwitcher({ className = '' }) {
   const { store } = useStore();
   const [stores, setStores] = useState([]);
@@ -12,19 +12,20 @@ export default function StoreSwitcher({ className = '' }) {
   useEffect(() => {
     let cancelled = false;
     supabase.rpc('my_stores').then(({ data }) => {
-      if (!cancelled && Array.isArray(data)) setStores(data);
+      // Solo las tiendas propias (el superadmin entra a las demás desde su panel)
+      if (!cancelled && Array.isArray(data)) setStores(data.filter(s => s.role !== 'platform'));
     });
     return () => { cancelled = true; };
   }, []);
 
   if (!store) return null;
-  if (stores.length < 2) {
+  if (stores.length < 2 || !stores.some(s => s.slug === store.slug)) {
     return <span className={`block text-[10px] text-zinc-500 font-bold uppercase tracking-widest truncate ${className}`}>/{store.slug}</span>;
   }
 
   const handleChange = (e) => {
     const slug = e.target.value;
-    if (slug && slug !== store.slug) window.location.assign(`${window.location.pathname}?tienda=${encodeURIComponent(slug)}`);
+    if (slug && slug !== store.slug) window.location.assign(panelPath(slug, panelSectionFromPath(window.location.pathname)));
   };
 
   return (

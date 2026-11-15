@@ -201,7 +201,7 @@ export default function PlatformDashboard() {
             </tbody>
           </table>
         </div>
-        <Link to="/plataforma/tiendas" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-300 hover:text-indigo-200">
+        <Link to="/superadmin/tiendas" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-300 hover:text-indigo-200">
           Administrar tiendas <ArrowRight className="w-4 h-4" />
         </Link>
       </Card>

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-import { PLATFORM_BRAND } from '../../platformBrand';
+import { PLATFORM_BRAND, onPlatformHost } from '../../platformBrand';
 import { TERMS_VERSION } from '../../storeRequest';
 
 // Términos del servicio y política de privacidad de la plataforma.
@@ -75,7 +75,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-white text-zinc-900">
       <header className="border-b border-zinc-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center">
-          <Link to="/plataforma/inicio" className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
+          <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
         </div>
       </header>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-16">

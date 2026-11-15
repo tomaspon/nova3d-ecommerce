@@ -4,6 +4,8 @@ import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
 import { mapProduct } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID } from '../currentStore';
+import { isPlatformPath } from '../sitePaths';
+import { platformOrigin } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
 import { DEMO_PRODUCTS, DEMO_SETTINGS, DEMO_CHECKOUT_MESSAGE } from '../demoStore';
 
@@ -104,7 +106,7 @@ export function StoreProvider({ children }) {
 
   // MARCA DE LA TIENDA: color, tipografía, ícono y modo por defecto
   useEffect(() => {
-    if (!store || window.location.pathname.startsWith('/plataforma')) return;
+    if (!store || isPlatformPath(window.location.pathname)) return;
     applyBranding(store.branding);
     if (localStorage.getItem('theme') === null) setIsDarkMode(normalizeBranding(store.branding).theme === 'dark');
   }, [store]);
@@ -112,7 +114,8 @@ export function StoreProvider({ children }) {
   // Vista previa en vivo del panel de Diseño: la página que encuadra la tienda le manda la marca en borrador
   useEffect(() => {
     const onMessage = (event) => {
-      if (event.origin !== window.location.origin || event.data?.type !== 'store-branding-preview') return;
+      // La vista previa la manda el panel, que puede estar en la dirección de la plataforma
+      if (![window.location.origin, platformOrigin()].includes(event.origin) || event.data?.type !== 'store-branding-preview') return;
       previewBrandingRef.current = event.data.branding;
       setStore(prev => (prev ? { ...prev, branding: event.data.branding } : prev));
     };
@@ -132,8 +135,8 @@ export function StoreProvider({ children }) {
   // DATOS DE LA TIENDA
   useEffect(() => {
     if (!storeId) return;
-    // Las páginas de la plataforma (/plataforma...) llevan su propio título
-    if (store?.name && !window.location.pathname.startsWith('/plataforma')) document.title = `${store.name} | Tienda online`;
+    // Las páginas de la plataforma (alta, paneles, superadmin) llevan su propio título
+    if (store?.name && !isPlatformPath(window.location.pathname)) document.title = `${store.name} | Tienda online`;
     setCart(loadSaved('store_cart', storeId, []));
     setCategories(loadSaved('store_categories', storeId, DEFAULT_CATEGORIES));
     loadedLocalFor.current = storeId;

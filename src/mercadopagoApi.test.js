@@ -157,7 +157,7 @@ describe('api/mp-callback', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const res = await call({ code: 'TG-code', state: signState({ s: 'velas', u: 'u-duena' }) });
-    expect(res.location).toBe('https://plataforma.test/admin/settings?mp=conectado&tienda=velas');
+    expect(res.location).toBe('https://plataforma.test/panel/velas/configuracion?mp=conectado');
 
     const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(sent).toMatchObject({ grant_type: 'authorization_code', code: 'TG-code', client_id: '123456', redirect_uri: 'https://plataforma.test/api/mp-callback' });

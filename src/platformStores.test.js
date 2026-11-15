@@ -37,12 +37,15 @@ describe('storeUrls', () => {
   it('sin dominio de plataforma usa ?tienda= en la dirección actual', () => {
     expect(storeUrls(store, { origin: 'https://x.vercel.app' })).toEqual({
       storefront: 'https://x.vercel.app/?tienda=velas-demo',
-      admin: 'https://x.vercel.app/admin?tienda=velas-demo'
+      admin: 'https://x.vercel.app/panel/velas-demo'
     });
   });
 
   it('con dominio de plataforma usa el subdominio; el dominio propio manda sobre todo', () => {
     expect(storeUrls(store, { platformDomain: 'tiendas.com' }).storefront).toBe('https://velas-demo.tiendas.com');
-    expect(storeUrls({ ...store, custom_domain: 'velas.com.ar' }, { platformDomain: 'tiendas.com' }).admin).toBe('https://velas.com.ar/admin');
+    const own = storeUrls({ ...store, custom_domain: 'velas.com.ar' }, { platformDomain: 'tiendas.com', platformOrigin: 'https://tiendas.com' });
+    expect(own.storefront).toBe('https://velas.com.ar');
+    // El panel siempre vive en la plataforma, con la tienda en la dirección
+    expect(own.admin).toBe('https://tiendas.com/panel/velas-demo');
   });
 });

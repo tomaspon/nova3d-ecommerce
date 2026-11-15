@@ -3,6 +3,7 @@ import { Plus, ExternalLink, LayoutDashboard, Globe, Users, Loader2, X, AlertTri
 import { supabase } from '../../supabaseClient';
 import { formatMoney } from '../../pricing';
 import RequestsList from './RequestsList';
+import { platformOrigin, storesOrigin } from '../../platformBrand';
 import { STORE_TEMPLATES, slugify, slugError, normalizeDomain, isValidDomain, storeUrls } from '../../platformStores';
 
 async function callPlatformApi(options = {}) {
@@ -126,7 +127,7 @@ export default function PlatformPage({ view = 'stores' }) {
               <StoreCard
                 key={store.id}
                 store={store}
-                urls={storeUrls(store, { origin, platformDomain: data.platformDomain })}
+                urls={storeUrls(store, { origin: storesOrigin() || origin, platformDomain: data.platformDomain, platformOrigin: platformOrigin() })}
                 busy={busyId === store.id}
                 onToggleStatus={() => run({ action: 'update', storeId: store.id, status: store.status === 'active' ? 'suspended' : 'active' }, store.id)}
                 onToggleSales={() => run({ action: 'update', storeId: store.id, salesEnabled: store.sales_enabled === false }, store.id)}

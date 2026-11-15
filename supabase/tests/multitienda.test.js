@@ -16,7 +16,9 @@ const CUSTOMER = '00000000-0000-0000-0000-00000000cccc';
 
 const claims = {
   anon: { role: 'anon' },
-  admin: { role: 'authenticated', sub: ADMIN, email: 'admin@x.com', app_metadata: { role: 'admin' } },
+  // Superadmin con la verificación en dos pasos hecha (aal2), y la misma cuenta con solo la contraseña
+  admin: { role: 'authenticated', sub: ADMIN, email: 'admin@x.com', aal: 'aal2', app_metadata: { role: 'admin' } },
+  adminPasswordOnly: { role: 'authenticated', sub: ADMIN, email: 'admin@x.com', aal: 'aal1', app_metadata: { role: 'admin' } },
   ownerB: { role: 'authenticated', sub: OWNER_B, email: 'owner@velas.com', app_metadata: {} },
   customer: { role: 'authenticated', sub: CUSTOMER, email: 'cliente@x.com', app_metadata: {} }
 };
@@ -301,5 +303,25 @@ describe('008 · cobros por tienda', () => {
     // MINIMAL conserva el alias que antes estaba escrito en el código
     const [minimal] = await as('anon', `select transfer_alias, contact_whatsapp from store_settings where store_id = $1`, [MINIMAL]);
     expect(minimal).toEqual({ transfer_alias: 'tomizinho', contact_whatsapp: '5492915751347' });
+  });
+});
+
+describe('009 · seguridad del superadmin', () => {
+  it('con solo la contraseña, el superadmin no tiene permisos sobre tiendas ajenas', async () => {
+    await db.exec(sql('009_seguridad_superadmin.sql'));
+    await db.exec(sql('009_seguridad_superadmin.sql')); // se puede correr dos veces
+
+    // Con el código del celular: es administrador de la plataforma
+    expect((await as('admin', `select public.is_admin() as a`))[0].a).toBe(true);
+    expect((await as('admin', `select public.is_store_admin($1) as a`, [MINIMAL]))[0].a).toBe(true);
+
+    // Solo con la contraseña: cuenta común (sigue viendo las tiendas de las que es dueño)
+    expect((await as('adminPasswordOnly', `select public.is_admin() as a`))[0].a).toBe(false);
+    expect((await as('adminPasswordOnly', `select public.is_store_admin($1) as a`, [MINIMAL]))[0].a).toBe(false);
+    expect((await as('adminPasswordOnly', `select slug from public.my_stores()`)).map(r => r.slug)).toEqual(['velas-luna']);
+
+    // Un dueño entra solo a su tienda
+    expect((await as('ownerB', `select public.is_store_admin($1) as a`, [STORE_B]))[0].a).toBe(true);
+    expect((await as('ownerB', `select public.is_store_admin($1) as a`, [MINIMAL]))[0].a).toBe(false);
   });
 });

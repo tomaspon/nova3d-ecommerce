@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { keyOf, asToken } from './testJwt';
 import { TERMS_VERSION } from './storeSignup';
 
 // api/store-signup.js con un Supabase falso en memoria
@@ -50,14 +51,14 @@ function makeClient() {
   return {
     tables,
     from,
-    auth: { getUser: async (t) => ({ data: { user: users[t] || null }, error: users[t] ? null : new Error('x') }) }
+    auth: { getUser: async (t) => ({ data: { user: users[keyOf(t)] || null }, error: users[keyOf(t)] ? null : new Error('x') }) }
   };
 }
 
 const valid = { action: 'create', name: 'Velas Luna', slug: 'velas-luna', template: 'velas', accepted_terms: true, terms_version: TERMS_VERSION };
 
 function call(token, body, ip = '200.1.1.1') {
-  const req = { method: 'POST', body, headers: { authorization: token ? `Bearer ${token}` : '', 'x-forwarded-for': ip } };
+  const req = { method: 'POST', body, headers: { authorization: token ? `Bearer ${asToken(token)}` : '', 'x-forwarded-for': ip } };
   const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(d) { this.body = d; return this; } };
   return handler(req, res).then(() => res);
 }
