@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+import { smoothScrollTo } from '../../smoothScroll';
 import { Link } from 'react-router-dom';
 import { BookOpen, Rocket, LayoutDashboard, Package, Tag, Box, Truck, Settings, ShoppingBag, Users, Globe, HelpCircle, Lightbulb } from 'lucide-react';
 import { RESERVATION_MINUTES, TRANSFER_RESERVATION_HOURS } from '../../orderStatus';
@@ -140,8 +142,71 @@ function Items({ items }) {
   );
 }
 
+const HEADER = 64; // alto de la barra fija de arriba del panel
+const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
+
 export default function ManualPage() {
   const sections = SECTIONS;
+  const [active, setActive] = useState(sections[0].id);
+  const navRef = useRef(null);
+  const listRef = useRef(null);
+  const jumping = useRef(false); // mientras desliza por un click, la sección activa no salta
+
+  // Hasta dónde tapa lo fijo de arriba: la barra del panel y, en celular, el índice horizontal
+  const offset = () => HEADER + (isDesktop() ? 24 : (navRef.current?.offsetHeight || 0) + 12);
+
+  // Sección activa: la última cuyo título ya pasó por debajo de lo fijo de arriba.
+  // Al llegar al final de la página, la última (aunque sea corta).
+  useEffect(() => {
+    let frame = null;
+    const update = () => {
+      frame = null;
+      if (jumping.current) return;
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      let current = sections[0].id;
+      for (const { id } of sections) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= offset() + 8) current = id;
+      }
+      setActive(atBottom ? sections[sections.length - 1].id : current);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [sections]);
+
+  // En celular el índice es una fila horizontal: la sección activa siempre a la vista
+  useEffect(() => {
+    const list = listRef.current;
+    const link = list?.querySelector(`[data-section="${active}"]`);
+    if (!list || !link || isDesktop()) return;
+    list.scrollTo({ left: link.offsetLeft - (list.clientWidth - link.offsetWidth) / 2, behavior: 'smooth' });
+  }, [active]);
+
+  const goTo = (event, id) => {
+    event.preventDefault();
+    const el = document.getElementById(id);
+    if (!el) return;
+    setActive(id);
+    jumping.current = true;
+    smoothScrollTo(el.getBoundingClientRect().top + window.scrollY - offset(), {
+      onDone: () => { jumping.current = false; }
+    });
+    window.history.replaceState(window.history.state, '', `#${id}`);
+  };
+
+  // Si se entra con #seccion en la dirección, se va directo ahí
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    const el = id && document.getElementById(id);
+    if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - offset());
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -152,24 +217,41 @@ export default function ManualPage() {
         <p className="text-zinc-400 text-sm mt-2">Cómo funciona cada sección, paso a paso.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[14rem_minmax(0,1fr)] gap-8 items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[15.5rem_minmax(0,1fr)] gap-4 lg:gap-8 items-start">
         {/* Índice */}
-        <nav aria-label="Índice del manual" className="lg:sticky lg:top-24 bg-black border border-white/10 rounded-2xl p-3">
-          <ul className="flex lg:flex-col gap-1 overflow-x-auto hide-scrollbar">
-            {sections.map(({ id, icon: Icon, title }) => (
-              <li key={id} className="shrink-0">
-                <a href={`#${id}`} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition whitespace-nowrap">
-                  <Icon className="w-4 h-4 shrink-0" /> {title}
-                </a>
-              </li>
-            ))}
-          </ul>
+        {/* Fijo mientras se baja: en computadora a la izquierda, en celular arriba (debajo de la barra del panel) */}
+        <nav ref={navRef} aria-label="Índice del manual"
+          className="sticky top-16 lg:top-24 z-20 -mx-4 px-4 sm:mx-0 sm:px-0 py-2 lg:py-0 bg-zinc-950/90 backdrop-blur lg:bg-transparent lg:backdrop-blur-none">
+          <div className="bg-black border border-white/10 rounded-2xl p-2 lg:p-3">
+            <ul ref={listRef} className="flex lg:flex-col gap-1 overflow-x-auto hide-scrollbar">
+              {sections.map(({ id, icon: Icon, title }) => {
+                const isActive = id === active;
+                return (
+                  <li key={id} className="shrink-0">
+                    <a
+                      href={`#${id}`}
+                      data-section={id}
+                      onClick={(e) => goTo(e, id)}
+                      aria-current={isActive ? 'location' : undefined}
+                      className={`relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm whitespace-nowrap transition-colors duration-200 ${isActive
+                        ? 'bg-indigo-600/15 text-indigo-300 font-bold'
+                        : 'text-zinc-400 font-medium hover:text-white hover:bg-white/5'}`}
+                    >
+                      {/* Marca de la sección activa (en computadora) */}
+                      <span aria-hidden="true" className={`hidden lg:block absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-indigo-400 transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : ''}`} /> {title}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </nav>
 
         {/* Secciones */}
         <div className="space-y-6 min-w-0 [&_a]:text-indigo-300 [&_a:hover]:text-indigo-200">
           {sections.map(({ id, icon: Icon, title, intro, steps, items, tip }) => (
-            <section key={id} id={id} className="scroll-mt-24 bg-black border border-white/10 rounded-2xl p-5 sm:p-7 space-y-5">
+            <section key={id} id={id} className="scroll-mt-36 lg:scroll-mt-24 bg-black border border-white/10 rounded-2xl p-5 sm:p-7 space-y-5">
               <div>
                 <h2 className="text-xl font-black text-white flex items-center gap-2.5">
                   <Icon className="w-5 h-5 text-indigo-400" /> {title}

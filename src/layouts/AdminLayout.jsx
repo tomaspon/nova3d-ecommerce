@@ -37,7 +37,7 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">
       {/* Sidebar Oscuro */}
-      <aside className="w-60 border-r border-white/5 bg-black flex flex-col hidden md:flex shrink-0">
+      <aside className="w-60 border-r border-white/5 bg-black flex-col hidden md:flex shrink-0 sticky top-0 h-screen overflow-y-auto">
         <div className="h-20 flex items-center px-6 border-b border-white/5">
           <Link to={at('')} className="flex items-center gap-3 group">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">M</div>
@@ -81,7 +81,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Contenido del Panel */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <main className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Topbar */}
         <header className="h-16 border-b border-white/5 bg-black/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-30">
           <div className="flex items-center gap-3 md:hidden">
@@ -107,7 +107,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Zona de renderizado dinámica */}
-        <div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8">
+        <div className="flex-1 p-4 pb-28 sm:p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
             {/* Cada sección del panel se descarga al abrirla */}
             <SalesActivationBanner />
