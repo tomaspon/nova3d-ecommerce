@@ -409,3 +409,24 @@ describe('011 · talles con stock propio', () => {
     expect({ stock: Number(g.stock), label: g.variant_label }).toEqual({ stock: 0, label: 'Color' });
   });
 });
+
+describe('012 · mails al cliente', () => {
+  it('cada mail de una orden se toma una sola vez, y solo el servidor puede marcarlo', async () => {
+    await db.exec(sql('012_mails.sql'));
+    await db.exec(sql('012_mails.sql')); // se puede correr dos veces
+
+    const claim = async (kind, release = false) =>
+      (await db.query(`select public.claim_order_email($1, $2, $3) as ok`, [ids.orderTalle, kind, release])).rows[0].ok;
+    expect(await claim('paid')).toBe(true);
+    expect(await claim('paid')).toBe(false); // el segundo intento no manda de nuevo
+    expect(await claim('received')).toBe(true);
+
+    // Si el envío falla, se libera y se puede reintentar
+    await claim('paid', true);
+    expect(await claim('paid')).toBe(true);
+
+    for (const who of ['anon', 'customer', 'ownerB']) {
+      await expect(as(who, `select public.claim_order_email($1, 'paid')`, [ids.orderTalle])).rejects.toThrow(/permission denied/);
+    }
+  });
+});

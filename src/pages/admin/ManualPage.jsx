@@ -108,7 +108,7 @@ const SECTIONS = [
       ['Un producto dice "Agotado" pero tengo unidades', 'Puede haber unidades reservadas por pedidos sin pagar. Si el pago no llega, se liberan solas cuando vence la reserva.'],
       ['Un cliente pagó por transferencia', 'Buscá su orden en Órdenes y pasala a "Pagado". Ahí se descuenta el stock.'],
       ['Me equivoqué con el stock', 'Abrí el producto y hacé un ajuste (Sumar o Restar) con el motivo "Ajuste de Inventario". Todo queda en el historial.'],
-      ['¿El cliente recibe un mail con el comprobante?', 'Todavía no: los mails automáticos se activan más adelante. Si tiene cuenta, lo descarga desde "Mi perfil"; si no, ve el detalle de su compra en Seguimiento.']
+      ['¿El cliente recibe un mail con el comprobante?', 'Sí. Si paga con MercadoPago, le llega el comprobante de compra apenas se acredita. Si elige transferencia, primero recibe un mail con tus datos para transferir y el resumen del pedido; y cuando vos marcás la orden como pagada, le llega el comprobante. Si te responde el mail, la respuesta te llega a vos (al email de Configuración). También puede descargarlo desde "Mi perfil" o verlo en Seguimiento.']
     ]
   }
 ];
@@ -255,7 +255,7 @@ export default function ManualPage() {
               <div>
                 <h2 className="text-xl font-black text-white flex items-center gap-2.5">
                   <Icon className="w-5 h-5 text-indigo-400" /> {title}
-                  
+
                 </h2>
                 {intro && <p className="text-sm text-zinc-400 mt-1.5">{intro}</p>}
               </div>

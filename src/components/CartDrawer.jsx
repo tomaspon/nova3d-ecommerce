@@ -83,7 +83,12 @@ export default function CartDrawer() {
           setCheckoutStep('success');
         }
       } else {
-        // Transferencia Bancaria
+        // Transferencia Bancaria: le mandamos por mail los datos para pagar y el resumen
+        fetch('/api/order-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: res.orderId, kind: 'received' })
+        }).catch(() => { /* el mail es un extra: la compra ya quedó hecha */ });
         setOrderInfo({ id: res.orderId, total: res.total, method: formData.paymentMethod });
         setCheckoutStep('success');
       }

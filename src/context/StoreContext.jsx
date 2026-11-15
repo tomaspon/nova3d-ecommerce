@@ -440,6 +440,12 @@ export function StoreProvider({ children }) {
       if (confirmsPayment) {
         const { error: paidError } = await supabase.rpc('mark_order_paid', { p_order_id: order.id });
         if (paidError) throw paidError;
+        // Comprobante de compra al cliente (el servidor verifica que esté pagada y lo manda una sola vez)
+        fetch('/api/order-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id, kind: 'paid' })
+        }).catch(() => {});
       }
 
       if (!(confirmsPayment && newStatus === ORDER_STATUS.PAID)) {

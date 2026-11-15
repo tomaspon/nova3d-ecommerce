@@ -1,8 +1,6 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
-import { escapeHtml } from '../../src/escapeHtml.js';
-import { lineTotal, formatMoney } from '../../src/pricing.js';
+import { sendOrderEmail } from './orderEmails.js';
 import { getStoreMpToken } from './mercadopago.js';
 import { DEFAULT_STORE_ID } from '../../src/storeIds.js';
 
@@ -30,72 +28,6 @@ export function getSupabase() {
 function isAwaitingPayment(status) {
   const s = (status || '').toLowerCase();
   return s.startsWith('reservado') || s.startsWith('pendiente') || s === 'cancelado (tiempo agotado)';
-}
-
-async function sendReceiptEmail(order, orderId) {
-  if (!process.env.RESEND_API_KEY || !process.env.STORE_EMAIL_SENDER) {
-    console.log('No se envió email porque falta RESEND_API_KEY o STORE_EMAIL_SENDER');
-    return;
-  }
-
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const shortId = orderId.split('-')[0].toUpperCase();
-
-    // Los nombres vienen de la base, pero igual se escapan antes de entrar al HTML del email
-    const itemsHtml = order.items.map(item => `
-      <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">${escapeHtml(item.name)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${escapeHtml(item.quantity)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${escapeHtml(formatMoney(lineTotal(item)))}</td>
-      </tr>
-    `).join('');
-
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-        <h1 style="text-align: center; color: #000;">Comprobante de Pago</h1>
-        <p>¡Hola! Recibimos el pago de tu orden <strong>#${shortId}</strong> exitosamente.</p>
-
-        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; border-bottom: 2px solid #000; padding-bottom: 10px;">Detalle de tu compra</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th style="text-align: left; padding: 10px; border-bottom: 2px solid #eee;">Producto</th>
-                <th style="text-align: center; padding: 10px; border-bottom: 2px solid #eee;">Cant.</th>
-                <th style="text-align: right; padding: 10px; border-bottom: 2px solid #eee;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="2" style="text-align: right; padding: 15px 10px; font-weight: bold;">Total Pagado:</td>
-                <td style="text-align: right; padding: 15px 10px; font-weight: bold; font-size: 18px;">$${Number(order.total).toLocaleString('es-AR')}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <p style="text-align: center; color: #666; font-size: 12px; margin-top: 40px;">
-          Este es un comprobante automático. Gracias por confiar en nosotros.
-        </p>
-      </div>
-    `;
-
-    const recipient = order.customer_email || order.user_email;
-    await resend.emails.send({
-      from: process.env.STORE_EMAIL_SENDER, // ej: 'Ventas <ventas@tudominio.com>' o 'onboarding@resend.dev'
-      to: recipient,
-      subject: `Comprobante de Pago - Orden #${shortId}`,
-      html: emailHtml
-    });
-
-    console.log(`Email de comprobante enviado a ${recipient}`);
-  } catch (emailErr) {
-    console.error('Error enviando email:', emailErr);
-  }
 }
 
 // Consulta el pago en MercadoPago y, si está aprobado, marca la orden como pagada y descuenta stock.
@@ -155,7 +87,7 @@ export async function processPayment(paymentId, storeId = DEFAULT_STORE_ID, supa
     });
     if (paidError) throw paidError;
     console.log(`Orden ${orderId} marcada como ${newStatus}.`);
-    await sendReceiptEmail(order, orderId);
+    await sendOrderEmail(supabase, orderId, 'paid'); // comprobante de compra (una sola vez)
     return { orderId, paymentStatus, orderStatus: newStatus };
   }
 
@@ -193,8 +125,6 @@ export async function processPayment(paymentId, storeId = DEFAULT_STORE_ID, supa
   }
   console.log(`Orden ${orderId} pagada y stock descontado exitosamente.`);
 
-  // 3. Enviar Comprobante por Email (si Resend está configurado)
-  await sendReceiptEmail(order, orderId);
 
   return { orderId, paymentStatus, orderStatus: 'pagado' };
 }
