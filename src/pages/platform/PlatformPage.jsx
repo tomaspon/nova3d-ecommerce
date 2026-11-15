@@ -144,6 +144,8 @@ export default function PlatformPage({ view = 'stores' }) {
                 onToggleSales={() => run({ action: 'update', storeId: store.id, salesEnabled: store.sales_enabled === false }, store.id)}
                 onDomain={() => setDialog({ type: 'domain', store })}
                 onAddOwner={() => setDialog({ type: 'owner', store })}
+                canDelete={Boolean(data.hardDeleteEnabled)}
+                onDelete={() => setDialog({ type: 'delete', store })}
                 onRemoveOwner={(owner) => {
                   if (window.confirm(`¿Quitarle a ${owner.email} el acceso a ${store.name}?`)) {
                     run({ action: 'removeOwner', storeId: store.id, userId: owner.userId }, store.id);
@@ -165,6 +167,7 @@ export default function PlatformPage({ view = 'stores' }) {
         />
       )}
       {dialog?.type === 'domain' && <DomainDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(domain) => run({ action: 'setDomain', storeId: dialog.store.id, domain })} />}
+      {dialog?.type === 'delete' && <DeleteStoreDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(confirmSlug) => run({ action: 'deleteStore', storeId: dialog.store.id, confirmSlug }, dialog.store.id)} />}
       {dialog?.type === 'owner' && <OwnerDialog store={dialog.store} onClose={() => setDialog(null)} onSubmit={(email) => run({ action: 'addOwner', storeId: dialog.store.id, email })} />}
 
       {notice && (
@@ -202,7 +205,7 @@ function TemplateCard({ store, urls }) {
   );
 }
 
-function StoreCard({ store, urls, busy, onToggleStatus, onToggleSales, onDomain, onAddOwner, onRemoveOwner }) {
+function StoreCard({ store, urls, busy, onToggleStatus, onToggleSales, onDomain, onAddOwner, onRemoveOwner, onDelete, canDelete }) {
   const salesOff = store.sales_enabled === false;
   const wantsActivation = salesOff && Boolean(store.activation_requested_at);
   const active = store.status === 'active';
@@ -301,10 +304,55 @@ function StoreCard({ store, urls, busy, onToggleStatus, onToggleSales, onDomain,
                 {active ? 'Suspender' : 'Reactivar'}
               </button>
             )}
+            {canDelete && !store.isDefault && (
+              <button type="button" onClick={onDelete} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-red-600/90 hover:bg-red-600 text-white transition disabled:opacity-50">
+                <Trash2 className="w-3.5 h-3.5" /> Eliminar tienda
+                <span className="text-[9px] font-semibold uppercase tracking-wider bg-black/25 rounded px-1 py-0.5">temporal</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
     </li>
+  );
+}
+
+// Confirmación del borrado: hay que escribir la dirección de la tienda
+function DeleteStoreDialog({ store, onClose, onSubmit }) {
+  const [typed, setTyped] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const matches = typed.trim().toLowerCase() === store.slug;
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!matches) return;
+    setIsSending(true);
+    await onSubmit(typed.trim().toLowerCase());
+    setIsSending(false);
+  };
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => !isSending && onClose()}>
+      <form role="dialog" aria-modal="true" aria-labelledby="delete-store-title" onSubmit={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <h3 id="delete-store-title" className="text-lg font-bold text-white">Eliminar la tienda {store.name}</h3>
+          <button type="button" onClick={onClose} disabled={isSending} aria-label="Cerrar" className="p-1 -m-1 text-zinc-500 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
+          Se borra <b className="text-white">para siempre</b>, con sus {store.productCount} productos, sus pedidos, fotos, configuración y MercadoPago conectado.
+          {store.owners.length > 0 ? <> Sus dueños ({store.owners.map(o => o.email).join(', ')}) siguen teniendo cuenta, pero sin esta tienda.</> : null} No se puede deshacer.
+        </p>
+        <label className="block mt-4">
+          <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Para confirmar, escribí <b className="text-zinc-200 font-mono">{store.slug}</b></span>
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} placeholder={store.slug}
+            className="w-full bg-black border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-zinc-700 focus:outline-none focus:border-red-500" />
+        </label>
+        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isSending} className="px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-300 hover:bg-white/5 transition">Cancelar</button>
+          <button type="submit" disabled={!matches || isSending} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition disabled:opacity-40">
+            {isSending && <Loader2 className="w-4 h-4 animate-spin" />} Eliminar definitivamente
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

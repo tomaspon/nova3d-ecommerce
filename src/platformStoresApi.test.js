@@ -24,6 +24,8 @@ function makeClient() {
     store_members: [],
     products: [],
     orders: [],
+    favorites: [],
+    inventory_logs: [],
     store_requests: [{ id: 'req-1', status: 'nueva', business_name: 'Velas Luna', email: 'nuevo@velas.com', admin_notes: null, store_id: null }]
   };
   let nextId = 1;
@@ -77,6 +79,8 @@ function makeClient() {
   return {
     tables,
     from: query,
+    // Storage sin archivos (el borrado de fotos se prueba en adminUsersApi.test.js)
+    storage: { from: () => ({ list: async () => ({ data: [], error: null }), remove: async () => ({ error: null }) }) },
     auth: {
       getUser: async (token) => ({ data: { user: users[keyOf(token)] || null }, error: users[keyOf(token)] ? null : new Error('x') }),
       admin: {
@@ -194,5 +198,40 @@ describe('api/platform-stores', () => {
     expect(fake.client.tables.store_members).toHaveLength(1);
     await call('admin', { action: 'removeOwner', storeId: MINIMAL, userId: 'u-owner' });
     expect(fake.client.tables.store_members).toHaveLength(0);
+  });
+
+  it('borra una tienda entera (herramienta temporal), solo escribiendo su dirección, y nunca la principal', async () => {
+    await call('admin', { action: 'create', name: 'Velas', slug: 'velas' });
+    const t = fake.client.tables;
+    const velas = t.stores.find(st => st.slug === 'velas');
+    t.products.push({ id: 'p1', store_id: velas.id }, { id: 'p2', store_id: MINIMAL });
+    t.orders.push({ id: 'o1', store_id: velas.id });
+    t.favorites.push({ id: 'f1', store_id: velas.id });
+    t.store_members.push({ store_id: velas.id, user_id: 'u-owner', role: 'owner' });
+
+    expect((await call('admin')).body.hardDeleteEnabled).toBe(true);
+    expect((await call('admin', { action: 'deleteStore', storeId: velas.id, confirmSlug: 'otra' })).statusCode).toBe(400);
+    expect(t.stores.some(st => st.slug === 'velas')).toBe(true);
+    expect((await call('admin', { action: 'deleteStore', storeId: MINIMAL, confirmSlug: 'minimal' })).statusCode).toBe(403);
+
+    const res = await call('admin', { action: 'deleteStore', storeId: velas.id, confirmSlug: ' Velas ' });
+    expect(res.statusCode).toBe(200);
+    expect(fake.client.tables.stores.map(st => st.slug)).toEqual(['minimal']);
+    expect(fake.client.tables.products.map(p => p.id)).toEqual(['p2']);
+    expect(fake.client.tables.orders).toHaveLength(0);
+    expect(fake.client.tables.favorites).toHaveLength(0);
+    expect(fake.client.tables.store_settings.some(x => x.store_id === velas.id)).toBe(false);
+  });
+
+  it('con DISABLE_HARD_DELETE=true no se puede borrar una tienda', async () => {
+    await call('admin', { action: 'create', name: 'Velas', slug: 'velas' });
+    const velas = fake.client.tables.stores.find(st => st.slug === 'velas');
+    process.env.DISABLE_HARD_DELETE = 'true';
+    try {
+      expect((await call('admin', { action: 'deleteStore', storeId: velas.id, confirmSlug: 'velas' })).statusCode).toBe(403);
+      expect(fake.client.tables.stores.some(st => st.slug === 'velas')).toBe(true);
+    } finally {
+      delete process.env.DISABLE_HARD_DELETE;
+    }
   });
 });

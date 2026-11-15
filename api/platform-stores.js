@@ -2,6 +2,7 @@ import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { requirePlatformAdmin, listAllUsers, platformUrl } from './_lib/platformAdmin.js';
 import { templateDefaults } from './_lib/storeTemplate.js';
 import { isVercelConfigured, addDomain, removeDomain, domainStatus } from './_lib/vercelDomains.js';
+import { deleteStore, isHardDeleteEnabled } from './_lib/purgeAccount.js';
 import { STORE_TEMPLATES, slugError, normalizeDomain, isValidDomain } from '../src/platformStores.js';
 import { DEFAULT_STORE_ID } from '../src/storeIds.js';
 import { isPaid } from '../src/orderStatus.js';
@@ -11,7 +12,7 @@ import { isPaid } from '../src/orderStatus.js';
 // (supabase/003_multitienda.sql): pasa por acá, con la service role key y solo para
 // el administrador de la plataforma.
 
-const ACTIONS = ['create', 'update', 'setDomain', 'addOwner', 'removeOwner', 'updateRequest'];
+const ACTIONS = ['create', 'update', 'setDomain', 'addOwner', 'removeOwner', 'updateRequest', 'deleteStore'];
 const REQUEST_STATUSES = ['nueva', 'contactada', 'aprobada', 'rechazada'];
 
 class UserError extends Error {
@@ -102,6 +103,7 @@ export default async function handler(req, res) {
         // Si la migración 005 todavía no se corrió, el panel funciona igual sin solicitudes
         requests: requestsError ? null : requests,
         vercelConfigured: isVercelConfigured(),
+        hardDeleteEnabled: isHardDeleteEnabled(),
         platformDomain: process.env.PLATFORM_DOMAIN || null
       });
     }
@@ -165,6 +167,20 @@ export default async function handler(req, res) {
     }
 
     const store = await getStore(supabase, body.storeId);
+
+    // Borrado definitivo de una tienda (herramienta temporal de pruebas, igual que en Usuarios)
+    if (body.action === 'deleteStore') {
+      if (!isHardDeleteEnabled()) throw new UserError('El borrado definitivo está apagado.', 403);
+      if (store.id === DEFAULT_STORE_ID) throw new UserError('La tienda principal de la plataforma no se puede borrar.', 403);
+      // Hay que escribir la dirección exacta de la tienda: evita borrar otra por error
+      if (String(body.confirmSlug || '').trim().toLowerCase() !== store.slug) {
+        throw new UserError('La dirección escrita no coincide con la de la tienda.');
+      }
+      await deleteStore(supabase, store.id);
+      if (store.custom_domain) await removeDomain(store.custom_domain).catch(() => {});
+      console.log(`deleteStore: ${admin.email} borró la tienda ${store.slug}`);
+      return res.status(200).json({ message: `Se borró la tienda ${store.name} con todo su contenido.` });
+    }
 
     if (body.action === 'update') {
       const changes = {};
