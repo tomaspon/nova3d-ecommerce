@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Search, User, ShoppingBag, X, Moon, Sun, Menu, MessageCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import CompleteProfile from '../components/CompleteProfile';
+import { needsProfile } from '../profileCompletion';
+import { supabase } from '../supabaseClient';
 import CartDrawer from '../components/CartDrawer';
 import { normalizeBranding, instagramUrl, tiktokUrl } from '../branding';
 import { storeWhatsappLink } from '../paymentMethods';
@@ -68,6 +71,15 @@ export default function StoreLayout() {
   return (
     <div className="min-h-screen bg-store dark:bg-store-dark text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
       <CartDrawer />
+
+      {/* Cuenta sin nombre, celular o email real (p. ej. recién entrada con Google o Apple): se completan antes de seguir */}
+      {user && needsProfile(user) && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Completá tus datos">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/10 shadow-2xl p-6 sm:p-8">
+            <CompleteProfile user={user} onSignOut={() => supabase.auth.signOut()} />
+          </div>
+        </div>
+      )}
 
       {/* Con el menú móvil abierto, tocar fuera de él lo cierra */}
       {isMenuOpen && (

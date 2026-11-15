@@ -6,6 +6,9 @@ import { PLATFORM_BRAND, PLATFORM_DOMAIN, onPlatformHost, platformOrigin, stores
 import { STORE_TEMPLATES, storeUrls } from '../../platformStores';
 import { validateStoreSignup, slugify, TERMS_VERSION } from '../../storeSignup';
 import DesignStep from './DesignStep';
+import SocialButtons from '../../components/SocialButtons';
+import CompleteProfile from '../../components/CompleteProfile';
+import { validateSignup, needsProfile, cleanPhone, MIN_PASSWORD_LENGTH } from '../../profileCompletion';
 
 // Alta de tienda por autoservicio: cuenta → tienda → diseño → lista.
 // La tienda se crea al instante; las ventas se habilitan después de verificar al titular.
@@ -48,6 +51,10 @@ function AccountStep({ onDone }) {
   const [mode, setMode] = useState('signup'); // signup | login
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
@@ -55,11 +62,19 @@ function AccountStep({ onDone }) {
   const submit = async (e) => {
     e.preventDefault();
     setError('');
-    if (password.length < 8) { setError('La contraseña tiene que tener al menos 8 caracteres.'); return; }
+    if (mode === 'signup') {
+      const found = validateSignup({ name, phone, email, password, passwordConfirm });
+      setFieldErrors(found);
+      if (Object.keys(found).length) return;
+    } else if (password.length < MIN_PASSWORD_LENGTH) { setError(`La contraseña tiene al menos ${MIN_PASSWORD_LENGTH} caracteres.`); return; }
     setIsSending(true);
     if (mode === 'signup') {
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email, password, options: { emailRedirectTo: `${window.location.origin}/crear` }
+        email, password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/crear`,
+          data: { shipping: { name: name.trim(), phone: cleanPhone(phone) } }
+        }
       });
       if (signUpError) setError(/registered|already/i.test(signUpError.message) ? 'Ese email ya tiene cuenta. Iniciá sesión.' : 'No pudimos crear la cuenta. Revisá los datos.');
       else if (data.user?.identities?.length === 0) setError('Ese email ya tiene cuenta. Iniciá sesión.');
@@ -84,24 +99,42 @@ function AccountStep({ onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <div className="space-y-5">
+    <SocialButtons redirectTo={`${window.location.origin}/crear`} dividerLabel="o con tu email" />
+    <form onSubmit={submit} noValidate className="space-y-4">
       <div className="grid grid-cols-2 rounded-xl bg-zinc-100 p-1 text-sm font-semibold" role="tablist">
         {[['signup', 'Crear cuenta'], ['login', 'Ya tengo cuenta']].map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => { setMode(id); setError(''); }}
+          <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => { setMode(id); setError(''); setFieldErrors({}); }}
             className={`rounded-lg py-2 transition ${mode === id ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>{label}</button>
         ))}
       </div>
-      <Field label="Email">
+      {mode === 'signup' && (
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Nombre y apellido" error={fieldErrors.name}>
+            <input className={inputClass} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Celular" error={fieldErrors.phone}>
+            <input className={inputClass} type="tel" autoComplete="tel" placeholder="291 555 1234" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </Field>
+        </div>
+      )}
+      <Field label="Email" error={fieldErrors.email}>
         <input className={inputClass} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
-      <Field label="Contraseña" hint={mode === 'signup' ? 'Mínimo 8 caracteres.' : undefined}>
+      <Field label="Contraseña" error={fieldErrors.password} hint={mode === 'signup' ? `Mínimo ${MIN_PASSWORD_LENGTH} caracteres.` : undefined}>
         <input className={inputClass} type="password" required autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} />
       </Field>
+      {mode === 'signup' && (
+        <Field label="Repetí la contraseña" error={fieldErrors.passwordConfirm}>
+          <input className={inputClass} type="password" autoComplete="new-password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+        </Field>
+      )}
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <button type="submit" disabled={isSending} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-6 py-3.5 hover:bg-indigo-500 transition disabled:opacity-60">
         {isSending && <Loader2 className="w-5 h-5 animate-spin" />} Continuar <ArrowRight className="w-4 h-4" />
       </button>
     </form>
+    </div>
   );
 }
 
@@ -229,7 +262,8 @@ export default function CreateStorePage() {
   }, [userId]);
 
   // Quien ya tenía tienda va directo al final; el diseño se elige solo al crearla
-  const step = !session ? 0 : !store ? 1 : existing || designDone ? 3 : 2;
+  const profileMissing = Boolean(session) && needsProfile(session.user);
+  const step = !session || profileMissing ? 0 : !store ? 1 : existing || designDone ? 3 : 2;
   const TITLES = ['Creá tu tienda gratis', 'Contanos de tu tienda', 'Elegí cómo se ve', 'Listo'];
   const SUBTITLES = ['En 2 minutos tenés tu tienda online. Sin tarjeta.', 'Lo podés cambiar después desde tu panel.', 'Elegí lo básico; lo vas viendo en la vista previa.'];
 
@@ -252,7 +286,9 @@ export default function CreateStorePage() {
             </h1>
             {step < 3 && <p className="mt-2 mb-8 text-zinc-600">{SUBTITLES[step]}</p>}
             <div className={`rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm ${step === 3 ? 'mt-6' : ''}`}>
-              {step === 0 && <AccountStep onDone={() => supabase.auth.getSession().then(({ data }) => setSession(data.session))} />}
+              {step === 0 && (profileMissing
+                ? <CompleteProfile user={session.user} variant="platform" onSignOut={() => supabase.auth.signOut()} />
+                : <AccountStep onDone={() => supabase.auth.getSession().then(({ data }) => setSession(data.session))} />)}
               {step === 1 && <StoreStep onCreated={(s) => setStore(s)} />}
               {step === 2 && <DesignStep store={store} onDone={() => setDesignDone(true)} />}
               {step === 3 && <DoneStep store={store} existing={existing} />}
