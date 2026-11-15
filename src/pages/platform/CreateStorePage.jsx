@@ -14,22 +14,42 @@ import { validateSignup, needsProfile, cleanPhone, MIN_PASSWORD_LENGTH } from '.
 // La tienda se crea al instante; las ventas se habilitan después de verificar al titular.
 
 const PENDING_KEY = 'pending_store_name';
+
+// Lo que se va escribiendo se guarda en la pestaña (sessionStorage): un F5 no borra nada.
+// Nunca se guardan contraseñas. Al cerrar la pestaña se borra solo.
+const DRAFT_KEY = 'vitrina_alta_borrador';
+const PROGRESS_KEY = 'vitrina_alta_progreso'; // { storeId, designDone }
+
+const readJson = (key) => { try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; } };
+const writeJson = (key, value) => { try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* sin almacenamiento */ } };
+const clearAlta = () => { try { sessionStorage.removeItem(DRAFT_KEY); sessionStorage.removeItem(PROGRESS_KEY); } catch { /* nada */ } };
+
+// Como useState, pero el valor queda guardado en el borrador de la pestaña
+function useDraft(field, initial) {
+  const [value, setValue] = useState(() => readJson(DRAFT_KEY)?.[field] ?? initial);
+  useEffect(() => { writeJson(DRAFT_KEY, { ...(readJson(DRAFT_KEY) || {}), [field]: value }); }, [field, value]);
+  return [value, setValue];
+}
 const urlOptions = () => ({ origin: storesOrigin() || window.location.origin, platformDomain: PLATFORM_DOMAIN || null, platformOrigin: platformOrigin() });
 const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition';
 
+const STEP_LABELS = ['Tu cuenta', 'Tu tienda', 'Diseño', 'Lista'];
+
 function Steps({ current }) {
-  const steps = ['Tu cuenta', 'Tu tienda', 'Diseño', 'Lista'];
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-3 text-sm mb-8" aria-label="Pasos">
-      {steps.map((label, i) => {
+    <ol className="grid grid-cols-4 max-w-md mx-auto mb-10" aria-label="Pasos para crear tu tienda">
+      {STEP_LABELS.map((label, i) => {
         const done = i < current, active = i === current;
         return (
-          <li key={label} className="flex items-center gap-2">
-            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${done ? 'bg-emerald-500 text-white' : active ? 'bg-indigo-600 text-white' : 'bg-zinc-200 text-zinc-500'}`}>
-              {done ? <Check className="w-4 h-4" /> : i + 1}
+          <li key={label} aria-current={active ? 'step' : undefined} className="relative flex flex-col items-center text-center">
+            {/* Tramo de línea desde el paso anterior (se pinta al llegar) */}
+            {i > 0 && (
+              <span aria-hidden="true" className={`absolute top-4 right-1/2 w-full h-0.5 -translate-y-1/2 transition-colors duration-300 ${i <= current ? 'bg-indigo-600' : 'bg-zinc-200'}`} />
+            )}
+            <span className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ring-4 ring-zinc-50 transition-colors duration-300 ${done ? 'bg-indigo-600 text-white' : active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white text-zinc-400 border-2 border-zinc-200'}`}>
+              {done ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
             </span>
-            <span className={`${active ? 'font-semibold text-zinc-900' : 'text-zinc-500'} ${active ? '' : 'hidden sm:inline'}`}>{label}</span>
-            {i < steps.length - 1 && <span className="w-4 sm:w-6 h-px bg-zinc-300 mx-1" />}
+            <span className={`mt-2 text-xs sm:text-sm ${active ? 'font-bold text-zinc-900' : done ? 'font-medium text-zinc-600' : 'text-zinc-400'}`}>{label}</span>
           </li>
         );
       })}
@@ -48,16 +68,16 @@ function Field({ label, error, hint, children }) {
 }
 
 function AccountStep({ onDone }) {
-  const [mode, setMode] = useState('signup'); // signup | login
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useDraft('mode', 'signup'); // signup | login
+  const [email, setEmail] = useDraft('email', '');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useDraft('ownerName', '');
+  const [phone, setPhone] = useDraft('phone', '');
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [checkEmail, setCheckEmail] = useState(false);
+  const [checkEmail, setCheckEmail] = useDraft('checkEmail', false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -139,11 +159,11 @@ function AccountStep({ onDone }) {
 }
 
 function StoreStep({ onCreated }) {
-  const [name, setName] = useState(() => { try { return localStorage.getItem(PENDING_KEY) || ''; } catch { return ''; } });
-  const [slug, setSlug] = useState('');
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [template, setTemplate] = useState('');
-  const [accepted, setAccepted] = useState(false);
+  const [name, setName] = useDraft('storeName', (() => { try { return localStorage.getItem(PENDING_KEY) || ''; } catch { return ''; } })());
+  const [slug, setSlug] = useDraft('slug', '');
+  const [slugTouched, setSlugTouched] = useDraft('slugTouched', false);
+  const [template, setTemplate] = useDraft('template', '');
+  const [accepted, setAccepted] = useDraft('accepted', false);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -209,14 +229,18 @@ function StoreStep({ onCreated }) {
   );
 }
 
-function DoneStep({ store, existing }) {
+function DoneStep({ store, existing, onSwitchAccount }) {
   const urls = storeUrls(store, urlOptions());
   return (
     <div>
       <div className="text-center">
         <span className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 inline-flex items-center justify-center"><Store className="w-7 h-7" /></span>
         <h2 className="mt-4 text-2xl font-extrabold text-zinc-900">{existing ? `Ya tenés tu tienda: ${store.name}` : `¡${store.name} está creada!`}</h2>
-        <p className="mt-2 text-zinc-600">Ya podés cargar productos y personalizarla.</p>
+        <p className="mt-2 text-zinc-600">
+          {existing
+            ? <>Cada cuenta puede tener una tienda. Entrá a tu panel para seguir con <b>{store.name}</b>, o usá otro email para crear una nueva.</>
+            : 'Ya podés cargar productos y personalizarla.'}
+        </p>
       </div>
       <div className="mt-6 grid sm:grid-cols-2 gap-3">
         <a href={urls.admin} className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-6 py-3.5 hover:bg-indigo-500 transition">
@@ -226,6 +250,11 @@ function DoneStep({ store, existing }) {
           Ver mi tienda <ExternalLink className="w-4 h-4" />
         </a>
       </div>
+      {existing && (
+        <button type="button" onClick={onSwitchAccount} className="mt-3 w-full text-sm font-semibold text-zinc-500 hover:text-zinc-900 py-2">
+          Crear otra tienda con otro email
+        </button>
+      )}
       <div className="mt-8 rounded-2xl bg-zinc-50 border border-zinc-200 p-5">
         <p className="font-bold text-zinc-900">Próximos pasos</p>
         <ol className="mt-3 space-y-2 text-sm text-zinc-600 list-decimal list-inside">
@@ -240,9 +269,9 @@ function DoneStep({ store, existing }) {
 
 export default function CreateStorePage() {
   const [session, setSession] = useState(undefined);
-  const [store, setStore] = useState(null);
-  const [existing, setExisting] = useState(false);
-  const [designDone, setDesignDone] = useState(false);
+  // stores: undefined = buscando las tiendas de la cuenta; luego { store, existing } o null
+  const [found, setFound] = useState(undefined);
+  const [designDone, setDesignDone] = useState(() => Boolean(readJson(PROGRESS_KEY)?.designDone));
 
   useEffect(() => {
     document.title = `Creá tu tienda | ${PLATFORM_BRAND.name}`;
@@ -251,20 +280,46 @@ export default function CreateStorePage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Si la cuenta ya tiene una tienda, se la mostramos en vez de crear otra
+  // ¿La cuenta ya tiene tienda? Si la creó en esta misma pestaña (progreso guardado), se retoma
+  // donde estaba (por ejemplo, en Diseño). Si ya la tenía de antes, se muestra cuál es.
   const userId = session?.user?.id;
   useEffect(() => {
-    if (!userId) return;
-    supabase.rpc('my_stores').then(({ data }) => {
+    if (!userId) { setFound(undefined); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc('my_stores');
       const own = (data || []).find(s => s.role === 'owner');
-      if (own) { setStore(own); setExisting(true); }
-    });
+      if (!own) { if (!cancelled) setFound(null); return; }
+      // Con la marca completa (el paso Diseño arranca del estilo que ya tiene)
+      const { data: full } = await supabase.rpc('get_store_by_slug', { p_slug: own.slug });
+      const progress = readJson(PROGRESS_KEY);
+      if (!cancelled) setFound({ store: { ...own, ...(full || {}) }, existing: progress?.storeId !== own.id });
+    })();
+    return () => { cancelled = true; };
   }, [userId]);
 
-  // Quien ya tenía tienda va directo al final; el diseño se elige solo al crearla
+  const onCreated = (created) => {
+    writeJson(PROGRESS_KEY, { storeId: created.id, designDone: false });
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* nada */ }
+    setFound({ store: created, existing: false });
+  };
+  const onDesignDone = () => {
+    writeJson(PROGRESS_KEY, { ...(readJson(PROGRESS_KEY) || {}), designDone: true });
+    setDesignDone(true);
+  };
+  const signOut = async () => {
+    clearAlta();
+    setFound(undefined);
+    setDesignDone(false);
+    await supabase.auth.signOut();
+  };
+
+  const store = found?.store || null;
+  const existing = Boolean(found?.existing);
   const profileMissing = Boolean(session) && needsProfile(session.user);
+  const loading = session === undefined || (session && !profileMissing && found === undefined);
   const step = !session || profileMissing ? 0 : !store ? 1 : existing || designDone ? 3 : 2;
-  const TITLES = ['Creá tu tienda gratis', 'Contanos de tu tienda', 'Elegí cómo se ve', 'Listo'];
+  const TITLES = ['Creá tu tienda gratis', 'Contanos de tu tienda', 'Elegí cómo se ve', existing ? 'Ya tenés tu tienda' : '¡Listo!'];
   const SUBTITLES = ['En 2 minutos tenés tu tienda online. Sin tarjeta.', 'Lo podés cambiar después desde tu panel.', 'Elegí lo básico; lo vas viendo en la vista previa.'];
 
   return (
@@ -272,26 +327,31 @@ export default function CreateStorePage() {
       <header className="bg-white border-b border-zinc-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
-          {session && <button type="button" onClick={() => supabase.auth.signOut()} className="text-sm text-zinc-500 hover:text-zinc-900">Salir</button>}
+          {session && (
+            <span className="flex items-center gap-3 text-sm text-zinc-500 min-w-0">
+              <span className="hidden sm:inline truncate max-w-[16rem]">{session.user.email}</span>
+              <button type="button" onClick={signOut} className="font-semibold hover:text-zinc-900">Salir</button>
+            </span>
+          )}
         </div>
       </header>
-      <main className={`${step === 2 ? 'max-w-4xl' : 'max-w-lg'} mx-auto px-4 sm:px-6 py-10 md:py-16`}>
-        {session === undefined ? (
+      <main className={`${step === 2 ? 'max-w-4xl' : 'max-w-lg'} mx-auto px-4 sm:px-6 py-10 md:py-14`}>
+        {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>
         ) : (
           <>
             <Steps current={step} />
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              {TITLES[step]}
-            </h1>
-            {step < 3 && <p className="mt-2 mb-8 text-zinc-600">{SUBTITLES[step]}</p>}
-            <div className={`rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm ${step === 3 ? 'mt-6' : ''}`}>
+            <div className="text-center">
+              <h1 className="text-3xl font-extrabold tracking-tight">{TITLES[step]}</h1>
+              {step < 3 && <p className="mt-2 text-zinc-600">{SUBTITLES[step]}</p>}
+            </div>
+            <div className="mt-8 rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm">
               {step === 0 && (profileMissing
-                ? <CompleteProfile user={session.user} variant="platform" onSignOut={() => supabase.auth.signOut()} />
+                ? <CompleteProfile user={session.user} variant="platform" onSignOut={signOut} />
                 : <AccountStep onDone={() => supabase.auth.getSession().then(({ data }) => setSession(data.session))} />)}
-              {step === 1 && <StoreStep onCreated={(s) => setStore(s)} />}
-              {step === 2 && <DesignStep store={store} onDone={() => setDesignDone(true)} />}
-              {step === 3 && <DoneStep store={store} existing={existing} />}
+              {step === 1 && <StoreStep onCreated={onCreated} />}
+              {step === 2 && <DesignStep store={store} onDone={onDesignDone} />}
+              {step === 3 && <DoneStep store={store} existing={existing} onSwitchAccount={signOut} />}
             </div>
           </>
         )}
