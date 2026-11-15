@@ -1,9 +1,8 @@
 import { Suspense } from 'react';
-import { Outlet, NavLink, Link } from 'react-router-dom';
-import { BarChart3, Store, Inbox, Users, Globe, LogOut } from 'lucide-react';
+import { Outlet, NavLink } from 'react-router-dom';
+import { BarChart3, Store, Inbox, Users, Globe, LogOut, ExternalLink, Sparkles } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { onPlatformHost } from '../platformBrand';
-import { PLATFORM_BRAND } from '../platformBrand';
+import { PLATFORM_BRAND, onPlatformHost } from '../platformBrand';
 
 // Panel del administrador de la plataforma: separado del panel de cada tienda.
 const NAV = [
@@ -11,6 +10,13 @@ const NAV = [
   { to: '/superadmin/tiendas', label: 'Tiendas', icon: Store },
   { to: '/superadmin/solicitudes', label: 'Solicitudes', icon: Inbox },
   { to: '/superadmin/usuarios', label: 'Usuarios', icon: Users }
+];
+
+// Página oficial (la que ven los emprendedores) y tienda de ejemplo: se abren en otra pestaña
+const officialHref = () => (onPlatformHost() ? '/' : '/inicio');
+const SHORTCUTS = [
+  { href: officialHref, label: 'Página oficial', icon: Globe },
+  { href: () => '/crear', label: 'Alta de tiendas', icon: Sparkles }
 ];
 
 export default function PlatformLayout() {
@@ -38,11 +44,14 @@ export default function PlatformLayout() {
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={linkClass}><Icon className="w-4 h-4" /> {label}</NavLink>
           ))}
+          <p className="px-3 pt-5 pb-1.5 text-[9px] font-black text-zinc-600 tracking-widest uppercase">Ver como cliente</p>
+          {SHORTCUTS.map(({ href, label, icon: Icon }) => (
+            <a key={label} href={href()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-500 hover:text-white hover:bg-white/5 transition">
+              <Icon className="w-4 h-4" /> {label} <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-60" />
+            </a>
+          ))}
         </nav>
         <div className="p-3 border-t border-white/5 space-y-0.5">
-          <Link to={onPlatformHost() ? '/' : '/inicio'} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-500 hover:text-white hover:bg-white/5 transition">
-            <Globe className="w-4 h-4" /> Página oficial
-          </Link>
           <button type="button" onClick={logout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition">
             <LogOut className="w-4 h-4" /> Cerrar sesión
           </button>
@@ -52,7 +61,10 @@ export default function PlatformLayout() {
       <main className="flex-1 min-w-0">
         <header className="md:hidden h-14 flex items-center justify-between px-4 border-b border-white/5 bg-black sticky top-0 z-30">
           <span className="font-black text-white">{PLATFORM_BRAND.name} · Admin</span>
-          <button type="button" onClick={logout} aria-label="Cerrar sesión" className="p-2 text-zinc-500"><LogOut className="w-4 h-4" /></button>
+          <div className="flex items-center">
+            <a href={officialHref()} target="_blank" rel="noopener noreferrer" aria-label="Abrir la página oficial" title="Página oficial" className="p-2 text-zinc-400 hover:text-white"><Globe className="w-4 h-4" /></a>
+            <button type="button" onClick={logout} aria-label="Cerrar sesión" className="p-2 -mr-2 text-zinc-500"><LogOut className="w-4 h-4" /></button>
+          </div>
         </header>
         <div className="p-4 pb-28 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
