@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search, Users, ChevronDown, ChevronUp, KeyRound, Ban, RotateCcw, ShieldCheck, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Search, Users, ChevronDown, ChevronUp, KeyRound, Ban, RotateCcw, ShieldCheck, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { formatMoney } from '../../pricing';
 import { matchesUserQuery } from '../../adminUsers';
@@ -51,7 +51,26 @@ const CONFIRM_TEXT = {
     title: 'Reactivar cuenta',
     text: `${u.name || u.email} va a poder volver a iniciar sesión.`,
     cta: 'Reactivar'
-  })
+  }),
+  // Herramienta temporal de pruebas: borra para siempre
+  purge: (u) => {
+    const own = (u.stores || []).filter(st => !st.shared && !st.protected);
+    const shared = (u.stores || []).filter(st => st.shared && !st.protected);
+    return {
+      title: 'Eliminar definitivamente',
+      text: <>
+        Se borra <b className="text-white">para siempre</b> la cuenta {u.email}
+        {own.length > 0
+          ? <> y {own.length === 1 ? 'su tienda' : 'sus tiendas'} <b className="text-white">{own.map(st => st.name).join(', ')}</b>, con productos, pedidos, fotos y configuración.</>
+          : '. No es dueña de ninguna tienda.'}
+        {shared.length > 0 && <> En {shared.map(st => st.name).join(', ')} hay otro dueño: esa tienda queda, solo pierde a esta cuenta.</>}
+        {' '}No se puede deshacer.
+      </>,
+      cta: 'Eliminar definitivamente',
+      danger: true,
+      confirmEmail: true
+    };
+  }
 };
 
 export default function UsersPage() {
@@ -63,6 +82,8 @@ export default function UsersPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [pending, setPending] = useState(null); // { action, user }
   const [isWorking, setIsWorking] = useState(false);
+  const [hardDeleteEnabled, setHardDeleteEnabled] = useState(false);
+  const [typedEmail, setTypedEmail] = useState('');
   const [notice, setNotice] = useState(null); // { type: 'ok' | 'error', text }
 
   const loadUsers = useCallback(async () => {
@@ -71,6 +92,7 @@ export default function UsersPage() {
     try {
       const body = await callUsersApi();
       setUsers(body.users || []);
+      setHardDeleteEnabled(Boolean(body.hardDeleteEnabled));
     } catch (error) {
       setLoadError(error.message);
     } finally {
@@ -92,10 +114,12 @@ export default function UsersPage() {
     try {
       const body = await callUsersApi({
         method: 'POST',
-        body: JSON.stringify({ action: pending.action, userId: pending.user.id })
+        body: JSON.stringify({ action: pending.action, userId: pending.user.id, ...(pending.action === 'purge' ? { confirmEmail: typedEmail } : {}) })
       });
       setNotice({ type: 'ok', text: body.message });
-      if (pending.action !== 'reset') {
+      if (pending.action === 'purge') {
+        setUsers(list => list.filter(u => u.id !== pending.user.id));
+      } else if (pending.action !== 'reset') {
         const disabled = pending.action === 'disable';
         setUsers(list => list.map(u => u.id === pending.user.id ? { ...u, isDisabled: disabled } : u));
       }
@@ -104,6 +128,7 @@ export default function UsersPage() {
     } finally {
       setIsWorking(false);
       setPending(null);
+      setTypedEmail('');
     }
   };
 
@@ -205,7 +230,8 @@ export default function UsersPage() {
                 user={user}
                 isExpanded={expandedId === user.id}
                 onToggle={() => setExpandedId(expandedId === user.id ? null : user.id)}
-                onAction={(action) => setPending({ action, user })}
+                onAction={(action) => { setTypedEmail(''); setPending({ action, user }); }}
+                hardDeleteEnabled={hardDeleteEnabled}
               />
             ))}
           </ul>
@@ -214,7 +240,7 @@ export default function UsersPage() {
 
       {/* Confirmación */}
       {confirm && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => !isWorking && setPending(null)}>
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => { if (!isWorking) { setPending(null); setTypedEmail(''); } }}>
           <div
             role="dialog"
             aria-modal="true"
@@ -229,6 +255,19 @@ export default function UsersPage() {
               </button>
             </div>
             <p className="mt-2 text-sm text-zinc-400 leading-relaxed">{confirm.text}</p>
+            {confirm.confirmEmail && (
+              <label className="block mt-4">
+                <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Para confirmar, escribí el email de la cuenta</span>
+                <input
+                  value={typedEmail}
+                  onChange={(e) => setTypedEmail(e.target.value)}
+                  placeholder={pending.user.email}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full bg-black border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-500"
+                />
+              </label>
+            )}
             <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
               <button type="button" onClick={() => setPending(null)} disabled={isWorking} className="px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-300 hover:bg-white/5 transition">
                 Cancelar
@@ -236,8 +275,8 @@ export default function UsersPage() {
               <button
                 type="button"
                 onClick={runAction}
-                disabled={isWorking}
-                autoFocus
+                disabled={isWorking || (confirm.confirmEmail && typedEmail.trim().toLowerCase() !== (pending.user.email || '').toLowerCase())}
+                autoFocus={!confirm.confirmEmail}
                 className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60 ${confirm.danger ? 'bg-red-600 hover:bg-red-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}
               >
                 {isWorking && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -281,7 +320,7 @@ function Detail({ label, value, mono }) {
   );
 }
 
-function UserRow({ user, isExpanded, onToggle, onAction }) {
+function UserRow({ user, isExpanded, onToggle, onAction, hardDeleteEnabled }) {
   const initial = (user.name || user.email || '?').charAt(0).toUpperCase();
   const canDisable = !user.isAdmin;
 
@@ -329,6 +368,7 @@ function UserRow({ user, isExpanded, onToggle, onAction }) {
             <Detail label="Último ingreso" value={formatDate(user.lastSignInAt)} />
             <Detail label="Ingreso con" value={user.provider === 'google' ? 'Google' : 'Email y contraseña'} />
             <Detail label="ID" value={user.id} mono />
+            <Detail label="Tiendas" value={(user.stores || []).map(st => `${st.name} (/${st.slug})`).join(', ')} />
           </dl>
 
           <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-white/5">
@@ -354,6 +394,12 @@ function UserRow({ user, isExpanded, onToggle, onAction }) {
               <p className="inline-flex items-center gap-2 px-1 text-xs text-zinc-500">
                 <ShieldCheck className="w-4 h-4" /> Las cuentas de administrador no se desactivan desde el panel.
               </p>
+            )}
+            {hardDeleteEnabled && canDisable && (
+              <button type="button" onClick={() => onAction('purge')} className="sm:ml-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-sm font-bold text-white transition">
+                <Trash2 className="w-4 h-4" /> Eliminar definitivamente
+                <span className="text-[10px] font-semibold uppercase tracking-wider bg-black/25 rounded px-1.5 py-0.5">temporal</span>
+              </button>
             )}
             {user.provider === 'google' && (
               <p className="sm:ml-auto self-center text-xs text-zinc-500">Entra con Google: el mail de contraseña le sirve solo si quiere usar también email y clave.</p>
