@@ -1,25 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
-  <style>
-    .g{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-    .s{animation:tw 2.4s ease-in-out infinite}.s2{animation-delay:1.2s}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-    @keyframes tw{0%,100%{opacity:.3}50%{opacity:1}}
-    @media (prefers-reduced-motion:reduce){.g,.s{animation:none}}
-  </style>
-  <rect width="800" height="1000" fill="#E2EBFF"/>
-  <circle cx="660" cy="200" r="62" fill="#CBDAFF"/>
-  <circle cx="130" cy="850" r="48" fill="#CBDAFF"/>
-  <path class="s" d="M150 220 Q150 250 180 250 Q150 250 150 280 Q150 250 120 250 Q150 250 150 220Z" fill="#3D6FD9"/>
-  <path class="s s2" d="M660 760 Q660 784 684 784 Q660 784 660 808 Q660 784 636 784 Q660 784 660 760Z" fill="#3D6FD9"/>
-  <ellipse cx="400" cy="900" rx="180" ry="18" fill="#1E1B2E" opacity=".08"/>
-  <g class="g" fill="none" stroke="#1E1B2E" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M272 235 L528 235 L558 860 L442 868 L404 440 L396 440 L358 868 L242 860 Z" fill="#3D6FD9"/>
-    <rect x="272" y="185" width="256" height="50" rx="6" fill="#3462C7"/>
-    <path d="M310 185 L310 235 M490 185 L490 235 M372 185 L372 235 M428 185 L428 235" stroke-width="5"/>
-    <circle cx="400" cy="210" r="9" fill="#F5B83D" stroke-width="4"/>
-    <path d="M400 235 L400 400 M420 245 Q424 360 400 400" stroke-width="5"/>
-    <path d="M284 242 Q336 268 336 320 M516 242 Q464 268 464 320" stroke-width="5"/>
-    <path d="M290 250 L262 846 M510 250 L538 846" stroke="#F5B83D" stroke-width="4" stroke-dasharray="10 10"/>
-    <path d="M246 832 L356 840 M444 840 L554 832" stroke-width="5"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eceff4"/><stop offset="1" stop-color="#e2e6ee"/></linearGradient>
+    <radialGradient id="spot" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#5a5c5f" flood-opacity=".35"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer></filter>
+    <clipPath id="c"><path d="M268 196 L532 196 L562 852 L426 862 L400 372 L374 862 L238 852 Z"/></clipPath>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="1000" fill="url(#spot)"/>
+  <path d="M268 196 L532 196 L562 852 L426 862 L400 372 L374 862 L238 852 Z" fill="#3d5c8c" filter="url(#drop)"/>
+  <g clip-path="url(#c)">
+    <rect width="800" height="1000" fill="url(#shade)"/>
+    <rect width="800" height="1000" filter="url(#grain)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M266 194 L534 194 L536 236 L264 236 Z" fill="#2c4265" stroke="none"/>
+    <rect x="294" y="190" width="12" height="52" rx="3" fill="#2c4265"/>
+    <rect x="354" y="190" width="12" height="52" rx="3" fill="#2c4265"/>
+    <rect x="434" y="190" width="12" height="52" rx="3" fill="#2c4265"/>
+    <rect x="494" y="190" width="12" height="52" rx="3" fill="#2c4265"/>
+    <circle cx="400" cy="215" r="9" fill="#c9a24e"/>
+    <path d="M270 230 L530 230" stroke="#d6a54a" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M422 236 L422 330 C422 352 410 364 400 366" stroke="#d6a54a" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M400 236 L400 372" stroke="#2c4265" stroke-opacity="0.6" stroke-width="3"/>
+    <path d="M276 240 C314 254 336 286 342 330 M524 240 C486 254 464 286 458 330" stroke="#2c4265" stroke-opacity="0.6" stroke-width="4"/>
+    <path d="M282 246 C318 260 334 290 338 326 M518 246 C482 260 466 290 462 326" stroke="#d6a54a" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M470 252 L506 248 L508 290 L474 294 Z" fill="none" stroke="#d6a54a" stroke-opacity=".6" stroke-width="3" stroke-dasharray="6 6"/>
+    <path d="M244 830 L372 840 M556 830 L428 840" stroke="#d6a54a" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M392 372 L372 846 M408 372 L428 846" stroke="#d6a54a" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M310 420 C320 560 312 700 300 830" stroke="#000" stroke-opacity=".07" stroke-width="26" filter="url(#soft)"/>
+    <path d="M490 420 C480 560 488 700 500 830" stroke="#000" stroke-opacity=".07" stroke-width="20" filter="url(#soft)"/>
+    <path d="M282 300 C292 480 286 660 270 820" stroke="#fff" stroke-opacity=".16" stroke-width="24" filter="url(#soft)"/>
+    <path d="M440 520 C450 640 452 740 446 830" stroke="#fff" stroke-opacity=".16" stroke-width="14" filter="url(#soft)"/>
+    <path d="M330 600 C350 610 360 612 372 610" stroke="#000" stroke-opacity=".07" stroke-width="14" filter="url(#soft)"/>
+    <path d="M470 640 C450 650 440 652 428 650" stroke="#000" stroke-opacity=".07" stroke-width="14" filter="url(#soft)"/>
   </g>
 </svg>

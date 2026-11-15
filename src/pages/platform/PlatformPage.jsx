@@ -188,14 +188,14 @@ function TemplateCard({ store, urls }) {
           <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Plantilla base</p>
           <h2 className="mt-1 text-xl font-black text-white">{store.name}</h2>
           <p className="mt-1 text-sm text-zinc-400 max-w-xl">
-            Es el modelo de la plataforma: la tienda de ejemplo de la página oficial se ve con su estilo, y cada tienda nueva
+            Es el modelo de la plataforma y la tienda de muestra de la página oficial (ahí se navega pero no se compra). Cada tienda nueva
             arranca con sus colores, tipografía, botones, catálogo y costo de envío. Su logo, textos, redes y datos de cobro no se copian.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           <a href={`${urls.admin}/diseno`} target="_blank" rel="noopener noreferrer" className={`${link} bg-indigo-600 hover:bg-indigo-500`}><Palette className="w-3.5 h-3.5" /> Editar estilo</a>
           <a href={`${urls.admin}/configuracion`} target="_blank" rel="noopener noreferrer" className={link}><Settings className="w-3.5 h-3.5" /> Configuración</a>
-          <a href={urls.storefront.replace(/\?tienda=[^&]+/, '?tienda=demo')} target="_blank" rel="noopener noreferrer" className={link}><ExternalLink className="w-3.5 h-3.5" /> Ver la tienda de ejemplo</a>
+          <a href={urls.storefront} target="_blank" rel="noopener noreferrer" className={link}><ExternalLink className="w-3.5 h-3.5" /> Ver la tienda de ejemplo</a>
         </div>
       </div>
     </section>

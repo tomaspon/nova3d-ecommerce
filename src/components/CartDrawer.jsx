@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { itemsTotal, formatMoney } from '../pricing';
 import { useStore } from '../context/StoreContext';
 import { availablePaymentMethods, storeWhatsappLink } from '../paymentMethods';
+import { isShowcaseStore } from '../currentStore';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2, Loader2, MapPin, Phone, User, Mail, CreditCard, Landmark } from 'lucide-react';
 
 export default function CartDrawer() {
@@ -48,7 +49,7 @@ export default function CartDrawer() {
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
-    if (store?.isDemo) return; // tienda de ejemplo: no se hacen pedidos
+    if (isShowcaseStore(store)) return; // tienda de muestra: no se hacen pedidos
     setCheckoutStep('loading');
     
     const res = await checkoutOrder(formData);
@@ -297,8 +298,8 @@ export default function CartDrawer() {
             ) : (
               <button
                 // En la tienda de ejemplo el botón se presiona pero no hace nada: es solo una muestra
-                type={store?.isDemo ? 'button' : 'submit'}
-                form={store?.isDemo ? undefined : 'checkout-form'}
+                type={isShowcaseStore(store) ? 'button' : 'submit'}
+                form={isShowcaseStore(store) ? undefined : 'checkout-form'}
                 disabled={checkoutStep === 'loading' || paymentMethods.length === 0}
                 className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0"
               >

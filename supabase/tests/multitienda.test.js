@@ -325,3 +325,14 @@ describe('009 · seguridad del superadmin', () => {
     expect((await as('ownerB', `select public.is_store_admin($1) as a`, [MINIMAL]))[0].a).toBe(false);
   });
 });
+
+describe('010 · MINIMAL como tienda de muestra', () => {
+  it('carga los productos de ejemplo una sola vez, aunque se corra dos veces', async () => {
+    await db.exec(sql('010_minimal_vitrina.sql'));
+    await db.exec(sql('010_minimal_vitrina.sql'));
+    const rows = await as('anon', `select name, image_url from products where store_id = $1 and image_url like '/demo/%' order by name`, [MINIMAL]);
+    expect(rows.map(r => r.name)).toEqual([
+      'Bermuda Gabardina Mostaza', 'Buzo Canguro Lila', 'Camisa de Lino Celeste', 'Campera Bomber Oliva', 'Jean Recto Azul', 'Remera Oversize Terracota'
+    ]);
+  });
+});

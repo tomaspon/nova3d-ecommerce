@@ -1,28 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
-  <style>
-    .g{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-    .s{animation:tw 2.4s ease-in-out infinite}.s2{animation-delay:1.2s}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-    @keyframes tw{0%,100%{opacity:.3}50%{opacity:1}}
-    @media (prefers-reduced-motion:reduce){.g,.s{animation:none}}
-  </style>
-  <rect width="800" height="1000" fill="#E3F3FF"/>
-  <circle cx="670" cy="210" r="64" fill="#CBE8FF"/>
-  <circle cx="120" cy="840" r="48" fill="#CBE8FF"/>
-  <path class="s" d="M140 230 Q140 260 170 260 Q140 260 140 290 Q140 260 110 260 Q140 260 140 230Z" fill="#2E9BE6"/>
-  <path class="s s2" d="M670 770 Q670 794 694 794 Q670 794 670 818 Q670 794 646 794 Q670 794 670 770Z" fill="#2E9BE6"/>
-  <ellipse cx="400" cy="870" rx="220" ry="18" fill="#1E1B2E" opacity=".08"/>
-  <g class="g" fill="none" stroke="#1E1B2E" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M290 280 L360 248 L440 248 L510 280 L600 350 L622 740 L572 746 L548 440 L520 420 L520 790 L280 790 L280 420 L252 440 L228 746 L178 740 L200 350 Z" fill="#5BB8F5"/>
-    <rect x="388" y="320" width="24" height="470" fill="#4AA6E6" stroke-width="5"/>
-    <path d="M360 248 L400 320 L368 334 L338 268 Z" fill="#FFFFFF"/>
-    <path d="M440 248 L400 320 L432 334 L462 268 Z" fill="#FFFFFF"/>
-    <g fill="#FFFFFF" stroke-width="4">
-      <circle cx="400" cy="370" r="7"/><circle cx="400" cy="450" r="7"/><circle cx="400" cy="530" r="7"/>
-      <circle cx="400" cy="610" r="7"/><circle cx="400" cy="690" r="7"/>
-    </g>
-    <path d="M312 390 L366 390 L366 452 L339 466 L312 452 Z" stroke-width="5"/>
-    <path d="M434 390 L488 390 L488 452 L461 466 L434 452 Z" stroke-width="5"/>
-    <path d="M182 715 L232 721 M568 721 L618 715" stroke-width="5"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#edf2f6"/><stop offset="1" stop-color="#e3ebf1"/></linearGradient>
+    <radialGradient id="spot" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#5b5e60" flood-opacity=".35"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer></filter>
+    <clipPath id="c"><path d="M322 232 C346 224 360 218 370 210 L400 236 L430 210 C440 218 454 224 478 232 L604 290 C613 294 616 303 613 311 L584 392 C581 401 572 405 563 402 L522 388 L524 676 C524 706 470 724 400 724 C330 724 276 706 276 676 L278 388 L237 402 C228 405 219 401 216 392 L187 311 C184 303 187 294 196 290 Z"/></clipPath>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="1000" fill="url(#spot)"/>
+  <path d="M322 232 C346 224 360 218 370 210 L400 236 L430 210 C440 218 454 224 478 232 L604 290 C613 294 616 303 613 311 L584 392 C581 401 572 405 563 402 L522 388 L524 676 C524 706 470 724 400 724 C330 724 276 706 276 676 L278 388 L237 402 C228 405 219 401 216 392 L187 311 C184 303 187 294 196 290 Z" fill="#9fc0dc" filter="url(#drop)"/>
+  <g clip-path="url(#c)">
+    <rect width="800" height="1000" fill="url(#shade)"/>
+    <rect width="800" height="1000" filter="url(#grain)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M370 210 C384 200 416 200 430 210 L426 222 C412 214 388 214 374 222 Z" fill="#728a9e" stroke="none"/>
+    <path d="M370 210 L400 270 L346 258 L332 226 Z" fill="#b6d0e6" stroke="#728a9e" stroke-opacity=".35" stroke-width="3"/>
+    <path d="M430 210 L400 270 L454 258 L468 226 Z" fill="#b6d0e6" stroke="#728a9e" stroke-opacity=".35" stroke-width="3"/>
+    <path d="M392 270 L392 722 M408 270 L408 722" stroke="#728a9e" stroke-opacity="0.3" stroke-width="3"/>
+    <circle cx="400" cy="320" r="7" fill="#f6f8fb" stroke="#728a9e" stroke-opacity=".4" stroke-width="2"/>
+    <circle cx="400" cy="395" r="7" fill="#f6f8fb" stroke="#728a9e" stroke-opacity=".4" stroke-width="2"/>
+    <circle cx="400" cy="470" r="7" fill="#f6f8fb" stroke="#728a9e" stroke-opacity=".4" stroke-width="2"/>
+    <circle cx="400" cy="545" r="7" fill="#f6f8fb" stroke="#728a9e" stroke-opacity=".4" stroke-width="2"/>
+    <circle cx="400" cy="620" r="7" fill="#f6f8fb" stroke="#728a9e" stroke-opacity=".4" stroke-width="2"/>
+    <circle cx="400" cy="690" r="7" fill="#f6f8fb" stroke="#728a9e" stroke-opacity=".4" stroke-width="2"/>
+    <path d="M318 330 L372 330 L372 396 C372 402 368 406 362 406 L328 406 C322 406 318 402 318 396 Z" fill="none" stroke="#728a9e" stroke-opacity=".4" stroke-width="3"/>
+    <path d="M322 342 L368 342" stroke="#5f7384" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M568 382 L596 306 M232 382 L204 306" stroke="#5f7384" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M286 688 C330 708 470 708 514 688" stroke="#5f7384" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M340 430 C352 520 346 610 334 690" stroke="#000" stroke-opacity=".07" stroke-width="26" filter="url(#soft)"/>
+    <path d="M466 420 C454 520 462 610 472 690" stroke="#000" stroke-opacity=".07" stroke-width="20" filter="url(#soft)"/>
+    <path d="M300 300 C330 420 322 560 306 690" stroke="#fff" stroke-opacity=".16" stroke-width="22" filter="url(#soft)"/>
+    <path d="M440 420 C446 500 444 580 436 640" stroke="#fff" stroke-opacity=".16" stroke-width="14" filter="url(#soft)"/>
   </g>
 </svg>

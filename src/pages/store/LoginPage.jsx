@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Lock, Loader2, LogIn, Mail, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
+import { isShowcaseStore } from '../../currentStore';
 import SocialButtons from '../../components/SocialButtons';
 import { MIN_PASSWORD_LENGTH, validateSignup, cleanPhone } from '../../profileCompletion';
 
@@ -100,7 +101,7 @@ export default function LoginPage() {
   };
 
   // En la tienda de ejemplo no se inicia sesión: es solo una muestra
-  if (store?.isDemo) {
+  if (isShowcaseStore(store)) {
     return (
       <div className="min-h-[calc(100vh-6rem)] bg-store dark:bg-store-dark flex flex-col items-center justify-center text-center p-8">
         <h1 className="text-2xl font-black text-zinc-900 dark:text-white">Tienda de ejemplo</h1>

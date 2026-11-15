@@ -1,25 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
-  <style>
-    .g{animation:float 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-    .s{animation:tw 2.4s ease-in-out infinite}.s2{animation-delay:1.2s}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-    @keyframes tw{0%,100%{opacity:.3}50%{opacity:1}}
-    @media (prefers-reduced-motion:reduce){.g,.s{animation:none}}
-  </style>
-  <rect width="800" height="1000" fill="#ECEAFF"/>
-  <circle cx="140" cy="190" r="60" fill="#DCD8FF"/>
-  <circle cx="680" cy="830" r="52" fill="#DCD8FF"/>
-  <path class="s" d="M660 230 Q660 260 690 260 Q660 260 660 290 Q660 260 630 260 Q660 260 660 230Z" fill="#7C6CF2"/>
-  <path class="s s2" d="M140 760 Q140 784 164 784 Q140 784 140 808 Q140 784 116 784 Q140 784 140 760Z" fill="#7C6CF2"/>
-  <ellipse cx="400" cy="870" rx="220" ry="18" fill="#1E1B2E" opacity=".08"/>
-  <g class="g" fill="none" stroke="#1E1B2E" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M285 320 L345 288 L455 288 L515 320 L600 440 L622 750 L568 758 L548 490 L520 465 L520 790 L280 790 L280 465 L252 490 L232 758 L178 750 L200 440 Z" fill="#7C6CF2"/>
-    <path d="M345 288 Q330 195 400 185 Q470 195 455 288 Q400 320 345 288 Z" fill="#6A5AE6"/>
-    <path d="M368 282 Q362 225 400 220 Q438 225 432 282 Q400 300 368 282 Z" fill="#4B3FBF"/>
-    <path d="M388 305 L384 395 M412 305 L416 395" stroke-width="5"/>
-    <circle cx="384" cy="402" r="6" fill="#FFFFFF" stroke-width="4"/>
-    <circle cx="416" cy="402" r="6" fill="#FFFFFF" stroke-width="4"/>
-    <path d="M318 605 L482 605 L512 712 L288 712 Z" fill="#6A5AE6"/>
-    <path d="M282 760 L518 760 M182 725 L236 732 M564 732 L618 725" stroke-width="5"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1eef6"/><stop offset="1" stop-color="#e9e5f1"/></linearGradient>
+    <radialGradient id="spot" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#5d5c60" flood-opacity=".35"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer></filter>
+    <clipPath id="c"><path d="M330 268 C318 206 350 160 400 158 C450 160 482 206 470 268 C500 274 532 284 548 302 L548 760 L252 760 L252 302 C268 284 300 274 330 268 Z M252 304 C228 314 214 334 208 362 L166 700 L238 712 L262 426 Z M548 304 C572 314 586 334 592 362 L634 700 L562 712 L538 426 Z M166 700 L238 712 L234 756 L160 744 Z M634 700 L562 712 L566 756 L640 744 Z M252 760 L548 760 L548 806 C548 813 543 818 536 818 L264 818 C257 818 252 813 252 806 Z"/></clipPath>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="1000" fill="url(#spot)"/>
+  <path d="M330 268 C318 206 350 160 400 158 C450 160 482 206 470 268 C500 274 532 284 548 302 L548 760 L252 760 L252 302 C268 284 300 274 330 268 Z M252 304 C228 314 214 334 208 362 L166 700 L238 712 L262 426 Z M548 304 C572 314 586 334 592 362 L634 700 L562 712 L538 426 Z M166 700 L238 712 L234 756 L160 744 Z M634 700 L562 712 L566 756 L640 744 Z M252 760 L548 760 L548 806 C548 813 543 818 536 818 L264 818 C257 818 252 813 252 806 Z" fill="#a993cf" filter="url(#drop)"/>
+  <g clip-path="url(#c)">
+    <rect width="800" height="1000" fill="url(#shade)"/>
+    <rect width="800" height="1000" filter="url(#grain)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M346 268 C356 312 444 312 454 268 C436 250 364 250 346 268 Z" fill="#7a6a95" stroke="none" opacity=".9"/>
+    <path d="M330 268 C318 206 350 160 400 158 C450 160 482 206 470 268" stroke="#7a6a95" stroke-opacity="0.3" stroke-width="3"/>
+    <path d="M378 300 L372 410" stroke="#f4f1fa" stroke-opacity="0.95" stroke-width="5"/>
+    <path d="M422 300 L428 410" stroke="#f4f1fa" stroke-opacity="0.95" stroke-width="5"/>
+    <rect x="366" y="408" width="12" height="20" rx="3" fill="#d9d2ea"/><rect x="422" y="408" width="12" height="20" rx="3" fill="#d9d2ea"/>
+    <path d="M316 568 L484 568 L514 704 L286 704 Z" fill="#7a6a95" fill-opacity=".18" stroke="none"/>
+    <path d="M316 568 L484 568" stroke="#7a6a95" stroke-opacity="0.5" stroke-width="4"/>
+    <path d="M316 568 L292 700 M484 568 L508 700" stroke="#7a6a95" stroke-opacity="0.5" stroke-width="4"/>
+    <path d="M322 582 L478 582" stroke="#65587c" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M256 772 L544 772" stroke="#65587c" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M168 714 L236 726 M632 714 L564 726" stroke="#65587c" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <path d="M262 762 L262 816 M290 762 L290 816 M318 762 L318 816 M346 762 L346 816 M374 762 L374 816 M402 762 L402 816 M430 762 L430 816 M458 762 L458 816 M486 762 L486 816 M514 762 L514 816" stroke="#7a6a95" stroke-opacity="0.18" stroke-width="2"/>
+    <path d="M300 360 C320 450 310 520 296 600" stroke="#000" stroke-opacity=".07" stroke-width="26" filter="url(#soft)"/>
+    <path d="M500 360 C486 450 492 520 506 600" stroke="#000" stroke-opacity=".07" stroke-width="26" filter="url(#soft)"/>
+    <path d="M220 450 C214 540 206 620 198 690" stroke="#000" stroke-opacity=".07" stroke-width="18" filter="url(#soft)"/>
+    <path d="M410 320 C420 420 416 480 400 540" stroke="#fff" stroke-opacity=".16" stroke-width="18" filter="url(#soft)"/>
   </g>
 </svg>

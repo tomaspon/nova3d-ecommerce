@@ -2,17 +2,18 @@ import { supabase } from './supabaseClient';
 import { DEFAULT_STORE_ID } from './storeIds';
 import { DEMO_STORE, DEMO_SLUG } from './demoStore';
 import { panelSlugFromPath } from './sitePaths';
-import { templateStyle } from './branding';
 
-// La tienda de ejemplo se ve con el estilo de la plantilla base (la tienda principal):
-// lo que muestra la página oficial es lo mismo que recibe cada tienda nueva.
+// La tienda principal (MINIMAL) es la plantilla base y la tienda de muestra de la página
+// oficial: se navega y se usa el carrito, pero no se compra (ver isShowcaseStore).
+const markShowcase = (store) => (store && store.id === DEFAULT_STORE_ID ? { ...store, isShowcase: true } : store);
+
+// ?tienda=demo lleva a MINIMAL. Si la base no responde, queda la tienda incorporada (NORTE.).
 async function demoStore() {
   try {
     const base = await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG });
-    return { ...DEMO_STORE, branding: { ...templateStyle(base?.branding), ...DEMO_STORE.branding } };
-  } catch {
-    return DEMO_STORE;
-  }
+    if (base) return markShowcase(base);
+  } catch { /* sin conexión: tienda incorporada */ }
+  return { ...DEMO_STORE, branding: { ...DEMO_STORE.branding } };
 }
 
 // Qué tienda muestra este sitio. Un mismo despliegue sirve a todas las tiendas de la
@@ -55,14 +56,17 @@ async function rpcStore(fn, args) {
   return data || null;
 }
 
+// Tienda de muestra: no se compra ni se usa la sesión de quien la mira
+export const isShowcaseStore = (store) => Boolean(store?.isDemo || store?.isShowcase);
+
 export async function resolveStore(location = window.location, storage = window.sessionStorage) {
   // En el panel (/panel/<tienda>/...) manda la dirección: nunca se cae a otra tienda
   const panelSlug = panelSlugFromPath(location.pathname);
   if (panelSlug) {
-    if (panelSlug === DEMO_SLUG) return demoStore();
+    if (panelSlug === DEMO_SLUG) return DEMO_STORE;
     try {
       const store = await rpcStore('get_store_by_slug', { p_slug: panelSlug });
-      if (store) return store;
+      if (store) return markShowcase(store);
     } catch (error) {
       console.error('No se pudo identificar la tienda:', error);
     }
@@ -71,15 +75,15 @@ export async function resolveStore(location = window.location, storage = window.
 
   try {
     const byHost = await rpcStore('get_store_by_host', { p_host: location.host });
-    if (byHost) return byHost;
+    if (byHost) return markShowcase(byHost);
 
     const override = storeOverride(location, storage);
     if (override === DEMO_SLUG) return demoStore();
     if (override) {
       const store = await rpcStore('get_store_by_slug', { p_slug: override });
-      if (store) return store;
+      if (store) return markShowcase(store);
     }
-    return (await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG })) || FALLBACK_STORE;
+    return markShowcase((await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG })) || FALLBACK_STORE);
   } catch (error) {
     // Sin conexión o base sin migrar: se sigue con la tienda por defecto
     console.error('No se pudo identificar la tienda:', error);

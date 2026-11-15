@@ -26,7 +26,8 @@ const STEPS = [
   { title: 'Empezá a vender', text: 'Conectamos tu dominio y tus cobros. Compartís el link y listo.' }
 ];
 
-const EXAMPLE_STORE = { slug: 'demo', custom_domain: null };
+// La tienda de muestra es la plantilla base (MINIMAL): lo que se ve es lo que recibe cada tienda nueva
+const EXAMPLE_STORE = { slug: 'minimal', custom_domain: null };
 
 // Los enlaces internos (#ejemplo, #como-funciona) deslizan hasta la sección en vez de saltar.
 // Quien pidió menos movimiento en su sistema va directo.
@@ -126,7 +127,7 @@ export default function PlatformHome() {
             </p>
             <h2 className="mt-5 text-3xl md:text-5xl font-extrabold tracking-tight">Probala como si fueras un cliente</h2>
             <p className="mt-4 text-zinc-400 md:text-lg leading-relaxed">
-              NORTE. es una marca de ropa armada con {PLATFORM_BRAND.name}. Mirá productos, ofertas y el carrito, en computadora o en celular.
+              MINIMAL. es una tienda de ropa armada con {PLATFORM_BRAND.name}, igual a la que vas a recibir. Mirá productos, ofertas y el carrito, en computadora o en celular.
             </p>
             <ul className="mt-6 flex flex-wrap justify-center gap-2">
               {['Banners de temporada', 'Stock reservado mientras pagan', 'Seguimiento de pedidos'].map(item => (
@@ -136,7 +137,7 @@ export default function PlatformHome() {
               ))}
             </ul>
           </div>
-          <DemoPreview url={exampleUrl} title="Tienda de ejemplo NORTE." />
+          <DemoPreview url={exampleUrl} title="Tienda de ejemplo MINIMAL." />
         </div>
       </section>
 

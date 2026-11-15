@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eff1ea"/><stop offset="1" stop-color="#e7e9df"/></linearGradient>
+    <radialGradient id="spot" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#5c5d59" flood-opacity=".35"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer></filter>
+    <clipPath id="c"><path d="M318 232 C350 222 368 214 376 206 L424 206 C432 214 450 222 482 232 C516 242 540 260 552 286 L552 742 L248 742 L248 286 C260 260 284 242 318 232 Z M248 290 C224 300 210 322 204 352 L162 684 L236 696 L262 420 Z M552 290 C576 300 590 322 596 352 L638 684 L564 696 L538 420 Z M162 684 L236 696 L232 748 L156 736 Z M638 684 L564 696 L568 748 L644 736 Z M248 742 L552 742 L552 796 C552 803 547 808 540 808 L260 808 C253 808 248 803 248 796 Z"/></clipPath>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="1000" fill="url(#spot)"/>
+  <path d="M318 232 C350 222 368 214 376 206 L424 206 C432 214 450 222 482 232 C516 242 540 260 552 286 L552 742 L248 742 L248 286 C260 260 284 242 318 232 Z M248 290 C224 300 210 322 204 352 L162 684 L236 696 L262 420 Z M552 290 C576 300 590 322 596 352 L638 684 L564 696 L538 420 Z M162 684 L236 696 L232 748 L156 736 Z M638 684 L564 696 L568 748 L644 736 Z M248 742 L552 742 L552 796 C552 803 547 808 540 808 L260 808 C253 808 248 803 248 796 Z" fill="#69744b" filter="url(#drop)"/>
+  <g clip-path="url(#c)">
+    <rect width="800" height="1000" fill="url(#shade)"/>
+    <rect width="800" height="1000" filter="url(#grain)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M362 206 C374 238 426 238 438 206 L424 200 C414 222 386 222 376 200 Z" fill="#4c5436" stroke="none"/>
+    <path d="M364 210 L436 210 M362 220 L438 220" stroke="#c9a24e" stroke-opacity="0.5" stroke-width="3"/>
+    <path d="M400 234 L400 806" stroke="#2b2f21" stroke-opacity="0.75" stroke-width="6"/>
+    <path d="M392 234 L392 806 M408 234 L408 806" stroke="#c9c3a3" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 7"/>
+    <rect x="394" y="240" width="12" height="26" rx="3" fill="#c9a24e"/>
+    <path d="M300 520 L346 470 M500 520 L454 470" stroke="#4c5436" stroke-opacity="0.55" stroke-width="6"/>
+    <path d="M566 440 L606 446 L600 506 L560 500 Z" fill="none" stroke="#4c5436" stroke-opacity=".55" stroke-width="3"/>
+    <path d="M250 746 L550 746 M250 762 L550 762 M250 778 L550 778 M250 794 L550 794" stroke="#4c5436" stroke-opacity="0.25" stroke-width="2"/>
+    <path d="M160 700 L234 712 M158 716 L233 728" stroke="#4c5436" stroke-opacity="0.25" stroke-width="2"/>
+    <path d="M640 700 L566 712 M642 716 L567 728" stroke="#4c5436" stroke-opacity="0.25" stroke-width="2"/>
+    <path d="M300 330 C318 430 312 560 296 700" stroke="#000" stroke-opacity=".07" stroke-width="26" filter="url(#soft)"/>
+    <path d="M500 330 C484 430 490 560 506 700" stroke="#000" stroke-opacity=".07" stroke-width="20" filter="url(#soft)"/>
+    <path d="M222 420 C214 520 204 600 196 670" stroke="#000" stroke-opacity=".07" stroke-width="18" filter="url(#soft)"/>
+    <path d="M282 300 C300 400 296 520 282 620" stroke="#fff" stroke-opacity=".16" stroke-width="22" filter="url(#soft)"/>
+    <path d="M520 300 C528 360 530 420 526 470" stroke="#fff" stroke-opacity=".16" stroke-width="14" filter="url(#soft)"/>
+  </g>
+</svg>

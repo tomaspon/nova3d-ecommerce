@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
 import { mapProduct } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
-import { resolveStore, DEFAULT_STORE_ID } from '../currentStore';
+import { resolveStore, DEFAULT_STORE_ID, isShowcaseStore } from '../currentStore';
 import { isPlatformPath } from '../sitePaths';
 import { platformOrigin } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
@@ -458,7 +458,7 @@ export function StoreProvider({ children }) {
   // La orden se crea dentro de la base (create_order): ahí se validan el stock disponible,
   // los precios y el envío, con el producto bloqueado para que dos compras no reserven la misma unidad.
   const checkoutOrder = async (checkoutData) => {
-    if (store?.isDemo) return { success: false, errorMessage: DEMO_CHECKOUT_MESSAGE };
+    if (isShowcaseStore(store)) return { success: false, errorMessage: DEMO_CHECKOUT_MESSAGE };
     try {
       const { data: created, error: orderError } = await supabase.rpc('create_order', {
         p_name: checkoutData.name,
@@ -509,7 +509,8 @@ export function StoreProvider({ children }) {
       categories,
       products,
       cart,
-      user: store?.isDemo ? null : user,
+      // En la tienda de muestra no se usa la sesión de quien mira (sí en su panel)
+      user: isShowcaseStore(store) && !isPlatformPath(window.location.pathname) ? null : user,
       favorites,
       isCartOpen,
       isLoading,
