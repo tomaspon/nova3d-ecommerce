@@ -92,7 +92,7 @@ export default function CampaignHero({ preset, title, maxDiscount = 0, productCo
           type="button"
           onClick={onCtaClick}
           tabIndex={onCtaClick ? 0 : -1}
-          className="mt-[min(1.4cqw,5cqh)] rounded-full font-bold uppercase tracking-wider shadow-lg transition hover:scale-105"
+          className="mt-[min(1.4cqw,5cqh)] rounded-btn font-bold uppercase tracking-wider shadow-lg transition hover:scale-105"
           style={{
             backgroundColor: colors.ctaBg,
             color: colors.ctaText,

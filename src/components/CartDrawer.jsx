@@ -234,7 +234,7 @@ export default function CartDrawer() {
               <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 font-medium transition-colors">Aún no elegiste ningún producto.</p>
               <button
                 onClick={() => { toggleCart(); navigate('/'); }}
-                className="bg-brand hover:opacity-90 text-brand-ink font-bold py-3.5 px-8 rounded-full transition-all duration-300 shadow-lg shadow-black/10 dark:shadow-white/10 hover:shadow-black/20"
+                className="bg-brand hover:opacity-90 text-brand-ink font-bold py-3.5 px-8 rounded-btn transition-all duration-300 shadow-lg shadow-black/10 dark:shadow-white/10 hover:shadow-black/20"
               >
                 Explorar Catálogo
               </button>
@@ -301,7 +301,7 @@ export default function CartDrawer() {
             </div>
 
             {checkoutStep === 'cart' ? (
-              <button onClick={() => setCheckoutStep('form')} className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-xl shadow-black/10 hover:-translate-y-0.5 active:scale-[0.98]">
+              <button onClick={() => setCheckoutStep('form')} className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-btn transition-all flex items-center justify-center shadow-xl shadow-black/10 hover:-translate-y-0.5 active:scale-[0.98]">
                 Siguiente Paso
               </button>
             ) : (
@@ -310,7 +310,7 @@ export default function CartDrawer() {
                 type={isShowcaseStore(store) ? 'button' : 'submit'}
                 form={isShowcaseStore(store) ? undefined : 'checkout-form'}
                 disabled={checkoutStep === 'loading' || paymentMethods.length === 0}
-                className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0"
+                className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-btn transition-all flex items-center justify-center gap-2 disabled:opacity-70 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0"
               >
                 {checkoutStep === 'loading' ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Procesando...</>
@@ -356,7 +356,7 @@ function TransferDetails({ settings, order, showTransfer }) {
           href={whatsapp}
           target="_blank"
           rel="noreferrer"
-          className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:-translate-y-0.5"
+          className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-btn transition-all flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:-translate-y-0.5"
         >
           {showTransfer ? 'Ya pagué · Enviar comprobante' : 'Escribirle a la tienda'}
         </a>

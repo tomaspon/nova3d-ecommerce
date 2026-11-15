@@ -23,7 +23,7 @@ function VariantPicker({ product, value, onChange, showError }) {
               aria-pressed={selected}
               onClick={() => onChange(v.name)}
               title={soldOut ? 'Sin stock' : undefined}
-              className={`min-w-12 h-11 px-4 rounded-xl border text-sm font-bold transition ${selected
+              className={`min-w-12 h-11 px-4 rounded-btn border text-sm font-bold transition ${selected
                 ? 'bg-brand text-brand-ink border-transparent'
                 : 'bg-white dark:bg-black border-zinc-300 dark:border-white/15 text-zinc-900 dark:text-white hover:border-zinc-900 dark:hover:border-white'}
                 disabled:opacity-40 disabled:line-through disabled:cursor-not-allowed disabled:hover:border-zinc-300`}
@@ -260,7 +260,7 @@ export default function ProductDetailPage() {
             {/* Controles de Compra (Desktop) */}
             <div className="hidden lg:block bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl p-5 border border-zinc-200 dark:border-white/5 mb-6 transition-colors">
               <div className="flex items-center gap-4 mb-6">
-                <div className="flex items-center bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl overflow-hidden h-12 transition-colors">
+                <div className="flex items-center bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-btn overflow-hidden h-12 transition-colors">
                   <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                     <Minus className="w-4 h-4" />
                   </button>
@@ -273,7 +273,7 @@ export default function ProductDetailPage() {
                 <button 
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className="flex-1 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-sm rounded-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed shadow-xl shadow-black/10 dark:shadow-white/10"
+                  className="flex-1 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-sm rounded-btn hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed shadow-xl shadow-black/10 dark:shadow-white/10"
                 >
                   <ShoppingBag className="w-5 h-5" />
                   {isOutOfStock ? 'Sin Stock' : 'Agregar al Carrito'}
@@ -372,7 +372,7 @@ export default function ProductDetailPage() {
           <button 
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="flex-1 shrink-0 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-xs rounded-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl"
+            className="flex-1 shrink-0 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-xs rounded-btn hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl"
           >
             <ShoppingBag className="w-4 h-4" />
             {isOutOfStock ? 'Sin Stock' : 'Agregar'}

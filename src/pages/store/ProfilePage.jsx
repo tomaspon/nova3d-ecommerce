@@ -162,7 +162,7 @@ function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
             <button
               type="button"
               onClick={() => onReorder(order)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand text-brand-ink text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
+              className="inline-flex items-center justify-center gap-2 rounded-btn bg-brand text-brand-ink text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
             >
               <RotateCcw className="w-4 h-4" /> Volver a comprar
             </button>
@@ -170,7 +170,7 @@ function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
             <button
               type="button"
               onClick={() => onTrack(order)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand text-brand-ink text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
+              className="inline-flex items-center justify-center gap-2 rounded-btn bg-brand text-brand-ink text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
             >
               <Truck className="w-4 h-4" /> Seguir pedido
             </button>
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                 </FormSection>
 
                 <div className="flex justify-end">
-                  <button disabled={isSavingDatos} type="submit" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-brand text-brand-ink font-semibold px-8 py-3.5 hover:opacity-85 transition disabled:opacity-60">
+                  <button disabled={isSavingDatos} type="submit" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-btn bg-brand text-brand-ink font-semibold px-8 py-3.5 hover:opacity-85 transition disabled:opacity-60">
                     {isSavingDatos ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</> : <><Save className="w-4 h-4" /> Guardar cambios</>}
                   </button>
                 </div>
@@ -524,7 +524,7 @@ function EmptyState({ icon: Icon, title, text, action, onAction }) {
       </span>
       <h2 className="text-lg font-bold text-zinc-900 dark:text-white">{title}</h2>
       <p className="text-sm text-zinc-500 mt-1.5 mb-6 max-w-sm">{text}</p>
-      <button type="button" onClick={onAction} className="inline-flex items-center gap-1.5 rounded-full bg-brand text-brand-ink font-semibold px-6 py-3 hover:opacity-85 transition">
+      <button type="button" onClick={onAction} className="inline-flex items-center gap-1.5 rounded-btn bg-brand text-brand-ink font-semibold px-6 py-3 hover:opacity-85 transition">
         {action} <ChevronRight className="w-4 h-4" />
       </button>
     </div>

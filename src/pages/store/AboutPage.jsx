@@ -44,7 +44,7 @@ export default function AboutPage() {
         </div>
 
         <div className="mt-16 text-center">
-          <Link to="/" className="inline-flex items-center gap-2 rounded-full bg-brand text-brand-ink font-bold px-7 py-4 hover:opacity-85 transition">
+          <Link to="/" className="inline-flex items-center gap-2 rounded-btn bg-brand text-brand-ink font-bold px-7 py-4 hover:opacity-85 transition">
             Ver productos <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

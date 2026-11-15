@@ -234,7 +234,7 @@ export default function HomePage() {
                   return prev;
                 });
               }}
-              className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
+              className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-btn text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
                 categoryFilter === 'all'
                   ? 'bg-brand text-brand-ink shadow-lg'
                   : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
@@ -251,7 +251,7 @@ export default function HomePage() {
                     return prev;
                   });
                 }}
-                className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
+                className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-btn text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
                   categoryFilter === cat
                     ? 'bg-brand text-brand-ink shadow-lg'
                     : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
@@ -352,7 +352,7 @@ export default function HomePage() {
                       }}
                       disabled={product.available_stock <= 0}
                       aria-label={`Agregar ${product.name} al carrito`}
-                      className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-brand text-brand-ink rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
+                      className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-brand text-brand-ink rounded-btn flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
                     >
                       <Plus className="w-6 h-6" />
                     </button>}

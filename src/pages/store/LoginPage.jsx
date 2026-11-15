@@ -106,7 +106,7 @@ export default function LoginPage() {
       <div className="min-h-[calc(100vh-6rem)] bg-store dark:bg-store-dark flex flex-col items-center justify-center text-center p-8">
         <h1 className="text-2xl font-black text-zinc-900 dark:text-white">Tienda de ejemplo</h1>
         <p className="mt-2 max-w-sm text-sm text-zinc-500">Acá no se crean cuentas ni se guardan datos. Es una muestra de cómo se ve una tienda.</p>
-        <button type="button" onClick={() => navigate('/')} className="mt-6 rounded-full bg-brand text-brand-ink font-bold px-6 py-3 hover:opacity-90 transition">Volver al catálogo</button>
+        <button type="button" onClick={() => navigate('/')} className="mt-6 rounded-btn bg-brand text-brand-ink font-bold px-6 py-3 hover:opacity-90 transition">Volver al catálogo</button>
       </div>
     );
   }
@@ -223,7 +223,7 @@ export default function LoginPage() {
 
             <button
               disabled={isLoading}
-              className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
+              className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-btn transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>

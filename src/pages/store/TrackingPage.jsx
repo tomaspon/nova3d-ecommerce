@@ -194,7 +194,7 @@ export default function TrackingPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="shrink-0 bg-brand text-brand-ink font-bold px-7 py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
+                  className="shrink-0 bg-brand text-brand-ink font-bold px-7 py-4 rounded-btn flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   Buscar pedidos
@@ -261,7 +261,7 @@ export default function TrackingPage() {
                 href={whatsapp('Hola! Tengo una consulta sobre mi pedido.')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 border border-zinc-300 dark:border-white/20 text-zinc-900 dark:text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-100 dark:hover:bg-white/5 transition"
+                className="shrink-0 border border-zinc-300 dark:border-white/20 text-zinc-900 dark:text-white font-bold px-5 py-3 rounded-btn flex items-center justify-center gap-2 hover:bg-zinc-100 dark:hover:bg-white/5 transition"
               >
                 <MessageCircle className="w-4 h-4" /> WhatsApp
               </a>}
@@ -454,14 +454,14 @@ export default function TrackingPage() {
                   href={whatsapp(supportMessage)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 bg-brand text-brand-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition"
+                  className="flex-1 bg-brand text-brand-ink font-bold py-3 px-4 rounded-btn flex items-center justify-center gap-2 hover:opacity-80 transition"
                 >
                   <MessageCircle className="w-4 h-4" /> WhatsApp
                 </a>}
                 {storeEmail && (
                   <a
                     href={`mailto:${storeEmail}?subject=${encodeURIComponent(`Problema con el pedido #${shortOrderId}`)}&body=${encodeURIComponent(supportMessage)}`}
-                    className="flex-1 border border-zinc-200 dark:border-white/10 text-black dark:text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:border-black dark:hover:border-white transition"
+                    className="flex-1 border border-zinc-200 dark:border-white/10 text-black dark:text-white font-bold py-3 px-4 rounded-btn flex items-center justify-center gap-2 hover:border-black dark:hover:border-white transition"
                   >
                     <Mail className="w-4 h-4" /> Email
                   </a>

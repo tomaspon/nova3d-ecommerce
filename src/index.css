@@ -37,9 +37,11 @@
   --accent-ink: #ffffff;
 }
 
-/* Forma de los botones principales (los que llevan el color de marca) */
-html[data-buttons="soft"] :is(button, a).bg-brand { border-radius: 0.75rem; }
-html[data-buttons="square"] :is(button, a).bg-brand { border-radius: 0.25rem; }
+/* Forma de los botones de la tienda (Panel > Diseño > Botones): todos usan "rounded-btn" */
+:root { --btn-radius: 9999px; }
+html[data-buttons="soft"] { --btn-radius: 0.75rem; }
+html[data-buttons="square"] { --btn-radius: 0.25rem; }
+@utility rounded-btn { border-radius: var(--btn-radius); }
 
 html.dark {
   color-scheme: dark;
