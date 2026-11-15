@@ -1,89 +1,33 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useStore } from '../../context/StoreContext';
-import { supabase } from '../../supabaseClient';
-import { parseBannerUrl, buildBannerUrl, DEFAULT_BANNER_Y } from '../../bannerPosition';
-import { BANNER_PRESETS, isPresetBanner, findPreset, presetValue, isDefaultTitle } from '../../bannerPresets';
-import CampaignHero from '../../components/CampaignHero';
+import { panelPath } from '../../sitePaths';
 import PaymentSettings from './PaymentSettings';
-import { SEASON_ART } from '../../components/campaignArt';
-import { Settings, Bell, Shield, Store, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
+import { Bell, Store, Save, TicketPercent, CheckCircle2, Loader2, Truck } from 'lucide-react';
 
+// Panel › Configuración: los datos de la tienda, envíos y cobros.
+// La campaña de temporada vive en Panel › Ofertas.
 export default function SettingsPage() {
-  const { storeSettings, updateStoreSettings, products, toggleProductCampaign, storeId } = useStore();
+  const { store, storeSettings, updateStoreSettings } = useStore();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState('campaigns'); // 'general', 'shipping', 'campaigns'
+  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'shipping'
 
-  // States for Settings
-  const [campaignActive, setCampaignActive] = useState(storeSettings?.campaign_active || false);
-  const [campaignName, setCampaignName] = useState(storeSettings?.campaign_name || '');
-  // La URL guardada incluye el encuadre vertical (#y=NN); acá se manejan por separado
-  const [campaignImageUrl, setCampaignImageUrl] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).src);
-  const [campaignImageY, setCampaignImageY] = useState(() => parseBannerUrl(storeSettings?.campaign_image_url).y);
   const [storeName, setStoreName] = useState(storeSettings?.store_name || '');
   const [storeEmail, setStoreEmail] = useState(storeSettings?.store_email || '');
   const [shippingCost, setShippingCost] = useState(storeSettings?.shipping_cost || 0);
 
-  const fileInputRef = useRef(null);
-  const bannerImgRef = useRef(null);
-  const bannerDragRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  // La configuración llega de Supabase después del primer render: sincronizar el formulario cuando carga
+  // La configuración llega de Supabase después del primer render: el formulario la toma cuando carga
   useEffect(() => {
-    setCampaignActive(storeSettings.campaign_active || false);
-    setCampaignName(storeSettings.campaign_name || '');
-    const banner = parseBannerUrl(storeSettings.campaign_image_url);
-    setCampaignImageUrl(banner.src);
-    setCampaignImageY(banner.y);
+    if (!storeSettings) return;
     setStoreName(storeSettings.store_name || '');
     setStoreEmail(storeSettings.store_email || '');
     setShippingCost(storeSettings.shipping_cost || 0);
-  }, [storeSettings.campaign_active, storeSettings.campaign_name, storeSettings.campaign_image_url,
-      storeSettings.store_name, storeSettings.store_email, storeSettings.shipping_cost]);
-
-  // Arrastrar el banner hacia arriba o abajo para elegir qué franja de la imagen se ve
-  const handleBannerPointerDown = (e) => {
-    if (isUploading || !bannerImgRef.current) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    bannerDragRef.current = { startClientY: e.clientY, startY: campaignImageY };
-  };
-
-  const handleBannerPointerMove = (e) => {
-    const drag = bannerDragRef.current;
-    const img = bannerImgRef.current;
-    if (!drag || !img || !img.naturalWidth) return;
-    const box = e.currentTarget.getBoundingClientRect();
-    // object-cover: la imagen se escala hasta cubrir la caja; lo que sobra en alto es lo que se puede desplazar
-    const scale = Math.max(box.width / img.naturalWidth, box.height / img.naturalHeight);
-    const overflow = img.naturalHeight * scale - box.height;
-    if (overflow <= 0) return;
-    const nextY = drag.startY - ((e.clientY - drag.startClientY) / overflow) * 100;
-    setCampaignImageY(Math.min(100, Math.max(0, nextY)));
-  };
-
-  const handleBannerPointerUp = () => {
-    bannerDragRef.current = null;
-  };
-
-  // Elegir un banner de temporada. Si el nombre de la campaña es uno de los títulos por defecto
-  // (o está vacío), se reemplaza por el del nuevo; si lo escribió el admin, se respeta.
-  const selectBannerPreset = (preset) => {
-    setCampaignImageUrl(presetValue(preset));
-    setCampaignImageY(DEFAULT_BANNER_Y);
-    if (isDefaultTitle(campaignName)) setCampaignName(preset.defaultTitle);
-  };
-  const selectedPreset = findPreset(campaignImageUrl);
-  const isCustomBanner = Boolean(campaignImageUrl) && !isPresetBanner(campaignImageUrl);
-  const campaignProducts = products.filter(p => p.in_campaign && p.is_active);
-  const campaignMaxDiscount = Math.max(0, ...campaignProducts.map(p => Number(p.discount) || 0));
+  }, [storeSettings?.store_name, storeSettings?.store_email, storeSettings?.shipping_cost]);
 
   const handleSave = async () => {
     setIsSaving(true);
     const ok = await updateStoreSettings({
-      campaign_active: campaignActive,
-      campaign_name: campaignName,
-      campaign_image_url: buildBannerUrl(campaignImageUrl, campaignImageY),
       store_name: storeName,
       store_email: storeEmail,
       shipping_cost: shippingCost
@@ -97,36 +41,6 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `campaign_banner_${Math.random()}.${fileExt}`;
-      const filePath = `${storeId}/banners/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('products')
-        .getPublicUrl(filePath);
-
-      setCampaignImageUrl(data.publicUrl);
-      setCampaignImageY(DEFAULT_BANNER_Y);
-    } catch (err) {
-      console.error('Error subiendo banner:', err);
-      alert('Error subiendo imagen');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   return (
     <div className="max-w-5xl mx-auto pb-20 md:pb-8">
       
@@ -134,7 +48,7 @@ export default function SettingsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">Configuración</h1>
-          <p className="text-zinc-400">Ajustes generales, motor de campañas y logística.</p>
+          <p className="text-zinc-400">Los datos de tu tienda, envíos y cobros. Las ofertas están en su propia sección.</p>
         </div>
         <button 
           onClick={handleSave}
@@ -158,18 +72,15 @@ export default function SettingsPage() {
           </button>
           
           <button 
-            onClick={() => setActiveTab('campaigns')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'campaigns' ? 'bg-indigo-500/10 text-indigo-400 shadow-inner' : 'text-zinc-500 hover:bg-white/5 hover:text-white'}`}
-          >
-            <TicketPercent className="w-5 h-5" /> Motor de Ofertas
-          </button>
-          
-          <button 
             onClick={() => setActiveTab('shipping')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'shipping' ? 'bg-white/10 text-white shadow-inner' : 'text-zinc-500 hover:bg-white/5 hover:text-white'}`}
           >
             <Truck className="w-5 h-5" /> Envíos & Pagos
           </button>
+
+          <Link to={panelPath(store?.slug, 'ofertas')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-zinc-500 hover:bg-white/5 hover:text-white transition-all">
+            <TicketPercent className="w-5 h-5" /> Ofertas <span className="ml-auto text-xs font-semibold">→</span>
+          </Link>
 
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-zinc-600 opacity-50 cursor-not-allowed">
             <Bell className="w-5 h-5" /> Notificaciones (Pronto)
@@ -183,7 +94,7 @@ export default function SettingsPage() {
           {activeTab === 'general' && (
             <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-2">
               <h2 className="text-xl font-bold text-white mb-2">Perfil de la Tienda</h2>
-              <p className="text-zinc-400 text-sm mb-6 border-b border-white/10 pb-4">Información pública visible para tus clientes.</p>
+              <p className="text-zinc-400 text-sm mb-6 border-b border-white/10 pb-4">Se usan en los mails de compra: el nombre como remitente, y las respuestas de tus clientes te llegan a este email.</p>
               
               <div className="space-y-4">
                 <div>
@@ -232,195 +143,6 @@ export default function SettingsPage() {
             </>
           )}
 
-          {/* TAB: CAMPAIGNS */}
-          {activeTab === 'campaigns' && (
-            <>
-              <div className="bg-gradient-to-br from-black to-zinc-900 border border-indigo-500/20 rounded-2xl p-6 shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-2 relative z-10">
-                  <h2 className="text-xl font-bold text-white">Sección Temática (Hero)</h2>
-                  <div className="bg-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded shrink-0 w-fit">
-                    Base de Datos Conectada
-                  </div>
-                </div>
-                <p className="text-zinc-400 text-sm mb-6 border-b border-white/10 pb-4 relative z-10">Inyecta un banner espectacular y promociona productos específicos en la portada.</p>
-                
-                <label className="flex items-center justify-between cursor-pointer p-4 bg-white/5 hover:bg-white/10 rounded-xl transition border border-white/5 mb-6 relative z-10" onClick={() => setCampaignActive(!campaignActive)}>
-                  <div>
-                    <div className="text-white font-bold mb-1">Habilitar Banner Principal</div>
-                    <div className="text-zinc-400 text-sm">Aparecerá en lo más alto de tu tienda.</div>
-                  </div>
-                  <div className={`w-12 h-6 rounded-full relative transition-colors shrink-0 ${campaignActive ? 'bg-indigo-500' : 'bg-zinc-800'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${campaignActive ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
-                  </div>
-                </label>
-
-                {campaignActive && (
-                  <div className="space-y-6 animate-in fade-in slide-in-from-top-2 relative z-10">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Nombre de la Campaña Actual</label>
-                      <input 
-                        type="text" 
-                        value={campaignName}
-                        onChange={e => setCampaignName(e.target.value)}
-                        placeholder="Ej. Black Friday 2026"
-                        className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Imagen de Portada (Banner)</label>
-
-                      {/* Banners de temporada listos para usar, o una imagen propia */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2" role="radiogroup" aria-label="Banner de la campaña">
-                        {BANNER_PRESETS.map(preset => {
-                          const isSelected = selectedPreset?.id === preset.id;
-                          return (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={isSelected}
-                              onClick={() => selectBannerPreset(preset)}
-                              className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-indigo-500' : 'border-white/10 hover:border-white/30'}`}
-                            >
-                              {/* Miniatura: color de la temporada, uno de sus objetos y el nombre */}
-                              <span className="absolute inset-0 flex items-center justify-between gap-1 px-2" style={{ backgroundColor: preset.colors.bg }}>
-                                <span className="text-sm leading-none" style={{ fontFamily: "'Pacifico', cursive", color: preset.colors.script }}>
-                                  {preset.label}
-                                </span>
-                                <span className="w-7 shrink-0">
-                                  {(() => { const { C, props } = SEASON_ART[preset.id].narrow[0]; return <C {...props} />; })()}
-                                </span>
-                              </span>
-                              {isSelected && <CheckCircle2 className="absolute top-1 right-1 w-4 h-4 text-indigo-400 drop-shadow" />}
-                            </button>
-                          );
-                        })}
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={isCustomBanner}
-                          onClick={() => !isUploading && fileInputRef.current?.click()}
-                          className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 border-dashed transition flex items-center justify-center gap-1.5 text-[11px] font-bold ${isCustomBanner ? 'border-indigo-500 text-indigo-300' : 'border-white/15 text-zinc-400 hover:border-white/30 hover:text-white'}`}
-                        >
-                          {isCustomBanner ? (
-                            <>
-                              <img src={campaignImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />
-                              <span className="relative bg-black/70 rounded px-1.5 py-0.5 text-white">Tu imagen</span>
-                            </>
-                          ) : (
-                            <><Upload className="w-3.5 h-3.5" /> Subir propia</>
-                          )}
-                        </button>
-                      </div>
-
-                      {selectedPreset && !isUploading ? (
-                        <>
-                          {/* Vista previa real del banner, con el nombre de la campaña y la oferta de los productos elegidos */}
-                          <div className="w-full h-56 rounded-xl overflow-hidden border border-white/10">
-                            <CampaignHero
-                              preset={selectedPreset}
-                              title={campaignName}
-                              maxDiscount={campaignMaxDiscount}
-                              productCount={campaignProducts.length}
-                              as="p"
-                            />
-                          </div>
-                          <p className="text-xs text-zinc-500">
-                            El titular es el nombre de la campaña: la última palabra va en letra script (por ejemplo "Summer Sale" o "Print Sale"). La oferta se calcula sola con el mayor descuento de los productos destacados abajo.
-                          </p>
-                        </>
-                      ) : campaignImageUrl && !isUploading ? (
-                        <>
-                          {/* Con imagen cargada, la caja sirve para encuadrar: se arrastra en vertical.
-                              Usa la proporción del banner en escritorio, que es donde más se recorta. */}
-                          <div
-                            onPointerDown={handleBannerPointerDown}
-                            onPointerMove={handleBannerPointerMove}
-                            onPointerUp={handleBannerPointerUp}
-                            onPointerCancel={handleBannerPointerUp}
-                            className="w-full aspect-[9/2] rounded-xl border-2 border-indigo-500/30 relative overflow-hidden bg-black/50 cursor-grab active:cursor-grabbing touch-none select-none group"
-                          >
-                            <img
-                              ref={bannerImgRef}
-                              src={campaignImageUrl}
-                              alt="Banner Preview"
-                              draggable={false}
-                              className="w-full h-full object-cover pointer-events-none"
-                              style={{ objectPosition: `50% ${campaignImageY}%` }}
-                            />
-                            <div className="absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
-                              <span className="bg-black/70 text-white text-[11px] font-bold px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5">
-                                <MoveVertical className="w-3.5 h-3.5" /> Arrastrá para encuadrar
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => setCampaignImageY(DEFAULT_BANNER_Y)}
-                              disabled={Math.round(campaignImageY) === DEFAULT_BANNER_Y}
-                              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/15 rounded-lg transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              <AlignVerticalJustifyCenter className="w-3.5 h-3.5" /> Centrar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/15 rounded-lg transition flex items-center gap-1.5"
-                            >
-                              <Upload className="w-3.5 h-3.5" /> Cambiar Portada
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div
-                          onClick={() => !isUploading && fileInputRef.current?.click()}
-                          className={`w-full h-40 rounded-xl border-2 border-dashed border-white/10 hover:border-indigo-500/50 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition group bg-black/50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {isUploading ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                              <span className="text-xs font-bold text-indigo-300">Subiendo a la nube...</span>
-                            </div>
-                          ) : (
-                            <div className="text-center p-4">
-                              <Upload className="w-8 h-8 text-zinc-600 mx-auto mb-3 group-hover:text-indigo-400 transition" />
-                              <span className="text-sm font-bold text-zinc-400 group-hover:text-indigo-300">Subir nueva portada</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" disabled={isUploading} />
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5">
-                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-4">Destacar Productos en esta campaña</label>
-                      <div className="bg-black/50 border border-white/10 rounded-xl overflow-hidden max-h-64 overflow-y-auto custom-scrollbar divide-y divide-white/5">
-                        {products.map(p => (
-                          <label key={p.id} className="flex items-center gap-4 p-3 hover:bg-white/5 cursor-pointer transition">
-                            <input 
-                              type="checkbox" 
-                              checked={!!p.in_campaign}
-                              onChange={() => toggleProductCampaign(p.id, !!p.in_campaign)}
-                              className="w-5 h-5 rounded border-white/10 bg-black text-indigo-500 focus:ring-indigo-500 focus:ring-offset-black"
-                            />
-                            <div className="w-10 h-10 bg-zinc-900 rounded overflow-hidden shrink-0">
-                              {p.imageUrl ? <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 m-3 text-zinc-700" />}
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-sm font-bold text-white">{p.name}</div>
-                              <div className="text-xs text-zinc-500">${Number(p.price).toLocaleString('es-AR')}</div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
 
         </div>
       </div>

@@ -14,6 +14,7 @@ export const PANEL_SECTIONS = [
   { id: '', label: 'Resumen' },
   { id: 'productos', label: 'Productos' },
   { id: 'categorias', label: 'Categorías' },
+  { id: 'ofertas', label: 'Ofertas' },
   { id: 'ordenes', label: 'Órdenes' },
   { id: 'envios', label: 'Envíos' },
   { id: 'diseno', label: 'Diseño' },

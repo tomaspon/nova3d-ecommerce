@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Monitor, Smartphone, Upload, Loader2, Trash2, CheckCircle2, AlertTriangle, ExternalLink, Palette, Type, Megaphone, AtSign, BookOpen, Image as ImageIcon, LayoutGrid, Square } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
+import { Link } from 'react-router-dom';
+import { panelPath } from '../../sitePaths';
 import { storesOrigin } from '../../platformBrand';
 import { compressImage } from '../../imageCompression';
 
 // La tienda se previsualiza en la dirección de las tiendas (el panel puede estar en la de la plataforma)
 const PREVIEW_ORIGIN = storesOrigin() || window.location.origin;
-import { BRAND_COLORS, FONT_OPTIONS, BUTTON_SHAPES, IMAGE_RATIOS, BACKGROUNDS, DARK_BACKGROUNDS, ACCENT_COLORS, SORT_OPTIONS, GRID_COLUMNS, normalizeBranding, inkFor } from '../../branding';
+import { CAMPAIGN_POSITIONS, BRAND_COLORS, FONT_OPTIONS, BUTTON_SHAPES, IMAGE_RATIOS, BACKGROUNDS, DARK_BACKGROUNDS, ACCENT_COLORS, SORT_OPTIONS, GRID_COLUMNS, normalizeBranding, inkFor } from '../../branding';
 
 // Panel > Diseño: el dueño cambia la marca de su tienda y la ve en vivo antes de publicarla.
 // La vista previa es la tienda real en un iframe; el borrador le llega por postMessage.
@@ -271,7 +273,15 @@ export default function DesignPage() {
           </Section>
 
           <Section icon={Megaphone} title="Portada y anuncio">
-            <Field label="Titular: parte suave" hint='Se muestra cuando no hay un banner de campaña activo. Ej: "Lo nuevo de"'>
+            <Field
+              label="Banner de la oferta"
+              hint={storeSettings?.campaign_active
+                ? CAMPAIGN_POSITIONS.find(p => p.id === draft.campaign_position)?.hint
+                : <>No tenés una oferta activa: activala en <Link to={panelPath(store?.slug, 'ofertas')} className="text-indigo-300 hover:text-indigo-200">Ofertas</Link> para verla en la vista previa.</>}
+            >
+              <Choices options={CAMPAIGN_POSITIONS.map(p => ({ value: p.id, label: p.label }))} value={draft.campaign_position} onChange={set('campaign_position')} />
+            </Field>
+            <Field label="Titular: parte suave" hint='Se muestra cuando la oferta no ocupa la portada. Ej: "Lo nuevo de"'>
               <input className={inputClass} value={draft.headline_light} onChange={setFromInput('headline_light')} placeholder="Lo nuevo de" maxLength={60} />
             </Field>
             <Field label="Titular: parte destacada">

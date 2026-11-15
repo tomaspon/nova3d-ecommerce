@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
-import { Plus, Trash2, Power, PowerOff, Image as ImageIcon, ArchiveRestore, Upload, Loader2, Search, Download, AlertTriangle, Minus, X, Activity, ScanBarcode, ChevronDown } from 'lucide-react';
+import { TicketPercent, Plus, Trash2, Power, PowerOff, Image as ImageIcon, ArchiveRestore, Upload, Loader2, Search, Download, AlertTriangle, Minus, X, Activity, ScanBarcode, ChevronDown } from 'lucide-react';
 import { fetchReservedMap } from '../../reservations';
 import { compressImage } from '../../imageCompression';
 import VariantEditor from './VariantEditor';
@@ -176,7 +176,7 @@ export default function ProductsPage() {
         name: product.name, description: product.description || '', price: product.price,
         discount: product.discount || '0', stock: Number(product.stock), category: product.category || '',
         newCategory: '', imageUrl: product.imageUrl || '', images: product.images?.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []),
-          barcode: product.barcode || '',
+          barcode: product.barcode || '', inCampaign: Boolean(product.in_campaign),
 
       });
       setVariantForm(product.variants?.length
@@ -191,7 +191,7 @@ export default function ProductsPage() {
       setFormData({
         name: '', description: '', price: '', discount: '0', stock: 0, adjustmentAmount: 0,
         category: categories[0] || '', newCategory: '', imageUrl: '', images: [],
-          barcode: '',
+          barcode: '', inCampaign: false,
 
       });
       setVariantForm(NO_VARIANTS);
@@ -211,7 +211,7 @@ export default function ProductsPage() {
       name: formData.name, description: formData.description, price: Number(formData.price),
       discount: Number(formData.discount), stock: 0, category: finalCategory,
       imageUrl: formData.images?.[0] || null, images: formData.images,
-      features: formData.features, barcode: formData.barcode
+      features: formData.features, barcode: formData.barcode, inCampaign: formData.inCampaign
     };
 
     if (variantForm.enabled && variantForm.rows.length === 0) {
@@ -661,6 +661,14 @@ export default function ProductsPage() {
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">DESCRIPCIÓN</label>
                       <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-black border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 resize-none transition custom-scrollbar text-sm"></textarea>
                     </div>
+
+                    <label className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 cursor-pointer">
+                      <span>
+                        <span className="flex items-center gap-2 text-sm font-bold text-white"><TicketPercent className="w-4 h-4 text-indigo-400" /> Destacar en la oferta</span>
+                        <span className="block text-xs text-zinc-500 mt-0.5">Aparece en el carrusel de la campaña de temporada (Panel › Ofertas).</span>
+                      </span>
+                      <input type="checkbox" checked={Boolean(formData.inCampaign)} onChange={e => setFormData({ ...formData, inCampaign: e.target.checked })} className="w-5 h-5 accent-indigo-500 shrink-0" />
+                    </label>
 
                     <VariantEditor
                       value={variantForm}

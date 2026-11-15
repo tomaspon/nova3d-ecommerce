@@ -65,6 +65,13 @@ export const SORT_OPTIONS = [
 
 export const GRID_COLUMNS = [3, 4, 5];
 
+// Dónde va el banner de la oferta (la oferta se arma en Panel › Ofertas)
+export const CAMPAIGN_POSITIONS = [
+  { id: 'top', label: 'Portada', hint: 'Grande, arriba de todo' },
+  { id: 'compact', label: 'Portada compacta', hint: 'Arriba, más bajo: se ven antes los productos' },
+  { id: 'before_catalog', label: 'Antes del catálogo', hint: 'Arriba va la presentación de tu marca' }
+];
+
 const HEX = /^#[0-9a-f]{6}$/i;
 const oneOf = (value, options, fallback) => (options.includes(value) ? value : fallback);
 const clean = (value, max) => String(value ?? '').trim().slice(0, max);
@@ -98,6 +105,7 @@ export function normalizeBranding(input = {}) {
     accent_color: HEX.test(b.accent_color || '') ? b.accent_color.toLowerCase() : '',
     announcement_color: HEX.test(b.announcement_color || '') ? b.announcement_color.toLowerCase() : '',
     default_sort: oneOf(b.default_sort, SORT_OPTIONS.map(o => o.value), 'destacados'),
+    campaign_position: oneOf(b.campaign_position, CAMPAIGN_POSITIONS.map(o => o.id), 'top'),
     // Lo que se muestra (por defecto, todo visible)
     show_store_name: b.show_store_name !== false,
     show_category: b.show_category !== false,
@@ -112,7 +120,7 @@ export function normalizeBranding(input = {}) {
 export const TEMPLATE_STYLE_FIELDS = [
   'primary_color', 'font', 'theme', 'button_shape', 'image_ratio', 'grid_columns',
   'background', 'background_custom', 'dark_background', 'accent_color', 'announcement_color',
-  'default_sort', 'show_category', 'quick_add', 'show_benefits', 'show_coming_soon'
+  'default_sort', 'show_category', 'quick_add', 'show_benefits', 'show_coming_soon', 'campaign_position'
 ];
 
 export const templateStyle = (branding) =>

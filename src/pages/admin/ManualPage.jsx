@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { smoothScrollTo } from '../../smoothScroll';
 import { Link } from 'react-router-dom';
-import { BookOpen, Rocket, LayoutDashboard, Package, Tag, Box, Truck, Settings, ShoppingBag, Users, Globe, HelpCircle, Lightbulb } from 'lucide-react';
+import { TicketPercent, BookOpen, Rocket, LayoutDashboard, Package, Tag, Box, Truck, Settings, ShoppingBag, Users, Globe, HelpCircle, Lightbulb } from 'lucide-react';
 import { RESERVATION_MINUTES, TRANSFER_RESERVATION_HOURS } from '../../orderStatus';
 
 // Manual del panel de la tienda, paso a paso.
@@ -81,14 +81,23 @@ const SECTIONS = [
     ]
   },
   {
-    id: 'configuracion', icon: Settings, title: 'Configuración',
-    intro: 'Los datos de tu tienda y las campañas.',
+    id: 'ofertas', icon: TicketPercent, title: 'Ofertas',
+    intro: 'Tu campaña de temporada: un banner en la portada y un carrusel con los productos que querés empujar.',
     steps: [
-      ['Perfil de la tienda', 'Nombre del negocio y email de contacto.'],
-      ['Envío', 'El costo de envío fijo que se suma a cada compra (0 = envío gratis).'],
       ['Banner de temporada', <>Activá <b>Habilitar Banner Principal</b> y elegí un diseño listo (Verano, Primavera, Invierno) o <b>Subir propia</b>. Con una foto propia podés arrastrarla para encuadrarla.</>],
       ['Nombre de la campaña', 'El título del banner (por ejemplo "Summer Sale").'],
-      ['Productos de la campaña', <>En <b>Destacar Productos en esta campaña</b> elegí cuáles aparecen en el carrusel de ofertas. El banner muestra solo el mayor descuento real entre ellos ("Hasta 30% OFF").</>]
+      ['Productos de la campaña', <>Tildalos en la lista de Ofertas o desde la ficha de cada producto (<b>Destacar en la oferta</b>). El banner muestra solo el mayor descuento real entre ellos ("Hasta 30% OFF").</>],
+      ['Dónde se ve', <>En <b>Diseño › Portada</b> elegís si el banner va grande arriba de todo, compacto, o antes del catálogo (con la presentación de tu marca arriba).</>]
+    ],
+    tip: 'Acordate de guardar: los cambios se aplican en la tienda al instante.'
+  },
+  {
+    id: 'configuracion', icon: Settings, title: 'Configuración',
+    intro: 'Los datos de tu tienda, envíos y cobros.',
+    steps: [
+      ['Perfil de la tienda', 'Nombre del negocio y email de contacto. Se usan en los mails de compra: el nombre como remitente y el email para recibir las respuestas de tus clientes.'],
+      ['Envío', 'El costo de envío fijo que se suma a cada compra (0 = envío gratis).'],
+      ['Cobros', 'Conectá MercadoPago y cargá tus datos de transferencia y WhatsApp.']
     ],
     tip: 'Acordate de guardar: los cambios se aplican en la tienda al instante.'
   },

@@ -361,6 +361,7 @@ export function StoreProvider({ children }) {
         image_url: productData.images && productData.images.length > 0 ? JSON.stringify(productData.images) : (productData.imageUrl || null),
         features: productData.features || [],
         barcode: productData.barcode || null,
+        in_campaign: Boolean(productData.inCampaign),
         store_id: storeId
       };
       // Talles o colores (solo si los tiene: asÃ­ funciona aunque la base no tenga la migraciÃ³n 011)
@@ -397,6 +398,7 @@ export function StoreProvider({ children }) {
       // Solo se tocan si el formulario los envÃ­a; si no, quedan como estÃ¡n en la base
       if (updatedData.features !== undefined) payload.features = updatedData.features;
       if (updatedData.barcode !== undefined) payload.barcode = updatedData.barcode || null;
+      if (updatedData.inCampaign !== undefined) payload.in_campaign = Boolean(updatedData.inCampaign);
 
       const { error } = await supabase.from('products').update(payload).eq('id', id);
       if (error) throw error;

@@ -38,8 +38,11 @@ describe('opciones de catálogo, estilo y colores', () => {
     expect(normalizeBranding({})).toMatchObject({
       button_shape: 'pill', image_ratio: 'portrait', grid_columns: 4, background: 'hueso', default_sort: 'destacados',
       dark_background: 'carbon', accent_color: '', announcement_color: '', background_custom: '',
-      show_store_name: true, show_category: true, quick_add: true, show_benefits: true, show_coming_soon: true
+      show_store_name: true, show_category: true, quick_add: true, show_benefits: true, show_coming_soon: true,
+      campaign_position: 'top'
     });
+    expect(normalizeBranding({ campaign_position: 'before_catalog' }).campaign_position).toBe('before_catalog');
+    expect(normalizeBranding({ campaign_position: 'costado' }).campaign_position).toBe('top');
   });
 
   it('acepta solo valores válidos', () => {

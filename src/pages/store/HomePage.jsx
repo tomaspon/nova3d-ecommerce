@@ -85,88 +85,94 @@ export default function HomePage() {
   if (sortBy === 'precio_menor') activeProducts.sort((a, b) => a.price - b.price);
   if (sortBy === 'precio_mayor') activeProducts.sort((a, b) => b.price - a.price);
 
+  // Oferta de temporada: se arma en Panel › Ofertas; dónde va, en Panel › Diseño
+  const campaignOn = Boolean(storeSettings?.campaign_active) && !searchQuery;
+  const campaignAt = design.campaign_position;
+  const compact = campaignAt === 'compact';
+  const campaignSection = campaignOn ? (
+          <section className="bg-white dark:bg-transparent border-b border-zinc-200 dark:border-white/5 transition-colors">
+            
+            {/* Banner de temporada diseñado (preset) */}
+            {campaignPreset && (
+              <div className={`w-full ${compact ? 'h-44 sm:h-48 lg:h-56' : 'h-64 sm:h-72 lg:h-96'}`}>
+                <CampaignHero
+                  preset={campaignPreset}
+                  title={storeSettings.campaign_name}
+                  maxDiscount={campaignMaxDiscount}
+                  productCount={campaignProducts.length}
+                  onCtaClick={() => document.getElementById(campaignProducts.length > 0 ? 'ofertas' : 'catalogo')?.scrollIntoView({ behavior: 'smooth' })}
+                />
+              </div>
+            )}
+  
+            {/* Banner con imagen propia */}
+            {storeSettings.campaign_image_url && !campaignPreset && (
+              <div className={`w-full relative ${compact ? 'h-32 md:h-40 lg:h-48' : 'h-40 md:h-64 lg:h-80'}`}>
+                <img fetchPriority="high" src={campaignBanner.src} alt="Campaña promocional" className="w-full h-full object-cover" style={{ objectPosition: `50% ${campaignBanner.y}%` }} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 p-6 w-full max-w-screen-2xl mx-auto">
+                  <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white drop-shadow-lg">
+                    {storeSettings.campaign_name}
+                  </h2>
+                </div>
+              </div>
+            )}
+  
+            {/* Carrusel de Productos Seleccionados */}
+            {campaignProducts.length > 0 && (
+              <div id="ofertas" className={`scroll-mt-24 max-w-screen-2xl mx-auto px-6 lg:px-12 py-6 ${storeSettings.campaign_image_url ? 'pt-5' : ''}`}>
+                {!storeSettings.campaign_image_url && (
+                  <div className="mb-4 flex items-end justify-between">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white">
+                        {storeSettings.campaign_name}
+                      </h2>
+                      <p className="text-zinc-500 text-xs mt-1">Productos destacados</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar snap-x">
+                  {campaignProducts.map(p => {
+                    const finalPrice = p.price * (1 - (p.discount || 0) / 100);
+                    return (
+                      <div key={p.id} onClick={() => navigate(`/producto/${p.id}`)} className="w-36 md:w-48 shrink-0 snap-start group cursor-pointer">
+                        <div className="aspect-[var(--card-aspect)] bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl relative overflow-hidden mb-3 border border-zinc-100 dark:border-white/5 transition-colors">
+                          {p.discount > 0 && (
+                            <div className="absolute top-2 left-2 z-20">
+                              <div className="bg-accent text-accent-ink px-2.5 py-1 rounded-md text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest shadow-sm">
+                                {p.discount}% OFF
+                              </div>
+                            </div>
+                          )}
+                          {p.imageUrl ? (
+                            <img loading="lazy" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-6 h-6 text-zinc-300 dark:text-zinc-700" /></div>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-zinc-900 dark:text-white text-sm truncate mb-0.5">{p.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-zinc-900 dark:text-white text-sm">${finalPrice.toLocaleString('es-AR')}</span>
+                          {p.discount > 0 && <span className="text-[10px] text-zinc-400 line-through">${p.price.toLocaleString('es-AR')}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+  ) : null;
+
   return (
     <div className="bg-store dark:bg-store-dark transition-colors duration-300 min-h-screen pb-12">
       
-      {/* CAMPAÑA ACTIVA (Fase 3) */}
-      {storeSettings?.campaign_active && !searchQuery && (
-        <section className="bg-white dark:bg-transparent border-b border-zinc-200 dark:border-white/5 transition-colors">
-          
-          {/* Banner de temporada diseñado (preset) */}
-          {campaignPreset && (
-            <div className="w-full h-64 sm:h-72 lg:h-96">
-              <CampaignHero
-                preset={campaignPreset}
-                title={storeSettings.campaign_name}
-                maxDiscount={campaignMaxDiscount}
-                productCount={campaignProducts.length}
-                onCtaClick={() => document.getElementById(campaignProducts.length > 0 ? 'ofertas' : 'catalogo')?.scrollIntoView({ behavior: 'smooth' })}
-              />
-            </div>
-          )}
+      {/* OFERTA ACTIVA (Panel › Ofertas): arriba, salvo que en Diseño se haya elegido "Antes del catálogo" */}
+      {campaignAt !== 'before_catalog' && campaignSection}
 
-          {/* Banner con imagen propia */}
-          {storeSettings.campaign_image_url && !campaignPreset && (
-            <div className="w-full h-40 md:h-64 lg:h-80 relative">
-              <img fetchPriority="high" src={campaignBanner.src} alt="Campaña promocional" className="w-full h-full object-cover" style={{ objectPosition: `50% ${campaignBanner.y}%` }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-              <div className="absolute bottom-0 left-0 p-6 w-full max-w-screen-2xl mx-auto">
-                <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white drop-shadow-lg">
-                  {storeSettings.campaign_name}
-                </h2>
-              </div>
-            </div>
-          )}
-
-          {/* Carrusel de Productos Seleccionados */}
-          {campaignProducts.length > 0 && (
-            <div id="ofertas" className={`scroll-mt-24 max-w-screen-2xl mx-auto px-6 lg:px-12 py-6 ${storeSettings.campaign_image_url ? 'pt-5' : ''}`}>
-              {!storeSettings.campaign_image_url && (
-                <div className="mb-4 flex items-end justify-between">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white">
-                      {storeSettings.campaign_name}
-                    </h2>
-                    <p className="text-zinc-500 text-xs mt-1">Productos destacados</p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar snap-x">
-                {campaignProducts.map(p => {
-                  const finalPrice = p.price * (1 - (p.discount || 0) / 100);
-                  return (
-                    <div key={p.id} onClick={() => navigate(`/producto/${p.id}`)} className="w-36 md:w-48 shrink-0 snap-start group cursor-pointer">
-                      <div className="aspect-[var(--card-aspect)] bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl relative overflow-hidden mb-3 border border-zinc-100 dark:border-white/5 transition-colors">
-                        {p.discount > 0 && (
-                          <div className="absolute top-2 left-2 z-20">
-                            <div className="bg-accent text-accent-ink px-2.5 py-1 rounded-md text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest shadow-sm">
-                              {p.discount}% OFF
-                            </div>
-                          </div>
-                        )}
-                        {p.imageUrl ? (
-                          <img loading="lazy" src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-6 h-6 text-zinc-300 dark:text-zinc-700" /></div>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-zinc-900 dark:text-white text-sm truncate mb-0.5">{p.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-zinc-900 dark:text-white text-sm">${finalPrice.toLocaleString('es-AR')}</span>
-                        {p.discount > 0 && <span className="text-[10px] text-zinc-400 line-through">${p.price.toLocaleString('es-AR')}</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* PRESENTACIÓN DE MARCA (cuando no hay campaña ni búsqueda) */}
-      {!storeSettings?.campaign_active && !searchQuery && categoryFilter === 'all' && (
+      {/* PRESENTACIÓN DE MARCA (cuando la oferta no ocupa la portada, y sin búsqueda) */}
+      {!(campaignOn && campaignAt !== 'before_catalog') && !searchQuery && categoryFilter === 'all' && (
         <section className="border-b border-zinc-200 dark:border-white/5">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-12 md:py-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             {/* Lo que sobra, fino y apagado; lo que importa, con peso */}
@@ -201,6 +207,8 @@ export default function HomePage() {
           </ul>
         </div>
       )}
+
+      {campaignAt === 'before_catalog' && campaignSection}
 
       {/* HEADER DEL CATÁLOGO */}
       <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-8 lg:pt-10">

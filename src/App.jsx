@@ -37,6 +37,7 @@ const CreateStorePage = lazy(() => import('./pages/platform/CreateStorePage'));
 const ManualPage = lazy(() => import('./pages/admin/ManualPage'));
 const DesignPage = lazy(() => import('./pages/admin/DesignPage'));
 const PanelHome = lazy(() => import('./pages/platform/PanelHome'));
+const OffersPage = lazy(() => import('./pages/admin/OffersPage'));
 
 // Dos sitios en un mismo despliegue (ver src/sitePaths.js):
 //  - la plataforma: página oficial, alta, panel de cada tienda y superadmin
@@ -96,6 +97,7 @@ function App() {
             <Route path="ordenes" element={<OrdersPage />} />
             <Route path="envios" element={<ShippingPage />} />
             <Route path="categorias" element={<CategoriesPage />} />
+            <Route path="ofertas" element={<OffersPage />} />
             <Route path="configuracion" element={<SettingsPage />} />
             <Route path="diseno" element={<DesignPage />} />
             <Route path="ayuda" element={<ManualPage />} />

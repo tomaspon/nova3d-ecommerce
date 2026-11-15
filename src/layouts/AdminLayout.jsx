@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, BookOpen, Palette } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, BookOpen, Palette, TicketPercent } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
 import SalesActivationBanner from '../components/SalesActivationBanner';
@@ -24,6 +24,7 @@ export default function AdminLayout() {
     { name: 'Resumen', path: at(''), icon: LayoutDashboard },
     { name: 'Productos', path: at('productos'), icon: Package },
     { name: 'Categorías', path: at('categorias'), icon: Tag },
+    { name: 'Ofertas', path: at('ofertas'), icon: TicketPercent },
     { name: 'Órdenes', path: at('ordenes'), icon: Box },
     { name: 'Envíos', path: at('envios'), icon: Truck },
     { name: 'Diseño', path: at('diseno'), icon: Palette },
@@ -55,8 +56,8 @@ export default function AdminLayout() {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
             return (
-              <Link 
-                key={item.name} 
+              <Link
+                key={item.name}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${isActive ? 'bg-indigo-600/15 text-indigo-400 font-bold border border-indigo-500/20' : 'hover:bg-white/5 text-zinc-500 hover:text-white font-medium'}`}
               >
