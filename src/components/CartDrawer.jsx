@@ -48,6 +48,7 @@ export default function CartDrawer() {
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
+    if (store?.isDemo) return; // tienda de ejemplo: no se hacen pedidos
     setCheckoutStep('loading');
     
     const res = await checkoutOrder(formData);
@@ -290,15 +291,16 @@ export default function CartDrawer() {
             </div>
             
             {checkoutStep === 'cart' ? (
-              <button onClick={() => setCheckoutStep('form')} className="w-full bg-[#5c4ce5] hover:bg-[#4b3ed1] text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-xl shadow-[#5c4ce5]/20 hover:-translate-y-0.5">
+              <button onClick={() => setCheckoutStep('form')} className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-xl shadow-black/10 hover:-translate-y-0.5 active:scale-[0.98]">
                 Siguiente Paso
               </button>
             ) : (
-              <button 
-                type="submit" 
-                form="checkout-form"
+              <button
+                // En la tienda de ejemplo el botón se presiona pero no hace nada: es solo una muestra
+                type={store?.isDemo ? 'button' : 'submit'}
+                form={store?.isDemo ? undefined : 'checkout-form'}
                 disabled={checkoutStep === 'loading' || paymentMethods.length === 0}
-                className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 hover:-translate-y-0.5"
+                className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0"
               >
                 {checkoutStep === 'loading' ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Procesando...</>
