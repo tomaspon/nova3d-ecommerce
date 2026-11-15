@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, ExternalLink, LayoutDashboard, Globe, Users, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw, Pause, Play, Trash2, Copy } from 'lucide-react';
+import { Palette, Settings, Plus, ExternalLink, LayoutDashboard, Globe, Users, Loader2, X, AlertTriangle, CheckCircle2, RefreshCw, Pause, Play, Trash2, Copy } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { formatMoney } from '../../pricing';
 import RequestsList from './RequestsList';
@@ -77,7 +77,11 @@ export default function PlatformPage({ view = 'stores' }) {
     }
   };
 
-  const stores = data?.stores || [];
+  const allStores = data?.stores || [];
+  // La tienda principal es la plantilla base: va aparte, no en la lista de clientes
+  const templateStore = allStores.find(s => s.isDefault);
+  const stores = allStores.filter(s => !s.isDefault);
+  const urlsFor = (store) => storeUrls(store, { origin: storesOrigin() || origin, platformDomain: data.platformDomain, platformOrigin: platformOrigin() });
   const requests = data ? data.requests : [];
   const origin = window.location.origin;
 
@@ -122,12 +126,19 @@ export default function PlatformPage({ view = 'stores' }) {
             onCreateStore={(request) => setDialog({ type: 'create', request })}
           />
         ) : (
+          <>
+          {templateStore && <TemplateCard store={templateStore} urls={urlsFor(templateStore)} />}
+          {stores.length === 0 && (
+            <div className="p-10 text-center bg-black border border-white/10 rounded-2xl text-sm text-zinc-400">
+              Todavía no hay tiendas de clientes. Se crean solas desde la página oficial, o con <b className="text-white">Nueva tienda</b>.
+            </div>
+          )}
           <ul className="space-y-4">
             {stores.map(store => (
               <StoreCard
                 key={store.id}
                 store={store}
-                urls={storeUrls(store, { origin: storesOrigin() || origin, platformDomain: data.platformDomain, platformOrigin: platformOrigin() })}
+                urls={urlsFor(store)}
                 busy={busyId === store.id}
                 onToggleStatus={() => run({ action: 'update', storeId: store.id, status: store.status === 'active' ? 'suspended' : 'active' }, store.id)}
                 onToggleSales={() => run({ action: 'update', storeId: store.id, salesEnabled: store.sales_enabled === false }, store.id)}
@@ -141,12 +152,13 @@ export default function PlatformPage({ view = 'stores' }) {
               />
             ))}
           </ul>
+          </>
         )}
 
 
       {dialog?.type === 'create' && (
         <CreateStoreDialog
-          stores={stores}
+          stores={allStores}
           request={dialog.request}
           onClose={() => setDialog(null)}
           onSubmit={(payload) => run({ action: 'create', ...payload, fromRequest: dialog.request?.id || null })}
@@ -163,6 +175,30 @@ export default function PlatformPage({ view = 'stores' }) {
         </div>
       )}
     </div>
+  );
+}
+
+// La plantilla base: su estilo lo hereda cada tienda nueva y lo muestra la tienda de ejemplo
+function TemplateCard({ store, urls }) {
+  const link = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition';
+  return (
+    <section className="rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/[0.08] to-transparent p-5 sm:p-6">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Plantilla base</p>
+          <h2 className="mt-1 text-xl font-black text-white">{store.name}</h2>
+          <p className="mt-1 text-sm text-zinc-400 max-w-xl">
+            Es el modelo de la plataforma: la tienda de ejemplo de la página oficial se ve con su estilo, y cada tienda nueva
+            arranca con sus colores, tipografía, botones, catálogo y costo de envío. Su logo, textos, redes y datos de cobro no se copian.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <a href={`${urls.admin}/diseno`} target="_blank" rel="noopener noreferrer" className={`${link} bg-indigo-600 hover:bg-indigo-500`}><Palette className="w-3.5 h-3.5" /> Editar estilo</a>
+          <a href={`${urls.admin}/configuracion`} target="_blank" rel="noopener noreferrer" className={link}><Settings className="w-3.5 h-3.5" /> Configuración</a>
+          <a href={urls.storefront.replace(/\?tienda=[^&]+/, '?tienda=demo')} target="_blank" rel="noopener noreferrer" className={link}><ExternalLink className="w-3.5 h-3.5" /> Ver la tienda de ejemplo</a>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -340,7 +376,7 @@ function CreateStoreDialog({ stores, request, onClose, onSubmit }) {
   const [slugTouched, setSlugTouched] = useState(false);
   const [template, setTemplate] = useState(() => STORE_TEMPLATES.some(t => t.id === request?.category) ? request.category : 'general');
   const [ownerEmail, setOwnerEmail] = useState(request?.email || '');
-  // Por defecto arranca con la configuración de la tienda principal (MINIMAL), sin sus productos
+  // Por defecto arranca con el estilo de la plantilla base (la tienda principal), sin sus productos
   const [copyFrom, setCopyFrom] = useState(() => stores.find(s => s.isDefault)?.id || '');
   const [isSaving, submit] = useSubmit(onSubmit);
 
@@ -373,10 +409,12 @@ function CreateStoreDialog({ stores, request, onClose, onSubmit }) {
         <label className="block">
           <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Plantilla</span>
           <select value={copyFrom} onChange={(e) => setCopyFrom(e.target.value)} className={inputClass}>
-            {stores.map(s => <option key={s.id} value={s.id}>Copiar configuración de {s.name}</option>)}
+            {[...stores].sort((a, b) => Number(b.isDefault) - Number(a.isDefault)).map(s => (
+              <option key={s.id} value={s.id}>{s.isDefault ? `Plantilla base (${s.name})` : `Copiar el estilo de ${s.name}`}</option>
+            ))}
             <option value="">Empezar en blanco</option>
           </select>
-          <span className="block mt-1.5 text-xs text-zinc-500">Copia envío, campaña y banner. Los productos no se copian: la tienda arranca vacía.</span>
+          <span className="block mt-1.5 text-xs text-zinc-500">Copia colores, tipografía, botones, catálogo y costo de envío. Ni productos, ni logo, ni textos: la tienda arranca vacía.</span>
         </label>
         <label className="block">
           <span className="block text-xs font-semibold text-zinc-400 mb-1.5">Email del dueño (opcional)</span>

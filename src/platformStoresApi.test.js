@@ -115,19 +115,19 @@ describe('api/platform-stores', () => {
     expect(fake.client.tables.store_members).toEqual([{ store_id: store.id, user_id: 'u-owner', role: 'owner' }]);
   });
 
-  it('con plantilla copia la configuración de otra tienda, pero no sus productos', async () => {
+  it('con plantilla copia el estilo y el envío de otra tienda, pero no sus productos ni lo propio de su marca', async () => {
     const t = fake.client.tables;
     t.store_settings.push({ store_id: MINIMAL, store_name: 'MINIMAL.', shipping_cost: 1500, campaign_active: true, campaign_name: 'Summer Sale', campaign_image_url: 'preset:verano' });
     t.products.push({ id: 'p1', store_id: MINIMAL, is_active: true });
-    t.stores[0].branding = { color: '#000' };
+    t.stores[0].branding = { primary_color: '#4f46e5', font: 'elegante', logo_url: 'https://x/logo.png', about_text: 'Somos MINIMAL', instagram: 'minimal' };
 
     const res = await call('admin', { action: 'create', name: 'Velas', slug: 'velas', copyFrom: MINIMAL });
-    expect(res.body.message).toMatch(/configuración de MINIMAL/);
+    expect(res.body.message).toMatch(/estilo de MINIMAL/);
     const velas = t.stores.find(s => s.slug === 'velas');
-    expect(velas.branding).toEqual({ color: '#000' });
-    expect(t.store_settings.find(s => s.store_id === velas.id)).toMatchObject({
-      store_name: 'Velas', shipping_cost: 1500, campaign_active: true, campaign_name: 'Summer Sale', campaign_image_url: 'preset:verano'
-    });
+    expect(velas.branding).toEqual({ primary_color: '#4f46e5', font: 'elegante' });
+    const settings = t.store_settings.find(s => s.store_id === velas.id);
+    expect(settings).toMatchObject({ store_name: 'Velas', shipping_cost: 1500 });
+    expect(settings.campaign_name).toBeUndefined();
     expect(t.products.filter(p => p.store_id === velas.id)).toHaveLength(0);
   });
 

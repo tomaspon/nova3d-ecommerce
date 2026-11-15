@@ -17,9 +17,13 @@ const memoryStorage = () => {
 describe('tienda de ejemplo', () => {
   it('?tienda=demo abre la tienda incorporada, sin buscarla en la base', async () => {
     rpc.mockClear();
+    rpc.mockResolvedValueOnce({ data: null, error: null }); // ningún dominio
+    rpc.mockResolvedValueOnce({ data: { slug: 'minimal', branding: { primary_color: '#4f46e5', logo_url: 'https://x/logo.png' } }, error: null });
     const store = await resolveStore({ host: 'x.vercel.app', hostname: 'x.vercel.app', search: '?tienda=demo' }, memoryStorage());
-    expect(store).toBe(DEMO_STORE);
-    expect(rpc.mock.calls.map(c => c[0])).toEqual(['get_store_by_host']);
+    expect(store).toMatchObject({ id: DEMO_STORE.id, name: DEMO_STORE.name, isDemo: true });
+    // Toma solo el estilo de la plantilla base (no su logo); los productos son los propios
+    expect(store.branding).toEqual({ primary_color: '#4f46e5' });
+    expect(rpc.mock.calls.map(c => c[0])).toEqual(['get_store_by_host', 'get_store_by_slug']);
   });
 
   it('el dominio propio de una tienda manda sobre ?tienda=demo', async () => {

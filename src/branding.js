@@ -107,6 +107,17 @@ export function normalizeBranding(input = {}) {
   };
 }
 
+// Plantilla base (la tienda principal): lo que heredan la tienda de ejemplo y cada tienda nueva.
+// Solo el estilo; nunca lo propio de esa marca (logo, textos, redes, anuncio).
+export const TEMPLATE_STYLE_FIELDS = [
+  'primary_color', 'font', 'theme', 'button_shape', 'image_ratio', 'grid_columns',
+  'background', 'background_custom', 'dark_background', 'accent_color', 'announcement_color',
+  'default_sort', 'show_category', 'quick_add', 'show_benefits', 'show_coming_soon'
+];
+
+export const templateStyle = (branding) =>
+  Object.fromEntries(TEMPLATE_STYLE_FIELDS.filter(k => branding?.[k] !== undefined).map(k => [k, branding[k]]));
+
 // Tinta legible sobre un color de fondo (blanco o casi negro), según su luminancia
 export function inkFor(hex) {
   if (!HEX.test(hex || '')) return '#ffffff';

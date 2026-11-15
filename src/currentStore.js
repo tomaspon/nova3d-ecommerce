@@ -2,6 +2,18 @@ import { supabase } from './supabaseClient';
 import { DEFAULT_STORE_ID } from './storeIds';
 import { DEMO_STORE, DEMO_SLUG } from './demoStore';
 import { panelSlugFromPath } from './sitePaths';
+import { templateStyle } from './branding';
+
+// La tienda de ejemplo se ve con el estilo de la plantilla base (la tienda principal):
+// lo que muestra la página oficial es lo mismo que recibe cada tienda nueva.
+async function demoStore() {
+  try {
+    const base = await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG });
+    return { ...DEMO_STORE, branding: { ...templateStyle(base?.branding), ...DEMO_STORE.branding } };
+  } catch {
+    return DEMO_STORE;
+  }
+}
 
 // Qué tienda muestra este sitio. Un mismo despliegue sirve a todas las tiendas de la
 // plataforma: se elige por el dominio (supabase/003_multitienda.sql, get_store_by_host).
@@ -47,7 +59,7 @@ export async function resolveStore(location = window.location, storage = window.
   // En el panel (/panel/<tienda>/...) manda la dirección: nunca se cae a otra tienda
   const panelSlug = panelSlugFromPath(location.pathname);
   if (panelSlug) {
-    if (panelSlug === DEMO_SLUG) return DEMO_STORE;
+    if (panelSlug === DEMO_SLUG) return demoStore();
     try {
       const store = await rpcStore('get_store_by_slug', { p_slug: panelSlug });
       if (store) return store;
@@ -62,7 +74,7 @@ export async function resolveStore(location = window.location, storage = window.
     if (byHost) return byHost;
 
     const override = storeOverride(location, storage);
-    if (override === DEMO_SLUG) return DEMO_STORE;
+    if (override === DEMO_SLUG) return demoStore();
     if (override) {
       const store = await rpcStore('get_store_by_slug', { p_slug: override });
       if (store) return store;

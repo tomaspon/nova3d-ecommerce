@@ -1,6 +1,7 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { validateStoreSignup, TERMS_VERSION } from '../src/storeSignup.js';
 import { bearerToken, isPlatformAdmin as hasPlatformAccess } from './_lib/platformAdmin.js';
+import { templateDefaults } from './_lib/storeTemplate.js';
 
 // Alta de tiendas por autoservicio (como Shopify o Tiendanube): quien tiene cuenta crea
 // su tienda al instante y queda como dueño. La tienda nace con las ventas deshabilitadas:
@@ -68,7 +69,10 @@ export default async function handler(req, res) {
       }
     }
 
+    // Arranca con el estilo y el envío de la plantilla base (la tienda principal)
+    const base = await templateDefaults(supabase);
     const { data: store, error } = await supabase.from('stores').insert({
+      branding: base.branding,
       name: data.name,
       slug: data.slug,
       template: data.template,
@@ -77,14 +81,14 @@ export default async function handler(req, res) {
       terms_version: TERMS_VERSION,
       terms_accepted_at: new Date().toISOString(),
       signup_ip: clientIp(req)
-    }).select('id, slug, name').single();
+    }).select('id, slug, name, branding').single();
     if (error) {
       if (error.code === '23505') return res.status(409).json({ message: 'Ese enlace ya está en uso. Probá con otro.', errors: { slug: 'Ese enlace ya está en uso.' } });
       throw error;
     }
 
     const [settingsRes, memberRes] = await Promise.all([
-      supabase.from('store_settings').insert({ store_id: store.id, store_name: data.name }),
+      supabase.from('store_settings').insert({ ...base.settings, store_id: store.id, store_name: data.name }),
       supabase.from('store_members').insert({ store_id: store.id, user_id: user.id, role: 'owner' })
     ]);
     if (settingsRes.error || memberRes.error) {

@@ -23,6 +23,8 @@ export function buildPlatformStats({ stores = [], orders = [], products = [], us
   const paid = orders.filter(o => isPaid(o.status));
   const gmv = paid.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   const storeOf = (o) => o.store_id || DEFAULT_STORE_ID;
+  // La tienda principal es la plantilla base, no un cliente: no suma en los contadores de tiendas
+  const clientStores = stores.filter(s => s.id !== DEFAULT_STORE_ID);
 
   // Serie diaria de los últimos `days` días (incluye hoy), con ceros donde no hubo ventas
   const daily = [];
@@ -46,7 +48,7 @@ export function buildPlatformStats({ stores = [], orders = [], products = [], us
     weekly.push({ week: start, stores: 0, users: 0 });
   }
   const weekIndex = new Map(weekly.map((w, i) => [w.week, i]));
-  for (const s of stores) { const i = weekIndex.get(weekKey(s.created_at)); if (i !== undefined) weekly[i].stores += 1; }
+  for (const s of clientStores) { const i = weekIndex.get(weekKey(s.created_at)); if (i !== undefined) weekly[i].stores += 1; }
   for (const u of users) { const i = weekIndex.get(weekKey(u.created_at)); if (i !== undefined) weekly[i].users += 1; }
 
   // Por tienda
@@ -103,7 +105,7 @@ export function buildPlatformStats({ stores = [], orders = [], products = [], us
     { label: 'Vencidos sin pagar', value: orders.filter(o => isExpired(o.status)).length },
     { label: 'Cancelados', value: orders.filter(o => isCanceled(o.status) && !isExpired(o.status)).length }
   ].filter(p => p.value > 0);
-  const templateMix = count(stores, s => s.template || 'general');
+  const templateMix = count(clientStores, s => s.template || 'general');
 
   const expired = orders.filter(o => isExpired(o.status)).length;
   const sellerMpRevenue = paid
@@ -116,11 +118,11 @@ export function buildPlatformStats({ stores = [], orders = [], products = [], us
       gmv,
       paidOrders: paid.length,
       avgTicket: paid.length ? gmv / paid.length : 0,
-      stores: stores.length,
-      activeStores: stores.filter(s => s.status === 'active').length,
-      sellingStores: stores.filter(s => s.status === 'active' && s.sales_enabled !== false).length,
+      stores: clientStores.length,
+      activeStores: clientStores.filter(s => s.status === 'active').length,
+      sellingStores: clientStores.filter(s => s.status === 'active' && s.sales_enabled !== false).length,
       pendingActivation: byStore.filter(s => s.activationRequested).length,
-      mpConnected: stores.filter(s => s.mp_connected).length,
+      mpConnected: clientStores.filter(s => s.mp_connected).length,
       users: users.length,
       newUsers30d: users.filter(u => now - new Date(u.created_at).getTime() <= 30 * DAY).length,
       activeProducts: products.filter(p => p.is_active).length,

@@ -1,5 +1,6 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { requirePlatformAdmin, listAllUsers, platformUrl } from './_lib/platformAdmin.js';
+import { templateDefaults } from './_lib/storeTemplate.js';
 import { isVercelConfigured, addDomain, removeDomain, domainStatus } from './_lib/vercelDomains.js';
 import { STORE_TEMPLATES, slugError, normalizeDomain, isValidDomain } from '../src/platformStores.js';
 import { DEFAULT_STORE_ID } from '../src/storeIds.js';
@@ -131,26 +132,18 @@ export default async function handler(req, res) {
       const invalidSlug = slugError(slug);
       if (invalidSlug) throw new UserError(invalidSlug);
 
-      // Plantilla: otra tienda de la que se copian la marca y la configuración (envío, campaña,
-      // banner). Los productos, pedidos y dueños no se copian: la tienda nueva arranca vacía.
-      let base = null;
-      let baseSettings = {};
+      // Plantilla: la tienda de la que se copian el estilo y el costo de envío. Ni sus productos,
+      // pedidos y dueños, ni lo propio de su marca (logo, textos, redes, campaña): arranca vacía.
+      let base = { branding: {}, settings: {} };
+      let from = null;
       if (body.copyFrom) {
-        base = await getStore(supabase, body.copyFrom);
-        const { data, error } = await supabase.from('store_settings').select('*').eq('store_id', base.id).maybeSingle();
-        if (error) throw error;
-        if (data) {
-          baseSettings = {
-            shipping_cost: data.shipping_cost,
-            campaign_active: data.campaign_active,
-            campaign_name: data.campaign_name,
-            campaign_image_url: data.campaign_image_url
-          };
-        }
+        from = await getStore(supabase, body.copyFrom);
+        base = await templateDefaults(supabase, from.id);
       }
+      const baseSettings = base.settings;
 
       const { data: store, error } = await supabase.from('stores')
-        .insert({ name, slug, template, branding: base?.branding || {} })
+        .insert({ name, slug, template, branding: base.branding })
         .select().single();
       if (error) {
         if (error.code === '23505') throw new UserError('Ya existe una tienda con ese enlace. Elegí otro.', 409);
@@ -164,7 +157,7 @@ export default async function handler(req, res) {
         await supabase.from('store_requests').update({ status: 'aprobada', store_id: store.id }).eq('id', body.fromRequest);
       }
 
-      let message = base ? `Tienda "${name}" creada con la configuración de ${base.name}.` : `Tienda "${name}" creada.`;
+      let message = from ? `Tienda "${name}" creada con el estilo de ${from.name}.` : `Tienda "${name}" creada.`;
       if (String(body.ownerEmail || '').trim()) {
         message += ' ' + await addOwner(supabase, req, store, String(body.ownerEmail));
       }

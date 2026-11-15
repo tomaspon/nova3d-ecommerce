@@ -34,8 +34,8 @@ describe('buildPlatformStats', () => {
     expect(stats.kpis.estimatedFees).toBe(150); // 5% de 3000
   });
 
-  it('separa tiendas activas, que venden y que pidieron activación', () => {
-    expect(stats.kpis).toMatchObject({ stores: 3, activeStores: 3, sellingStores: 2, pendingActivation: 1, mpConnected: 1 });
+  it('separa tiendas activas, que venden y que pidieron activación (la plantilla base no cuenta como cliente)', () => {
+    expect(stats.kpis).toMatchObject({ stores: 2, activeStores: 2, sellingStores: 1, pendingActivation: 1, mpConnected: 1 });
   });
 
   it('arma la serie diaria con ceros y corta los días en hora argentina', () => {
@@ -66,6 +66,6 @@ describe('buildPlatformStats', () => {
       { label: 'Esperando pago', value: 1 },
       { label: 'Vencidos sin pagar', value: 1 }
     ]);
-    expect(stats.templateMix[0]).toEqual({ label: 'ropa', value: 2 });
+    expect(stats.templateMix).toEqual(expect.arrayContaining([{ label: 'ropa', value: 1 }, { label: 'velas', value: 1 }]));
   });
 });
