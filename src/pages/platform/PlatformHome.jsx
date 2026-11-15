@@ -30,14 +30,32 @@ const EXAMPLE_STORE = { slug: 'demo', custom_domain: null };
 
 // Los enlaces internos (#ejemplo, #como-funciona) deslizan hasta la sección en vez de saltar.
 // Quien pidió menos movimiento en su sistema va directo.
+const HEADER_OFFSET = 64; // alto del encabezado fijo
+let scrollAnimation = null;
+
 function scrollToSection(event) {
   const id = event.currentTarget.getAttribute('href')?.slice(1);
   const target = id && document.getElementById(id);
   if (!target) return;
   event.preventDefault();
-  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   window.history.replaceState(null, '', `#${id}`);
+
+  const start = window.scrollY;
+  const end = Math.max(0, target.getBoundingClientRect().top + start - HEADER_OFFSET);
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || Math.abs(end - start) < 2) { window.scrollTo(0, end); return; }
+
+  // Más lejos, un poco más de tiempo (entre 0,5 y 0,9 s), con arranque y frenado suaves
+  const duration = Math.min(900, Math.max(500, Math.abs(end - start) * 0.35));
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+  if (scrollAnimation) cancelAnimationFrame(scrollAnimation);
+  const t0 = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / duration);
+    window.scrollTo(0, start + (end - start) * ease(t));
+    scrollAnimation = t < 1 ? requestAnimationFrame(step) : null;
+  };
+  scrollAnimation = requestAnimationFrame(step);
 }
 
 export default function PlatformHome() {
@@ -80,6 +98,23 @@ export default function PlatformHome() {
         </div>
       </section>
 
+      {/* Cómo funciona */}
+      <section id="como-funciona" className="bg-zinc-50 border-y border-zinc-200 scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Cómo funciona</h2>
+          <p className="mt-3 text-zinc-600 text-lg">Tres pasos y estás vendiendo. Abajo tenés una tienda de ejemplo para probar.</p>
+          <ol className="mt-10 grid md:grid-cols-3 gap-6">
+            {STEPS.map((step, index) => (
+              <li key={step.title} className="bg-white rounded-2xl border border-zinc-200 p-6">
+                <span className="text-sm font-extrabold text-indigo-600">0{index + 1}</span>
+                <h3 className="mt-3 font-bold text-lg">{step.title}</h3>
+                <p className="mt-1.5 text-zinc-600 leading-relaxed">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
       {/* Ejemplo real */}
       <section id="ejemplo" className="relative overflow-hidden bg-zinc-950 text-white scroll-mt-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
@@ -114,22 +149,6 @@ export default function PlatformHome() {
               <p className="mt-1.5 text-zinc-600 leading-relaxed">{text}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* Cómo funciona */}
-      <section id="como-funciona" className="bg-zinc-50 border-y border-zinc-200 scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Cómo funciona</h2>
-          <ol className="mt-10 grid md:grid-cols-3 gap-6">
-            {STEPS.map((step, index) => (
-              <li key={step.title} className="bg-white rounded-2xl border border-zinc-200 p-6">
-                <span className="text-sm font-extrabold text-indigo-600">0{index + 1}</span>
-                <h3 className="mt-3 font-bold text-lg">{step.title}</h3>
-                <p className="mt-1.5 text-zinc-600 leading-relaxed">{step.text}</p>
-              </li>
-            ))}
-          </ol>
         </div>
       </section>
 
