@@ -102,7 +102,7 @@ export default function ProductDetailPage() {
             <div className="relative aspect-square w-full bg-[#f4f4f5] dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/5 overflow-hidden flex items-center justify-center transition-colors group">
               
               {hasDiscount && (
-                <div className="absolute top-6 left-6 z-10 bg-black dark:bg-white text-white dark:text-black text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-xl">
+                <div className="absolute top-6 left-6 z-10 bg-brand text-brand-ink text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-xl">
                   {product.discount}% OFF
                 </div>
               )}
@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
                       {/* Puntos Indicadores */}
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                         {images.map((_, i) => (
-                          <button key={i} onClick={() => setCurrentImageIndex(i)} className={`w-2 h-2 rounded-full transition-all ${i === currentImageIndex ? 'bg-black dark:bg-white w-6' : 'bg-black/20 dark:bg-white/20'}`} />
+                          <button key={i} onClick={() => setCurrentImageIndex(i)} className={`w-2 h-2 rounded-full transition-all ${i === currentImageIndex ? 'bg-brand w-6' : 'bg-black/20 dark:bg-white/20'}`} />
                         ))}
                       </div>
                     </>
@@ -212,7 +212,7 @@ export default function ProductDetailPage() {
                 <button 
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className="flex-1 h-12 bg-black dark:bg-white text-white dark:text-black font-black uppercase tracking-widest text-sm rounded-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed shadow-xl shadow-black/10 dark:shadow-white/10"
+                  className="flex-1 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-sm rounded-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed shadow-xl shadow-black/10 dark:shadow-white/10"
                 >
                   <ShoppingBag className="w-5 h-5" />
                   {isOutOfStock ? 'Sin Stock' : 'Agregar al Carrito'}
@@ -241,7 +241,7 @@ export default function ProductDetailPage() {
                   <ul className="space-y-3">
                     {product.features.map((feature, idx) => (
                       <li key={idx} className={`flex items-start gap-4 p-3 rounded-lg ${idx % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-900/50' : 'bg-transparent'}`}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-black dark:bg-white mt-1.5 shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0" />
                         <span className="text-zinc-600 dark:text-zinc-300 text-sm">{feature}</span>
                       </li>
                     ))}
@@ -311,7 +311,7 @@ export default function ProductDetailPage() {
           <button 
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="flex-1 shrink-0 h-12 bg-black dark:bg-white text-white dark:text-black font-black uppercase tracking-widest text-xs rounded-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl"
+            className="flex-1 shrink-0 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-xs rounded-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl"
           >
             <ShoppingBag className="w-4 h-4" />
             {isOutOfStock ? 'Sin Stock' : 'Agregar'}

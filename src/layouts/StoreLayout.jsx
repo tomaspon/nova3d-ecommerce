@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Search, User, ShoppingBag, X, Moon, Sun, Menu } from 'lucide-react';
+import { Search, User, ShoppingBag, X, Moon, Sun, Menu, MessageCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import CartDrawer from '../components/CartDrawer';
-import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../storeContact';
+import { normalizeBranding, instagramUrl, tiktokUrl } from '../branding';
+import { storeWhatsappLink } from '../paymentMethods';
 
 export default function StoreLayout() {
-  const { store, cart, toggleCart, user, isDarkMode, toggleDarkMode } = useStore();
+  const { store, storeSettings, cart, toggleCart, user, isDarkMode, toggleDarkMode } = useStore();
+  const branding = normalizeBranding(store?.branding);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const searchInputRef = useRef(null);
@@ -19,6 +21,15 @@ export default function StoreLayout() {
   // Nombre e inicial de la tienda actual (cada tienda de la plataforma tiene el suyo)
   const storeName = store?.name || '';
   const storeInitial = storeName.replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase();
+
+  // Contacto y redes de la tienda (Panel > Diseño y Configuración > Cobros)
+  const whatsappLink = storeWhatsappLink(storeSettings, `¡Hola ${storeName}! Tengo una consulta.`);
+  const contactLinks = [
+    whatsappLink && { href: whatsappLink, label: 'WhatsApp' },
+    instagramUrl(branding.instagram) && { href: instagramUrl(branding.instagram), label: 'Instagram' },
+    tiktokUrl(branding.tiktok) && { href: tiktokUrl(branding.tiktok), label: 'TikTok' },
+    storeSettings?.store_email && { href: `mailto:${storeSettings.store_email}`, label: storeSettings.store_email }
+  ].filter(Boolean);
 
   const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -63,6 +74,12 @@ export default function StoreLayout() {
         <div className="md:hidden fixed inset-0 z-[35] bg-black/20" onClick={() => setIsMenuOpen(false)} />
       )}
 
+      {branding.announcement_active && branding.announcement_text && (
+        <div className="bg-brand text-brand-ink text-center text-xs sm:text-sm font-semibold px-4 py-2">
+          {branding.announcement_text}
+        </div>
+      )}
+
       {store?.sales_enabled === false && (
         <div className="bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200 text-center text-xs sm:text-sm font-medium px-4 py-2">
           Tienda en preparación: todavía no recibe pedidos.
@@ -82,7 +99,11 @@ export default function StoreLayout() {
             {isMenuOpen ? <X className="w-5 h-5" strokeWidth={2} /> : <Menu className="w-5 h-5" strokeWidth={2} />}
           </button>
           <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 md:gap-3 group min-w-0">
-            <div className="w-7 h-7 md:w-9 md:h-9 shrink-0 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">{storeInitial}</div>
+            {branding.logo_url ? (
+              <img src={branding.logo_url} alt="" className="h-8 md:h-10 w-auto max-w-[7rem] object-contain shrink-0" />
+            ) : (
+              <div className="w-7 h-7 md:w-9 md:h-9 shrink-0 bg-brand rounded-full flex items-center justify-center text-brand-ink font-serif font-bold italic group-hover:scale-110 transition-transform duration-500 ease-out shadow-md">{storeInitial}</div>
+            )}
             <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden truncate max-w-[11rem] md:max-w-none">{storeName}</span>
           </Link>
         </div>
@@ -94,21 +115,21 @@ export default function StoreLayout() {
             className={`transition-all duration-300 relative py-2 ${isActive('/') ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
           >
             Catálogo
-            {isActive('/') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-black dark:bg-white rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
+            {isActive('/') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
           </Link>
           <Link 
             to="/nosotros" 
             className={`transition-all duration-300 relative py-2 ${isActive('/nosotros') ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
           >
             Nosotros
-            {isActive('/nosotros') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-black dark:bg-white rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
+            {isActive('/nosotros') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
           </Link>
           <Link 
             to="/seguimiento" 
             className={`transition-all duration-300 relative py-2 ${isActive('/seguimiento') ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
           >
             Seguimiento
-            {isActive('/seguimiento') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-black dark:bg-white rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
+            {isActive('/seguimiento') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
           </Link>
         </nav>
 
@@ -132,7 +153,7 @@ export default function StoreLayout() {
           <button onClick={toggleCart} className="relative group p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Abrir carrito">
             <ShoppingBag className="w-5 h-5 group-hover:text-black dark:group-hover:text-white transition-colors" strokeWidth={2} />
             {cartItemsCount > 0 && (
-              <span className="absolute top-1 right-0.5 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center">
+              <span className="absolute top-1 right-0.5 bg-brand text-brand-ink text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center">
                 {cartItemsCount}
               </span>
             )}
@@ -200,13 +221,16 @@ export default function StoreLayout() {
                 </ul>
               </div>
             ))}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-4">Contacto</p>
-              <ul className="space-y-2.5 text-sm text-zinc-500">
-                <li><a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="hover:text-black dark:hover:text-white transition">WhatsApp</a></li>
-                {SUPPORT_EMAIL && <li><a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-black dark:hover:text-white transition break-all">{SUPPORT_EMAIL}</a></li>}
-              </ul>
-            </div>
+            {contactLinks.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-4">Contacto</p>
+                <ul className="space-y-2.5 text-sm text-zinc-500">
+                  {contactLinks.map(l => (
+                    <li key={l.label}><a href={l.href} target={l.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer" className="hover:text-black dark:hover:text-white transition break-all">{l.label}</a></li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div className="mt-12 pt-6 border-t border-zinc-200 dark:border-white/5 flex flex-col sm:flex-row gap-3 justify-between text-xs text-zinc-400 dark:text-zinc-600">
             <p>© {new Date().getFullYear()} {storeName} Todos los derechos reservados.</p>
@@ -215,6 +239,18 @@ export default function StoreLayout() {
         </div>
       </footer>
     
+      {branding.whatsapp_button && whatsappLink && (
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Escribinos por WhatsApp"
+          className="fixed bottom-5 right-5 z-30 w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xl shadow-black/20 hover:scale-105 transition"
+        >
+          <MessageCircle className="w-7 h-7" />
+        </a>
+      )}
+
       {/* SEARCH OVERLAY */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-start pt-24 px-4 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md animate-in fade-in duration-200" onKeyDown={(e) => e.key === 'Escape' && setIsSearchOpen(false)}>

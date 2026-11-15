@@ -3,7 +3,7 @@ import { Search, Loader2, Package, Truck, CheckCircle2, AlertCircle, Calendar, C
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
-import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../storeContact';
+import { storeWhatsappLink } from '../../paymentMethods';
 import { isAwaitingPayment, isPaid as isOrderPaid, isCanceled as isOrderCanceled, trackingStep } from '../../orderStatus';
 import { lineTotal, formatMoney } from '../../pricing';
 
@@ -16,7 +16,10 @@ const TRACKING_STAGES = [
 ];
 
 export default function TrackingPage() {
-  const { storeId } = useStore();
+  const { storeId, storeSettings } = useStore();
+  // Contacto de esta tienda (Configuración > Cobros y Perfil)
+  const storeEmail = storeSettings?.store_email || '';
+  const whatsapp = (text) => storeWhatsappLink(storeSettings, text);
   const [document, setDocument] = useState('');
   const [orders, setOrders] = useState([]); // Can be multiple if searching by DNI
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -191,7 +194,7 @@ export default function TrackingPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="shrink-0 bg-black dark:bg-white text-white dark:text-black font-bold px-7 py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
+                  className="shrink-0 bg-brand text-brand-ink font-bold px-7 py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   Buscar pedidos
@@ -254,14 +257,14 @@ export default function TrackingPage() {
                 <p className="text-sm font-bold text-zinc-900 dark:text-white">¿Necesitás ayuda con tu compra?</p>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">Escribinos y te respondemos a la brevedad.</p>
               </div>
-              <a
-                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido.')}`}
+              {whatsapp() && <a
+                href={whatsapp('Hola! Tengo una consulta sobre mi pedido.')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 border border-zinc-300 dark:border-white/20 text-zinc-900 dark:text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-100 dark:hover:bg-white/5 transition"
               >
                 <MessageCircle className="w-4 h-4" /> WhatsApp
-              </a>
+              </a>}
             </div>
           </aside>
         </div>
@@ -342,13 +345,13 @@ export default function TrackingPage() {
                   <div className="absolute top-1/2 left-0 w-full h-1 bg-zinc-200 dark:bg-zinc-800 -translate-y-1/2 z-0 rounded-full"></div>
                   
                   <div 
-                    className="absolute top-1/2 left-0 h-1 bg-black dark:bg-white -translate-y-1/2 z-0 transition-all duration-1000 ease-out rounded-full"
+                    className="absolute top-1/2 left-0 h-1 bg-brand -translate-y-1/2 z-0 transition-all duration-1000 ease-out rounded-full"
                     style={{ width: `${((step - 1) / 3) * 100}%` }}
                   ></div>
 
                   {/* Paso 1: Pendiente */}
                   <div className="relative z-10 flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 1 ? 'bg-black dark:bg-white text-white dark:text-black border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 1 ? 'bg-brand text-brand-ink border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
                       <ClipboardCheck className="w-5 h-5" />
                     </div>
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${step >= 1 ? 'text-black dark:text-white' : 'text-zinc-400'}`}>Ordenado</span>
@@ -356,7 +359,7 @@ export default function TrackingPage() {
 
                   {/* Paso 2: Pagado/Preparando */}
                   <div className="relative z-10 flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 2 ? 'bg-black dark:bg-white text-white dark:text-black border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 2 ? 'bg-brand text-brand-ink border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
                       <Package className="w-5 h-5" />
                     </div>
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${step >= 2 ? 'text-black dark:text-white' : 'text-zinc-400'}`}>Preparando</span>
@@ -364,7 +367,7 @@ export default function TrackingPage() {
 
                   {/* Paso 3: Enviado */}
                   <div className="relative z-10 flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 3 ? 'bg-black dark:bg-white text-white dark:text-black border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${step >= 3 ? 'bg-brand text-brand-ink border-2 border-transparent' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-2 border-zinc-200 dark:border-zinc-800'}`}>
                       <Truck className="w-5 h-5" />
                     </div>
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${step >= 3 ? 'text-black dark:text-white' : 'text-zinc-400'}`}>Enviado</span>
@@ -447,17 +450,17 @@ export default function TrackingPage() {
               <h4 className="font-bold text-black dark:text-white mb-1">¿Tuviste un problema con tu pedido?</h4>
               <p className="text-zinc-500 dark:text-zinc-400 mb-3">Escribinos con tu número de pedido y lo resolvemos.</p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <a
-                  href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(supportMessage)}`}
+                {whatsapp() && <a
+                  href={whatsapp(supportMessage)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 bg-black dark:bg-white text-white dark:text-black font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition"
+                  className="flex-1 bg-brand text-brand-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-80 transition"
                 >
                   <MessageCircle className="w-4 h-4" /> WhatsApp
-                </a>
-                {SUPPORT_EMAIL && (
+                </a>}
+                {storeEmail && (
                   <a
-                    href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Problema con el pedido #${shortOrderId}`)}&body=${encodeURIComponent(supportMessage)}`}
+                    href={`mailto:${storeEmail}?subject=${encodeURIComponent(`Problema con el pedido #${shortOrderId}`)}&body=${encodeURIComponent(supportMessage)}`}
                     className="flex-1 border border-zinc-200 dark:border-white/10 text-black dark:text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:border-black dark:hover:border-white transition"
                   >
                     <Mail className="w-4 h-4" /> Email

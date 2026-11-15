@@ -102,7 +102,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/10 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
         
         <div className="p-8 text-center border-b border-zinc-100 dark:border-white/10 bg-[#f4f4f5] dark:bg-zinc-950">
-          <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-serif font-bold italic mx-auto mb-4 shadow-sm">{(store?.name || '').charAt(0).toUpperCase()}</div>
+          <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center text-brand-ink font-serif font-bold italic mx-auto mb-4 shadow-sm">{(store?.name || '').charAt(0).toUpperCase()}</div>
           <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
             {isResetting ? 'Restablecer Clave' : isRegistering ? 'Creá tu cuenta' : 'Bienvenido de vuelta'}
           </h2>
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
             <button 
               disabled={isLoading}
-              className="w-full bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
+              className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>

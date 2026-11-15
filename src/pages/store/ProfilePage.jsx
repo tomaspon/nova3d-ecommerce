@@ -162,7 +162,7 @@ function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
             <button
               type="button"
               onClick={() => onReorder(order)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand text-brand-ink text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
             >
               <RotateCcw className="w-4 h-4" /> Volver a comprar
             </button>
@@ -170,7 +170,7 @@ function OrderCard({ order, onTrack, onReceipt, onReorder, onOpenProduct }) {
             <button
               type="button"
               onClick={() => onTrack(order)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand text-brand-ink text-sm font-semibold px-5 py-2.5 hover:opacity-85 transition"
             >
               <Truck className="w-4 h-4" /> Seguir pedido
             </button>
@@ -293,7 +293,7 @@ export default function ProfilePage() {
         {/* Lateral: cuenta + navegación */}
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black flex items-center justify-center font-black text-lg shrink-0">
+            <div className="w-12 h-12 rounded-full bg-brand text-brand-ink flex items-center justify-center font-black text-lg shrink-0">
               {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                 </FormSection>
 
                 <div className="flex justify-end">
-                  <button disabled={isSavingDatos} type="submit" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold px-8 py-3.5 hover:opacity-85 transition disabled:opacity-60">
+                  <button disabled={isSavingDatos} type="submit" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-brand text-brand-ink font-semibold px-8 py-3.5 hover:opacity-85 transition disabled:opacity-60">
                     {isSavingDatos ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</> : <><Save className="w-4 h-4" /> Guardar cambios</>}
                   </button>
                 </div>
@@ -524,7 +524,7 @@ function EmptyState({ icon: Icon, title, text, action, onAction }) {
       </span>
       <h2 className="text-lg font-bold text-zinc-900 dark:text-white">{title}</h2>
       <p className="text-sm text-zinc-500 mt-1.5 mb-6 max-w-sm">{text}</p>
-      <button type="button" onClick={onAction} className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold px-6 py-3 hover:opacity-85 transition">
+      <button type="button" onClick={onAction} className="inline-flex items-center gap-1.5 rounded-full bg-brand text-brand-ink font-semibold px-6 py-3 hover:opacity-85 transition">
         {action} <ChevronRight className="w-4 h-4" />
       </button>
     </div>

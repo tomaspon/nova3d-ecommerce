@@ -9,16 +9,28 @@
   --font-weight-black: 800;
 }
 
+/* Color de marca de la tienda (Panel > Diseño). Sin color elegido: negro en modo claro y
+   blanco en modo oscuro. Con color, applyBranding() lo fija para los dos modos. */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+}
+
 :root {
   color-scheme: light dark;
+  --brand: #0b0b0b;
+  --brand-ink: #ffffff;
 }
 
 html.dark {
   color-scheme: dark;
+  --brand: #ffffff;
+  --brand-ink: #0b0b0b;
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  /* Tipografía de la tienda (Panel > Diseño) */
+  font-family: var(--font-store, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

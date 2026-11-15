@@ -5,7 +5,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { parseBannerUrl } from '../../bannerPosition';
 import { findPreset } from '../../bannerPresets';
 import CampaignHero from '../../components/CampaignHero';
-import { SUPPORT_WHATSAPP } from '../../storeContact';
+import { storeWhatsappLink } from '../../paymentMethods';
+import { instagramUrl } from '../../branding';
 
 const BENEFITS = [
   { icon: CreditCard, title: 'Pagá como quieras', text: 'MercadoPago o transferencia' },
@@ -70,6 +71,13 @@ export default function HomePage() {
       (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }
+
+  // Tarjeta "Próximamente": por WhatsApp o Instagram de la tienda, si tiene alguno
+  const whatsappLink = storeWhatsappLink(storeSettings, `¡Hola! Quiero enterarme de los próximos lanzamientos de ${store?.name || 'la tienda'}`);
+  const instagramLink = instagramUrl(store?.branding?.instagram);
+  const comingSoon = whatsappLink ? { href: whatsappLink, cta: 'Avisame por WhatsApp' }
+    : instagramLink ? { href: instagramLink, cta: 'Seguinos en Instagram' }
+    : { href: undefined, cta: null };
 
   if (sortBy === 'precio_menor') activeProducts.sort((a, b) => a.price - b.price);
   if (sortBy === 'precio_mayor') activeProducts.sort((a, b) => b.price - a.price);
@@ -217,7 +225,7 @@ export default function HomePage() {
               }}
               className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
                 categoryFilter === 'all'
-                  ? 'bg-black text-white dark:bg-white dark:text-black shadow-lg'
+                  ? 'bg-brand text-brand-ink shadow-lg'
                   : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
               }`}
             >
@@ -234,7 +242,7 @@ export default function HomePage() {
                 }}
                 className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
                   categoryFilter === cat
-                    ? 'bg-black text-white dark:bg-white dark:text-black shadow-lg'
+                    ? 'bg-brand text-brand-ink shadow-lg'
                     : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
                 }`}
               >
@@ -334,7 +342,7 @@ export default function HomePage() {
                       }}
                       disabled={product.available_stock <= 0}
                       aria-label={`Agregar ${product.name} al carrito`}
-                      className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
+                      className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-brand text-brand-ink rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
                     >
                       <Plus className="w-6 h-6" />
                     </button>
@@ -364,7 +372,7 @@ export default function HomePage() {
             {/* Con pocos productos la grilla queda vacía: invitamos a enterarse de lo próximo */}
             {!searchQuery && activeProducts.length < 4 && (
               <a
-                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`¡Hola! Quiero enterarme de los próximos lanzamientos de ${store?.name || 'la tienda'}`)}`}
+                href={comingSoon.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group col-span-1 sm:col-span-2 self-start aspect-[4/5] sm:aspect-[8.2/5] rounded-2xl md:rounded-3xl border border-dashed border-zinc-300 dark:border-white/15 p-4 sm:p-6 md:p-8 flex flex-col justify-between hover:border-zinc-500 dark:hover:border-white/40 transition-colors"
@@ -373,10 +381,10 @@ export default function HomePage() {
                 <div>
                   <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2 sm:mb-3">Próximamente</p>
                   <p className="text-lg sm:text-xl md:text-3xl font-black tracking-tight text-zinc-900 dark:text-white leading-tight">Nuevos diseños en camino.</p>
-                  <p className="hidden sm:block mt-3 text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">Escribinos y te avisamos cuando salgan, antes que nadie.</p>
-                  <span className="mt-3 sm:mt-5 inline-flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-white underline underline-offset-4 decoration-zinc-400 group-hover:decoration-current">
-                    Avisame por WhatsApp
-                  </span>
+                  {comingSoon.cta && <p className="hidden sm:block mt-3 text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">Escribinos y te avisamos cuando salgan, antes que nadie.</p>}
+                  {comingSoon.cta && <span className="mt-3 sm:mt-5 inline-flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-white underline underline-offset-4 decoration-zinc-400 group-hover:decoration-current">
+                    {comingSoon.cta}
+                  </span>}
                 </div>
               </a>
             )}

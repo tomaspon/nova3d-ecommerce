@@ -33,6 +33,7 @@ const PlatformHome = lazy(() => import('./pages/platform/PlatformHome'));
 const TermsPage = lazy(() => import('./pages/platform/TermsPage'));
 const CreateStorePage = lazy(() => import('./pages/platform/CreateStorePage'));
 const ManualPage = lazy(() => import('./pages/admin/ManualPage'));
+const DesignPage = lazy(() => import('./pages/admin/DesignPage'));
 
 // En el dominio de la plataforma la dirección principal es la página oficial;
 // en cualquier otro (tiendas, Vercel, localhost) es una tienda.
@@ -83,6 +84,7 @@ function App() {
             <Route path="shipping" element={<ShippingPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="diseno" element={<DesignPage />} />
             <Route path="ayuda" element={<ManualPage />} />
           </Route>
         </Routes>

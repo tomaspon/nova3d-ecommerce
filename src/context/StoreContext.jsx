@@ -4,6 +4,7 @@ import { fetchReservedMap, releaseExpiredReservations } from '../reservations';
 import { mapProduct } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID } from '../currentStore';
+import { applyBranding, normalizeBranding } from '../branding';
 import { DEMO_PRODUCTS, DEMO_SETTINGS, DEMO_CHECKOUT_MESSAGE } from '../demoStore';
 
 const DEFAULT_CATEGORIES = ['Tecnología', 'Indumentaria', 'Accesorios', 'Hogar'];
@@ -59,21 +60,19 @@ export function StoreProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // MODO OSCURO GLOBAL
+  // Si el visitante eligió un modo, se respeta; si no, se usa el que eligió la tienda (Panel > Diseño)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
+    document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
-  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
+  const toggleDarkMode = () => setIsDarkMode(prev => {
+    localStorage.setItem('theme', prev ? 'light' : 'dark');
+    return !prev;
+  });
 
   // Efectos de guardado local (por tienda)
   const loadedLocalFor = useRef(null);
@@ -83,9 +82,14 @@ export function StoreProvider({ children }) {
     localStorage.setItem(`store_cart_${storeId}`, JSON.stringify(cart));
   }, [storeId, categories, cart]);
 
+  // Marca en borrador que mandó el panel de Diseño (puede llegar antes de que cargue la tienda)
+  const previewBrandingRef = useRef(null);
+
   // INICIO: identificar la tienda y la sesión
   useEffect(() => {
-    resolveStore().then(setStore);
+    resolveStore().then(resolved => setStore(
+      previewBrandingRef.current ? { ...resolved, branding: previewBrandingRef.current } : resolved
+    ));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -97,6 +101,33 @@ export function StoreProvider({ children }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // MARCA DE LA TIENDA: color, tipografía, ícono y modo por defecto
+  useEffect(() => {
+    if (!store || window.location.pathname.startsWith('/plataforma')) return;
+    applyBranding(store.branding);
+    if (localStorage.getItem('theme') === null) setIsDarkMode(normalizeBranding(store.branding).theme === 'dark');
+  }, [store]);
+
+  // Vista previa en vivo del panel de Diseño: la página que encuadra la tienda le manda la marca en borrador
+  useEffect(() => {
+    const onMessage = (event) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'store-branding-preview') return;
+      previewBrandingRef.current = event.data.branding;
+      setStore(prev => (prev ? { ...prev, branding: event.data.branding } : prev));
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  // Guarda la marca (solo quien administra la tienda: lo controla la base)
+  const updateBranding = async (branding) => {
+    const clean = normalizeBranding(branding);
+    const { data, error } = await supabase.from('stores').update({ branding: clean }).eq('id', storeId).select('id');
+    if (error || !data?.length) return { success: false, error: error?.message || 'No se pudo guardar.' };
+    setStore(prev => ({ ...prev, branding: clean }));
+    return { success: true };
+  };
 
   // DATOS DE LA TIENDA
   useEffect(() => {
@@ -470,6 +501,7 @@ export function StoreProvider({ children }) {
     <StoreContext.Provider value={{
       store,
       storeId,
+      updateBranding,
       categories,
       products,
       cart,
