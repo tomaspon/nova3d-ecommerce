@@ -25,7 +25,7 @@ export function AdminToPanel() {
   const { store } = useStore();
   const { pathname, search } = useLocation();
   if (!store) return <Blank />;
-  if (!store.slug || store.isDemo) return <Navigate to="/" replace />;
+  if (!store.slug || store.isDemo) return <GoTo href="/" />;
   return <GoTo href={`${platformOrigin()}${panelPath(store.slug, adminSectionFromOldPath(pathname))}${search}`} />;
 }
 

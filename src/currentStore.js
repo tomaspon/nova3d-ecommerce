@@ -5,7 +5,19 @@ import { panelSlugFromPath } from './sitePaths';
 
 // La tienda principal (MINIMAL) es la plantilla base y la tienda de muestra de la página
 // oficial: se navega y se usa el carrito, pero no se compra (ver isShowcaseStore).
-const markShowcase = (store) => (store && store.id === DEFAULT_STORE_ID ? { ...store, isShowcase: true } : store);
+const markShowcase = (store, resolvedBy) => {
+  if (!store) return store;
+  const marked = resolvedBy ? { ...store, resolvedBy } : store;
+  return marked.id === DEFAULT_STORE_ID ? { ...marked, isShowcase: true } : marked;
+};
+
+// Dirección de una página de la tienda que sirve en un link de mail o en otra pestaña:
+// si la tienda se eligió con ?tienda=, el link la lleva; con dominio propio no hace falta.
+export function storeHref(store, path = '/') {
+  const url = new URL(path, window.location.origin);
+  if (store?.resolvedBy === 'override' && store.slug) url.searchParams.set('tienda', store.slug);
+  return url.toString();
+}
 
 // ?tienda=demo lleva a MINIMAL. Si la base no responde, queda la tienda incorporada (NORTE.).
 async function demoStore() {
@@ -75,15 +87,15 @@ export async function resolveStore(location = window.location, storage = window.
 
   try {
     const byHost = await rpcStore('get_store_by_host', { p_host: location.host });
-    if (byHost) return markShowcase(byHost);
+    if (byHost) return markShowcase(byHost, 'host');
 
     const override = storeOverride(location, storage);
     if (override === DEMO_SLUG) return demoStore();
     if (override) {
       const store = await rpcStore('get_store_by_slug', { p_slug: override });
-      if (store) return markShowcase(store);
+      if (store) return markShowcase(store, 'override');
     }
-    return markShowcase((await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG })) || FALLBACK_STORE);
+    return markShowcase((await rpcStore('get_store_by_slug', { p_slug: DEFAULT_STORE_SLUG })) || FALLBACK_STORE, 'default');
   } catch (error) {
     // Sin conexión o base sin migrar: se sigue con la tienda por defecto
     console.error('No se pudo identificar la tienda:', error);

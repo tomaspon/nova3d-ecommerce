@@ -231,7 +231,9 @@ export default function AdminAuth({ children, mode = 'store', platformOnly = fal
     // session y store cambian de objeto sin cambiar de usuario o tienda: alcanza con la clave
   }, [accessKey]);
 
-  const backLink = <Link to={gate === 'store' ? '/panel' : '/'} className="mt-6 text-sm text-zinc-500 hover:text-white transition-colors">{gate === 'store' ? 'Ver mis tiendas' : 'Volver'}</Link>;
+  const backLink = gate === 'store'
+    ? <Link to="/panel" className="mt-6 text-sm text-zinc-500 hover:text-white transition-colors">Ver mis tiendas</Link>
+    : <a href="/" className="mt-6 text-sm text-zinc-500 hover:text-white transition-colors">Volver</a>;
 
   if (session === undefined) return <Spinner />;
 

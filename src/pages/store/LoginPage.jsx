@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Lock, Loader2, LogIn, Mail, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
-import { isShowcaseStore } from '../../currentStore';
+import { isShowcaseStore, storeHref } from '../../currentStore';
 import SocialButtons from '../../components/SocialButtons';
 import { MIN_PASSWORD_LENGTH, validateSignup, cleanPhone } from '../../profileCompletion';
 
@@ -34,7 +34,7 @@ export default function LoginPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
-  
+
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
@@ -63,11 +63,11 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
-    
+
     try {
       if (isResetting) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/perfil?tab=datos',
+          redirectTo: storeHref(store, '/perfil?tab=datos'),
         });
         if (error) throw error;
         setSuccessMsg("Te enviamos un correo con las instrucciones para restablecer tu contraseña.");
@@ -76,7 +76,7 @@ export default function LoginPage() {
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: window.location.origin + '/perfil',
+            emailRedirectTo: storeHref(store, '/perfil'),
             // Mismo lugar donde los usan el perfil y el checkout
             data: { shipping: { name: name.trim(), phone: cleanPhone(phone) } }
           }
@@ -114,7 +114,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-[calc(100vh-6rem)] bg-store dark:bg-store-dark flex items-center justify-center p-8">
       <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/10 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
-        
+
         <div className="p-8 text-center border-b border-zinc-100 dark:border-white/10 bg-[#f4f4f5] dark:bg-zinc-950">
           <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center text-brand-ink font-serif font-bold italic mx-auto mb-4 shadow-sm">{(store?.name || '').charAt(0).toUpperCase()}</div>
           <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
@@ -126,9 +126,9 @@ export default function LoginPage() {
         </div>
 
         <div className="p-8 space-y-6">
-          
+
           {!isResetting && (
-            <SocialButtons redirectTo={`${window.location.origin}/perfil${searchParams.get('redirect') ? `?redirect=${searchParams.get('redirect')}` : ''}`} />
+            <SocialButtons redirectTo={storeHref(store, `/perfil${searchParams.get('redirect') ? `?redirect=${searchParams.get('redirect')}` : ''}`)} />
           )}
           <form onSubmit={handleSubmit} noValidate={isRegistering} className="space-y-4">
 
@@ -146,7 +146,7 @@ export default function LoginPage() {
                 </div>
               </>
             )}
-            
+
             {errorMsg && (
               <div className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold p-3 rounded-lg border border-red-100 dark:border-red-500/20">
                 {errorMsg}
@@ -160,8 +160,8 @@ export default function LoginPage() {
 
             <div>
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2 block">Correo Electrónico</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ejemplo@correo.com"
@@ -170,7 +170,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            
+
             {!isResetting && (
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -221,7 +221,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button 
+            <button
               disabled={isLoading}
               className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-2 shadow-lg shadow-black/5 disabled:opacity-70"
             >
@@ -235,9 +235,9 @@ export default function LoginPage() {
                 <><LogIn className="w-4 h-4" /> Iniciar Sesión</>
               )}
             </button>
-            
+
             {isResetting && (
-              <button 
+              <button
                 type="button"
                 onClick={() => setIsResetting(false)}
                 className="w-full text-zinc-500 font-bold py-2 hover:text-black dark:hover:text-white transition-colors text-sm"
