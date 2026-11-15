@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { onPlatformHost, platformOrigin } from '../platformBrand';
 import { panelPath, adminSectionFromOldPath, oldPlatformPath } from '../sitePaths';
@@ -34,5 +34,6 @@ export function OldPlatformRedirect() {
   const { pathname, search } = useLocation();
   let to = oldPlatformPath(pathname) || '/';
   if (to === '/' && !onPlatformHost()) to = '/inicio';
-  return <Navigate to={`${to}${search}`} replace />;
+  // Carga completa: el destino puede ser de otra área de sesión (superadmin / panel)
+  return <GoTo href={`${to}${search}`} />;
 }
