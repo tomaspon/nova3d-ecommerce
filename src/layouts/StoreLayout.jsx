@@ -73,7 +73,8 @@ export default function StoreLayout() {
       <CartDrawer />
 
       {/* Cuenta sin nombre, celular o email real (p. ej. recién entrada con Google o Apple): se completan antes de seguir */}
-      {user && needsProfile(user) && (
+      {/* Recién con la tienda cargada: en la de muestra no se usa la sesión y el cartel no va */}
+      {store && user && needsProfile(user) && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Completá tus datos">
           <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/10 shadow-2xl p-6 sm:p-8">
             <CompleteProfile user={user} onSignOut={() => supabase.auth.signOut()} />
