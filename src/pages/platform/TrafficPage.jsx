@@ -3,8 +3,11 @@ import { Loader2, AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { StatTile, TimeChart, RankedBars, SegmentedBar } from './charts';
 
-// Superadmin › Tráfico: visitas, embudo de compra, productos y secciones más vistas,
+// Tráfico de las tiendas: visitas, embudo de compra, productos y secciones más vistas,
 // de dónde llegan y desde qué aparato. Todo anónimo (supabase/013_trafico.sql).
+//  - Superadmin › Tráfico: toda la plataforma o una tienda, más la comparación entre tiendas.
+//  - Panel de cada tienda › Estadísticas: solo esa tienda (storeId).
+// La base decide quién ve qué (analytics_summary): el dueño, solo su tienda.
 
 const PERIODS = [{ days: 7, label: '7 días' }, { days: 30, label: '30 días' }, { days: 90, label: '90 días' }];
 const count = (v) => Number(v || 0).toLocaleString('es-AR');
@@ -15,15 +18,13 @@ const PAGE_LABEL = { '/': 'Portada y catálogo', '/producto': 'Fichas de product
 const DEVICE_LABEL = { mobile: 'Celular', desktop: 'Computadora', tablet: 'Tablet' };
 
 async function fetchAnalytics(days, store) {
-  const { data } = await supabase.auth.getSession();
-  const params = new URLSearchParams({ days: String(days) });
-  if (store) params.set('store', store);
-  const response = await fetch(`/api/platform-analytics?${params}`, { headers: { Authorization: `Bearer ${data.session?.access_token || ''}` } });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(response.status === 404 ? 'El tráfico se ve en la versión publicada (necesita las funciones de Vercel).' : body.message || 'No se pudieron cargar los datos.');
+  const { data, error } = await supabase.rpc('analytics_summary', { p_days: days, p_store_id: store || null });
+  if (error) {
+    if (/analytics_summary|function|schema cache/i.test(error.message || '')) throw new Error('Falta actualizar la base: corré supabase/013_trafico.sql en Supabase.');
+    if (/autorizado/i.test(error.message || '')) throw new Error('No tenés acceso a estas estadísticas.');
+    throw new Error('No se pudieron cargar los datos.');
   }
-  return body;
+  return data;
 }
 
 function Card({ title, subtitle, children, className = '' }) {
@@ -36,9 +37,11 @@ function Card({ title, subtitle, children, className = '' }) {
   );
 }
 
-export default function TrafficPage() {
+export default function TrafficPage({ storeId = null }) {
+  const ownStore = Boolean(storeId); // panel de una tienda: sin selector ni comparación
   const [days, setDays] = useState(30);
-  const [store, setStore] = useState('');
+  const [picked, setPicked] = useState('');
+  const store = storeId || picked;
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -51,6 +54,10 @@ export default function TrafficPage() {
     finally { setIsLoading(false); }
   }, [days, store]);
   useEffect(() => { load(); }, [load]);
+
+  // La lista de tiendas llega con la vista de toda la plataforma: se guarda para el selector
+  const [storeOptions, setStoreOptions] = useState([]);
+  useEffect(() => { if (data?.stores?.length) setStoreOptions(data.stores); }, [data]);
 
   const t = data?.totals || {};
   const f = data?.funnel || {};
@@ -66,16 +73,20 @@ export default function TrafficPage() {
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Tráfico</h1>
-          <p className="text-sm text-zinc-400 mt-1">Cómo navegan los visitantes de las tiendas: qué miran, de dónde llegan y cuántos compran.</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">{ownStore ? 'Estadísticas' : 'Tráfico'}</h1>
+          <p className="text-sm text-zinc-400 mt-1">{ownStore
+            ? 'Cómo navegan tus visitantes: qué miran, de dónde llegan y cuántos terminan comprando.'
+            : 'Cómo navegan los visitantes de las tiendas: qué miran, de dónde llegan y cuántos compran.'}</p>
         </div>
         {/* Filtros en una fila */}
         <div className="flex flex-wrap items-center gap-2">
-          <select value={store} onChange={(e) => setStore(e.target.value)} aria-label="Tienda"
-            className="bg-black border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-            <option value="">Todas las tiendas</option>
-            {(data?.stores || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          {!ownStore && (
+            <select value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="Tienda"
+              className="bg-black border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+              <option value="">Todas las tiendas</option>
+              {storeOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          )}
           <div className="flex rounded-xl bg-white/5 border border-white/10 p-1" role="group" aria-label="Período">
             {PERIODS.map(p => (
               <button key={p.days} type="button" onClick={() => setDays(p.days)} aria-pressed={days === p.days}
@@ -136,17 +147,51 @@ export default function TrafficPage() {
             </Card>
           </div>
 
-          {!store && (
-            <Card title="Tiendas con más visitas" subtitle="Visitas · pedidos hechos en el período.">
-              <RankedBars items={(data.byStore || []).map(s => ({ label: s.name, detail: `${count(s.orders)} pedidos`, value: s.visits }))} format={count} />
-            </Card>
-          )}
+          {!store && <StoreComparison stores={data.byStore || []} />}
 
           <p className="flex items-center gap-2 text-xs text-zinc-500">
-            <ShieldCheck className="w-4 h-4 shrink-0" /> Datos anónimos: no se guarda IP, email ni nombre de los visitantes. No se cuentan la vista previa del panel ni la tienda de ejemplo de la página oficial.
+            <ShieldCheck className="w-4 h-4 shrink-0" /> Datos anónimos: no se guarda IP, email ni nombre de los visitantes. No se cuenta la vista previa del panel{ownStore ? '' : ' ni la tienda de ejemplo de la página oficial'}.
           </p>
         </div>
       )}
     </div>
+  );
+}
+
+// Superadmin: comparación entre tiendas activas (visitas, interés y conversión)
+function StoreComparison({ stores }) {
+  if (!stores.length) return null;
+  return (
+    <Card title="Comparación de tiendas" subtitle="Ordenadas por visitas. Conversión: de cada 100 visitas, cuántas hicieron un pedido.">
+      <div className="grid lg:grid-cols-2 gap-8">
+        <RankedBars items={stores.slice(0, 10).map(s => ({ label: s.name, detail: `${count(s.orders)} pedidos`, value: s.visits }))} format={count} />
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/10">
+                <th className="text-left font-bold py-2 pr-3">Tienda</th>
+                <th className="text-right font-bold py-2 px-2">Visitas</th>
+                <th className="text-right font-bold py-2 px-2">Productos vistos</th>
+                <th className="text-right font-bold py-2 px-2">Al carrito</th>
+                <th className="text-right font-bold py-2 px-2">Pedidos</th>
+                <th className="text-right font-bold py-2 pl-2">Conversión</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stores.map(s => (
+                <tr key={s.id} className="border-b border-white/5 text-zinc-300">
+                  <td className="py-2 pr-3 text-white font-semibold truncate max-w-[10rem]">{s.name}</td>
+                  <td className="py-2 px-2 text-right tabular-nums">{count(s.visits)}</td>
+                  <td className="py-2 px-2 text-right tabular-nums">{count(s.productViews)}</td>
+                  <td className="py-2 px-2 text-right tabular-nums">{pct(s.addToCart, s.visits)}</td>
+                  <td className="py-2 px-2 text-right tabular-nums">{count(s.orders)}</td>
+                  <td className="py-2 pl-2 text-right tabular-nums font-bold text-white">{pct(s.orders, s.visits)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Card>
   );
 }

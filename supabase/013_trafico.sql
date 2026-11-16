@@ -5,8 +5,8 @@
 --   page_view       entró a una página        product_view   vio un producto
 --   add_to_cart     agregó al carrito         checkout_start empezó a comprar
 --   order_placed    hizo el pedido
--- Lo ve solo el superadmin (desde el servidor). Los visitantes solo pueden registrar eventos,
--- nunca leerlos, y con un límite por visita para que nadie llene la base a propósito.
+-- Lo ve el superadmin (todas las tiendas) y cada dueño (solo la suya). Los visitantes solo
+-- pueden registrar eventos, nunca leerlos, y con un límite por visita para que nadie llene la base.
 --
 -- Se puede ejecutar más de una vez.
 -- Dónde: Supabase > SQL Editor > New query > pegar todo > Run.
@@ -82,9 +82,9 @@ begin
 end;
 $$;
 
--- ── Resumen para el superadmin (solo el servidor) ────────────────────────────
+-- ── Resumen (uso interno: lo llama analytics_summary, que controla quién mira) ──
 -- p_days: período (1 a 365 días, hasta hoy). p_store_id: una tienda, o null = todas.
-create or replace function public.analytics_summary(p_days integer default 30, p_store_id uuid default null)
+create or replace function public.analytics_report(p_days integer default 30, p_store_id uuid default null)
 returns jsonb
 language sql
 stable
@@ -184,25 +184,56 @@ as $$
       select coalesce(jsonb_agg(jsonb_build_object('device', t.device, 'visits', t.visits) order by t.visits desc), '[]'::jsonb)
       from (select coalesce(device, 'desktop') as device, count(*) as visits from sessions group by 1) t
     ),
-    -- Tiendas con más visitas (solo con todas las tiendas)
+    -- Comparación entre tiendas: solo cuando se mira toda la plataforma
     'byStore', (
-      select coalesce(jsonb_agg(jsonb_build_object('id', t.store_id, 'name', s.name, 'slug', s.slug, 'visits', t.visits, 'orders', t.orders) order by t.visits desc), '[]'::jsonb)
+      select coalesce(jsonb_agg(jsonb_build_object(
+               'id', t.store_id, 'name', s.name, 'slug', s.slug, 'visits', t.visits,
+               'productViews', t.product_views, 'addToCart', t.carts, 'orders', t.orders) order by t.visits desc), '[]'::jsonb)
       from (
-        select store_id, count(distinct session_id) as visits, count(*) filter (where type = 'order_placed') as orders
-        from ev group by store_id order by 2 desc limit 10
+        select store_id, count(distinct session_id) as visits,
+               count(*) filter (where type = 'product_view') as product_views,
+               count(distinct session_id) filter (where type = 'add_to_cart') as carts,
+               count(distinct session_id) filter (where type = 'order_placed') as orders
+        from ev group by store_id order by 2 desc limit 25
       ) t
       join public.stores s on s.id = t.store_id
+      where p_store_id is null
     ),
     'stores', (
       select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'name', s.name, 'slug', s.slug) order by s.name), '[]'::jsonb)
       from public.stores s
+      where p_store_id is null
     )
   );
 $$;
 
+-- ── Lo que se puede mirar ────────────────────────────────────────────────────
+-- Toda la plataforma: solo el superadmin (verificado en dos pasos, ver 009).
+-- Una tienda: el superadmin o quien la administra. Nadie más.
+create or replace function public.analytics_summary(p_days integer default 30, p_store_id uuid default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not (
+    public.is_trusted_caller()
+    or (p_store_id is null and public.is_admin())
+    or (p_store_id is not null and public.is_store_admin(p_store_id))
+  ) then
+    raise exception 'No autorizado.';
+  end if;
+  return public.analytics_report(p_days, p_store_id);
+end;
+$$;
+
 revoke all on function public.track_event(uuid, text, text, text, uuid, text, text) from public;
 grant execute on function public.track_event(uuid, text, text, text, uuid, text, text) to anon, authenticated, service_role;
-revoke all on function public.analytics_summary(integer, uuid) from public, anon, authenticated;
-grant execute on function public.analytics_summary(integer, uuid) to service_role;
+revoke all on function public.analytics_report(integer, uuid) from public, anon, authenticated;
+grant execute on function public.analytics_report(integer, uuid) to service_role;
+revoke all on function public.analytics_summary(integer, uuid) from public, anon;
+grant execute on function public.analytics_summary(integer, uuid) to authenticated, service_role;
 
 notify pgrst, 'reload schema';

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, BookOpen, Palette, TicketPercent } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, Settings, LogOut, Box, Truck, Store, BookOpen, Palette, TicketPercent, BarChart3 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useStore } from '../context/StoreContext';
 import SalesActivationBanner from '../components/SalesActivationBanner';
@@ -25,6 +25,7 @@ export default function AdminLayout() {
     { name: 'Productos', path: at('productos'), icon: Package },
     { name: 'Categorías', path: at('categorias'), icon: Tag },
     { name: 'Ofertas', path: at('ofertas'), icon: TicketPercent },
+    { name: 'Estadísticas', path: at('estadisticas'), icon: BarChart3 },
     { name: 'Órdenes', path: at('ordenes'), icon: Box },
     { name: 'Envíos', path: at('envios'), icon: Truck },
     { name: 'Diseño', path: at('diseno'), icon: Palette },
