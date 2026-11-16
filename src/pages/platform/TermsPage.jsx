@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { PLATFORM_BRAND, onPlatformHost } from '../../platformBrand';
 import { TERMS_VERSION } from '../../storeRequest';
+import ThemeToggle from '../../components/ThemeToggle';
 
 // Términos del servicio y política de privacidad de la plataforma.
 // BORRADOR: completar los datos entre corchetes y hacerlo revisar por un abogado.
@@ -72,25 +73,26 @@ export default function TermsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900">
-      <header className="border-b border-zinc-200">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center">
-          <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
+    <div className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-white">
+      <header className="border-b border-zinc-200 dark:border-white/10">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600 dark:text-indigo-400">.</span></Link>
+          <ThemeToggle />
         </div>
       </header>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-16">
-        <div className="mb-8 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="mb-8 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <p><b>Borrador.</b> Falta completar los datos entre corchetes y la revisión de un abogado antes de usarlo con clientes.</p>
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Términos del servicio y política de privacidad</h1>
-        <p className="mt-2 text-sm text-zinc-500">Versión {TERMS_VERSION}</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Versión {TERMS_VERSION}</p>
         <div className="mt-10 space-y-8">
           {SECTIONS.map(section => (
             <section key={section.title}>
               <h2 className="text-lg font-bold">{section.title}</h2>
               {section.body.map(paragraph => (
-                <p key={paragraph.slice(0, 40)} className="mt-2 text-zinc-700 leading-relaxed">{paragraph}</p>
+                <p key={paragraph.slice(0, 40)} className="mt-2 text-zinc-700 leading-relaxed dark:text-zinc-300">{paragraph}</p>
               ))}
             </section>
           ))}

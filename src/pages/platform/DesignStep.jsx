@@ -23,7 +23,7 @@ function useFont(font) {
 function Option({ selected, onClick, children, label }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={selected} aria-label={label} title={label}
-      className={`relative rounded-xl border px-3 py-2 text-sm font-semibold transition ${selected ? 'border-indigo-600 ring-2 ring-indigo-600/20 text-zinc-900' : 'border-zinc-300 text-zinc-600 hover:border-zinc-400'}`}>
+      className={`relative rounded-xl border px-3 py-2 text-sm font-semibold transition ${selected ? 'border-indigo-600 ring-2 ring-indigo-600/20 text-zinc-900 dark:text-white' : 'border-zinc-300 text-zinc-600 hover:border-zinc-400 dark:border-white/15 dark:text-zinc-400 dark:hover:border-white/30'}`}>
       {children}
     </button>
   );
@@ -32,7 +32,7 @@ function Option({ selected, onClick, children, label }) {
 function Group({ title, children }) {
   return (
     <fieldset>
-      <legend className="text-sm font-bold text-zinc-900 mb-2">{title}</legend>
+      <legend className="text-sm font-bold text-zinc-900 mb-2 dark:text-white">{title}</legend>
       <div className="flex flex-wrap gap-2">{children}</div>
     </fieldset>
   );
@@ -106,7 +106,7 @@ export default function DesignStep({ store, onDone }) {
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full border border-black/10" style={{ background: c.value || '#0b0b0b' }} />
                 {c.label}
-                {design.primary_color === c.value && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                {design.primary_color === c.value && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
               </span>
             </Option>
           ))}
@@ -144,20 +144,20 @@ export default function DesignStep({ store, onDone }) {
           ))}
         </Group>
 
-        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button type="button" onClick={save} disabled={isSaving}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-6 py-3.5 hover:bg-indigo-500 transition disabled:opacity-60">
             {isSaving && <Loader2 className="w-5 h-5 animate-spin" />} Guardar y seguir <ArrowRight className="w-4 h-4" />
           </button>
-          <button type="button" onClick={onDone} className="rounded-full px-6 py-3.5 text-sm font-semibold text-zinc-500 hover:text-zinc-900">
+          <button type="button" onClick={onDone} className="rounded-full px-6 py-3.5 text-sm font-semibold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
             Lo hago después
           </button>
         </div>
       </div>
       <div className="md:sticky md:top-6 self-start">
         <Preview name={store?.name} design={design} />
-        <p className="mt-3 text-xs text-zinc-500">Logo, textos, anuncios y catálogo los ajustás después en Panel › Diseño.</p>
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Logo, textos, anuncios y catálogo los ajustás después en Panel › Diseño.</p>
       </div>
     </div>
   );

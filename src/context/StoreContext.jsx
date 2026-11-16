@@ -5,7 +5,7 @@ import { mapProduct, cartKey, availableFor } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID, isShowcaseStore } from '../currentStore';
 import { isPlatformPath } from '../sitePaths';
-import { platformOrigin } from '../platformBrand';
+import { platformOrigin, onPlatformHost } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
 import { track } from '../analytics';
 import { DEMO_PRODUCTS, DEMO_SETTINGS, DEMO_CHECKOUT_MESSAGE } from '../demoStore';
@@ -69,6 +69,8 @@ export function StoreProvider({ children }) {
   });
 
   useEffect(() => {
+    // En la página oficial y los paneles el modo es otro (ThemeToggle); no se mezclan
+    if (onPlatformHost() || isPlatformPath(window.location.pathname)) return;
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 

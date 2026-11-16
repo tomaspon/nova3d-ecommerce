@@ -6,6 +6,7 @@ import { PLATFORM_BRAND, PLATFORM_DOMAIN, onPlatformHost, platformOrigin, stores
 import { STORE_TEMPLATES, storeUrls } from '../../platformStores';
 import { validateStoreSignup, slugify, TERMS_VERSION } from '../../storeSignup';
 import DesignStep from './DesignStep';
+import ThemeToggle from '../../components/ThemeToggle';
 import SocialButtons from '../../components/SocialButtons';
 import CompleteProfile from '../../components/CompleteProfile';
 import { validateSignup, needsProfile, cleanPhone, MIN_PASSWORD_LENGTH } from '../../profileCompletion';
@@ -31,7 +32,7 @@ function useDraft(field, initial) {
   return [value, setValue];
 }
 const urlOptions = () => ({ origin: storesOrigin() || window.location.origin, platformDomain: PLATFORM_DOMAIN || null, platformOrigin: platformOrigin() });
-const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition';
+const inputClass = 'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition dark:border-white/15 dark:bg-zinc-950 dark:text-white';
 
 const STEP_LABELS = ['Tu cuenta', 'Tu tienda', 'Diseño', 'Lista'];
 
@@ -44,12 +45,12 @@ function Steps({ current }) {
           <li key={label} aria-current={active ? 'step' : undefined} className="relative flex flex-col items-center text-center">
             {/* Tramo de línea desde el paso anterior (se pinta al llegar) */}
             {i > 0 && (
-              <span aria-hidden="true" className={`absolute top-4 right-1/2 w-full h-0.5 -translate-y-1/2 transition-colors duration-300 ${i <= current ? 'bg-indigo-600' : 'bg-zinc-200'}`} />
+              <span aria-hidden="true" className={`absolute top-4 right-1/2 w-full h-0.5 -translate-y-1/2 transition-colors duration-300 ${i <= current ? 'bg-indigo-600' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
             )}
-            <span className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ring-4 ring-zinc-50 transition-colors duration-300 ${done ? 'bg-indigo-600 text-white' : active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white text-zinc-400 border-2 border-zinc-200'}`}>
+            <span className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ring-4 ring-zinc-50 transition-colors duration-300 dark:ring-zinc-900 ${done ? 'bg-indigo-600 text-white' : active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white text-zinc-400 border-2 border-zinc-200 dark:bg-zinc-950 dark:border-white/10'}`}>
               {done ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
             </span>
-            <span className={`mt-2 text-xs sm:text-sm ${active ? 'font-bold text-zinc-900' : done ? 'font-medium text-zinc-600' : 'text-zinc-400'}`}>{label}</span>
+            <span className={`mt-2 text-xs sm:text-sm ${active ? 'font-bold text-zinc-900 dark:text-white' : done ? 'font-medium text-zinc-600 dark:text-zinc-400' : 'text-zinc-400'}`}>{label}</span>
           </li>
         );
       })}
@@ -60,9 +61,9 @@ function Steps({ current }) {
 function Field({ label, error, hint, children }) {
   return (
     <label className="block">
-      <span className="block text-sm font-semibold text-zinc-700 mb-1.5">{label}</span>
+      <span className="block text-sm font-semibold text-zinc-700 mb-1.5 dark:text-zinc-300">{label}</span>
       {children}
-      {error ? <span className="block mt-1.5 text-sm text-red-600">{error}</span> : hint && <span className="block mt-1.5 text-xs text-zinc-500">{hint}</span>}
+      {error ? <span className="block mt-1.5 text-sm text-red-600 dark:text-red-400">{error}</span> : hint && <span className="block mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>}
     </label>
   );
 }
@@ -111,9 +112,9 @@ function AccountStep({ onDone }) {
   if (checkEmail) {
     return (
       <div className="text-center py-6">
-        <Mail className="w-12 h-12 text-indigo-600 mx-auto" />
-        <h2 className="mt-4 text-xl font-bold text-zinc-900">Confirmá tu email</h2>
-        <p className="mt-2 text-zinc-600">Te mandamos un enlace a <b>{email}</b>. Tocalo y volvés acá para terminar de crear tu tienda.</p>
+        <Mail className="w-12 h-12 text-indigo-600 mx-auto dark:text-indigo-400" />
+        <h2 className="mt-4 text-xl font-bold text-zinc-900 dark:text-white">Confirmá tu email</h2>
+        <p className="mt-2 text-zinc-600 dark:text-zinc-400">Te mandamos un enlace a <b>{email}</b>. Tocalo y volvés acá para terminar de crear tu tienda.</p>
       </div>
     );
   }
@@ -122,10 +123,10 @@ function AccountStep({ onDone }) {
     <div className="space-y-5">
     <SocialButtons redirectTo={`${window.location.origin}/crear`} dividerLabel="o con tu email" />
     <form onSubmit={submit} noValidate className="space-y-4">
-      <div className="grid grid-cols-2 rounded-xl bg-zinc-100 p-1 text-sm font-semibold" role="tablist">
+      <div className="grid grid-cols-2 rounded-xl bg-zinc-100 p-1 text-sm font-semibold dark:bg-zinc-800" role="tablist">
         {[['signup', 'Crear cuenta'], ['login', 'Ya tengo cuenta']].map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => { setMode(id); setError(''); setFieldErrors({}); }}
-            className={`rounded-lg py-2 transition ${mode === id ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>{label}</button>
+            className={`rounded-lg py-2 transition ${mode === id ? 'bg-white shadow text-zinc-900 dark:bg-zinc-950 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'}`}>{label}</button>
         ))}
       </div>
       {mode === 'signup' && (
@@ -149,7 +150,7 @@ function AccountStep({ onDone }) {
           <input className={inputClass} type="password" autoComplete="new-password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
         </Field>
       )}
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <button type="submit" disabled={isSending} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-6 py-3.5 hover:bg-indigo-500 transition disabled:opacity-60">
         {isSending && <Loader2 className="w-5 h-5 animate-spin" />} Continuar <ArrowRight className="w-4 h-4" />
       </button>
@@ -207,7 +208,7 @@ function StoreStep({ onCreated }) {
       <Field label="Nombre de tu tienda" error={errors.name}>
         <input className={inputClass} autoFocus value={name} onChange={(e) => { setName(e.target.value); setErrors(x => ({ ...x, name: undefined })); }} placeholder="Ej: Velas Luna" />
       </Field>
-      <Field label="Dirección de tu tienda" error={errors.slug} hint={<>Así va a quedar: <b className="text-zinc-700">{preview}</b></>}>
+      <Field label="Dirección de tu tienda" error={errors.slug} hint={<>Así va a quedar: <b className="text-zinc-700 dark:text-zinc-300">{preview}</b></>}>
         <input className={`${inputClass} font-mono`} value={finalSlug} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); setErrors(x => ({ ...x, slug: undefined })); }} />
       </Field>
       <Field label="¿Qué vendés?" error={errors.template}>
@@ -216,12 +217,12 @@ function StoreStep({ onCreated }) {
           {STORE_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
       </Field>
-      <label className="flex items-start gap-3 text-sm text-zinc-700">
+      <label className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300">
         <input type="checkbox" className="mt-0.5 w-5 h-5 rounded accent-indigo-600 shrink-0" checked={accepted} onChange={(e) => { setAccepted(e.target.checked); setErrors(x => ({ ...x, accepted_terms: undefined })); }} />
-        <span>Acepto los <Link to="/terminos" target="_blank" className="font-semibold text-indigo-600 underline">términos del servicio y la política de privacidad</Link>.</span>
+        <span>Acepto los <Link to="/terminos" target="_blank" className="font-semibold text-indigo-600 underline dark:text-indigo-400">términos del servicio y la política de privacidad</Link>.</span>
       </label>
-      {errors.accepted_terms && <p className="text-sm text-red-600">{errors.accepted_terms}</p>}
-      {message && <p role="alert" className="text-sm text-red-600">{message}</p>}
+      {errors.accepted_terms && <p className="text-sm text-red-600 dark:text-red-400">{errors.accepted_terms}</p>}
+      {message && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{message}</p>}
       <button type="submit" disabled={isSending} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-6 py-3.5 hover:bg-indigo-500 transition disabled:opacity-60">
         {isSending && <Loader2 className="w-5 h-5 animate-spin" />} Crear mi tienda
       </button>
@@ -235,8 +236,8 @@ function DoneStep({ store, existing, onSwitchAccount }) {
     <div>
       <div className="text-center">
         <span className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 inline-flex items-center justify-center"><Store className="w-7 h-7" /></span>
-        <h2 className="mt-4 text-2xl font-extrabold text-zinc-900">{existing ? `Ya tenés tu tienda: ${store.name}` : `¡${store.name} está creada!`}</h2>
-        <p className="mt-2 text-zinc-600">
+        <h2 className="mt-4 text-2xl font-extrabold text-zinc-900 dark:text-white">{existing ? `Ya tenés tu tienda: ${store.name}` : `¡${store.name} está creada!`}</h2>
+        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           {existing
             ? <>Cada cuenta puede tener una tienda. Entrá a tu panel para seguir con <b>{store.name}</b>, o usá otro email para crear una nueva.</>
             : 'Ya podés cargar productos y personalizarla.'}
@@ -246,18 +247,18 @@ function DoneStep({ store, existing, onSwitchAccount }) {
         <a href={urls.admin} className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold px-6 py-3.5 hover:bg-indigo-500 transition">
           <LayoutDashboard className="w-4 h-4" /> Ir a mi panel
         </a>
-        <a href={urls.storefront} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-6 py-3.5 hover:bg-zinc-50 transition">
+        <a href={urls.storefront} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 font-bold px-6 py-3.5 hover:bg-zinc-50 transition dark:border-white/15 dark:hover:bg-white/5">
           Ver mi tienda <ExternalLink className="w-4 h-4" />
         </a>
       </div>
       {existing && (
-        <button type="button" onClick={onSwitchAccount} className="mt-3 w-full text-sm font-semibold text-zinc-500 hover:text-zinc-900 py-2">
+        <button type="button" onClick={onSwitchAccount} className="mt-3 w-full text-sm font-semibold text-zinc-500 hover:text-zinc-900 py-2 dark:text-zinc-400 dark:hover:text-white">
           Crear otra tienda con otro email
         </button>
       )}
-      <div className="mt-8 rounded-2xl bg-zinc-50 border border-zinc-200 p-5">
-        <p className="font-bold text-zinc-900">Próximos pasos</p>
-        <ol className="mt-3 space-y-2 text-sm text-zinc-600 list-decimal list-inside">
+      <div className="mt-8 rounded-2xl bg-zinc-50 border border-zinc-200 p-5 dark:bg-zinc-900 dark:border-white/10">
+        <p className="font-bold text-zinc-900 dark:text-white">Próximos pasos</p>
+        <ol className="mt-3 space-y-2 text-sm text-zinc-600 list-decimal list-inside dark:text-zinc-400">
           <li>Cargá tus productos con fotos, precios y stock.</li>
           <li>Configurá el costo de envío.</li>
           <li>Cuando esté lista, tocá <b>"Pedir activación"</b> en tu panel: verificamos tus datos y habilitamos las ventas.</li>
@@ -323,29 +324,32 @@ export default function CreateStorePage() {
   const SUBTITLES = ['En 2 minutos tenés tu tienda online. Sin tarjeta.', 'Lo podés cambiar después desde tu panel.', 'Elegí lo básico; lo vas viendo en la vista previa.'];
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <header className="bg-white border-b border-zinc-200">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-900 dark:text-white">
+      <header className="bg-white border-b border-zinc-200 dark:bg-zinc-950 dark:border-white/10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600">.</span></Link>
-          {session && (
-            <span className="flex items-center gap-3 text-sm text-zinc-500 min-w-0">
-              <span className="hidden sm:inline truncate max-w-[16rem]">{session.user.email}</span>
-              <button type="button" onClick={signOut} className="font-semibold hover:text-zinc-900">Salir</button>
-            </span>
-          )}
+          <Link to={onPlatformHost() ? '/' : '/inicio'} className="text-xl font-extrabold tracking-tight">{PLATFORM_BRAND.name}<span className="text-indigo-600 dark:text-indigo-400">.</span></Link>
+          <span className="flex items-center gap-3 text-sm text-zinc-500 min-w-0 dark:text-zinc-400">
+            {session && (
+              <>
+                <span className="hidden sm:inline truncate max-w-[16rem]">{session.user.email}</span>
+                <button type="button" onClick={signOut} className="font-semibold hover:text-zinc-900 dark:hover:text-white">Salir</button>
+              </>
+            )}
+            <ThemeToggle />
+          </span>
         </div>
       </header>
       <main className={`${step === 2 ? 'max-w-4xl' : 'max-w-lg'} mx-auto px-4 sm:px-6 py-10 md:py-14`}>
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>
+          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" /></div>
         ) : (
           <>
             <Steps current={step} />
             <div className="text-center">
               <h1 className="text-3xl font-extrabold tracking-tight">{TITLES[step]}</h1>
-              {step < 3 && <p className="mt-2 text-zinc-600">{SUBTITLES[step]}</p>}
+              {step < 3 && <p className="mt-2 text-zinc-600 dark:text-zinc-400">{SUBTITLES[step]}</p>}
             </div>
-            <div className="mt-8 rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm">
+            <div className="mt-8 rounded-2xl bg-white border border-zinc-200 p-6 sm:p-8 shadow-sm dark:bg-zinc-950 dark:border-white/10">
               {step === 0 && (profileMissing
                 ? <CompleteProfile user={session.user} variant="platform" onSignOut={signOut} />
                 : <AccountStep onDone={() => supabase.auth.getSession().then(({ data }) => setSession(data.session))} />)}
