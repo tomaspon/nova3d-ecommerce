@@ -5,6 +5,7 @@ import { supabase } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { isShowcaseStore, storeHref } from '../../currentStore';
 import SocialButtons from '../../components/SocialButtons';
+import { track } from '../../analytics';
 import { MIN_PASSWORD_LENGTH, validateSignup, cleanPhone } from '../../profileCompletion';
 
 // Supabase devuelve los errores en inglés
@@ -85,13 +86,17 @@ export default function LoginPage() {
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           // Supabase no devuelve error si el email ya existe; lo indica con identities vacío
           setErrorMsg('Ya existe una cuenta con ese email. Iniciá sesión o restablecé tu clave.');
-        } else if (!data.session) {
+        } else {
+          track(store, 'signup', { label: 'email' });
+        }
+        if (data.user && data.user.identities?.length !== 0 && !data.session) {
           setSuccessMsg("¡Cuenta creada! Revisá tu mail y tocá el enlace para confirmarla.");
         }
         setIsRegistering(false);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        track(store, 'login', { label: 'email' });
       }
     } catch (error) {
       setErrorMsg(translateAuthError(error));

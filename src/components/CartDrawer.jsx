@@ -52,6 +52,7 @@ export default function CartDrawer() {
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (isShowcaseStore(store)) return; // tienda de muestra: no se hacen pedidos
+    track(store, 'checkout_confirm', { label: formData.paymentMethod });
     setCheckoutStep('loading');
 
     const res = await checkoutOrder(formData);
@@ -73,6 +74,7 @@ export default function CartDrawer() {
 
           const mpData = await mpResponse.json();
           if (mpData.init_point) {
+            track(store, 'mp_redirect');
             window.location.href = mpData.init_point;
           } else {
             setOrderInfo({ id: res.orderId, total: res.total, method: 'MercadoPagoError' });
@@ -94,6 +96,7 @@ export default function CartDrawer() {
         setCheckoutStep('success');
       }
     } else {
+      track(store, 'order_error', { label: res.errorMessage || 'Error desconocido' });
       alert(res.errorMessage || "Error procesando el pago. Intentá de nuevo.");
       setCheckoutStep('form');
     }
@@ -204,7 +207,7 @@ export default function CartDrawer() {
                 <div className="grid grid-cols-1 gap-3">
                   {paymentMethods.includes('MercadoPago') && (
                   <label className={`border p-4 rounded-xl cursor-pointer transition-colors flex items-center gap-3 ${formData.paymentMethod === 'MercadoPago' ? 'border-[#009EE3] bg-[#009EE3]/5' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}>
-                    <input type="radio" name="payment" value="MercadoPago" checked={formData.paymentMethod === 'MercadoPago'} onChange={() => setFormData({...formData, paymentMethod: 'MercadoPago'})} className="sr-only" />
+                    <input type="radio" name="payment" value="MercadoPago" checked={formData.paymentMethod === 'MercadoPago'} onChange={() => { setFormData({...formData, paymentMethod: 'MercadoPago'}); track(store, 'payment_select', { label: 'MercadoPago' }); }} className="sr-only" />
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${formData.paymentMethod === 'MercadoPago' ? 'border-[#009EE3]' : 'border-zinc-400'}`}>
                       {formData.paymentMethod === 'MercadoPago' && <div className="w-2.5 h-2.5 bg-[#009EE3] rounded-full"></div>}
                     </div>
@@ -214,7 +217,7 @@ export default function CartDrawer() {
 
                   {paymentMethods.includes('Transferencia') && (
                   <label className={`border p-4 rounded-xl cursor-pointer transition-colors flex items-center gap-3 ${formData.paymentMethod === 'Transferencia' ? 'border-indigo-500 bg-indigo-500/5' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}>
-                    <input type="radio" name="payment" value="Transferencia" checked={formData.paymentMethod === 'Transferencia'} onChange={() => setFormData({...formData, paymentMethod: 'Transferencia'})} className="sr-only" />
+                    <input type="radio" name="payment" value="Transferencia" checked={formData.paymentMethod === 'Transferencia'} onChange={() => { setFormData({...formData, paymentMethod: 'Transferencia'}); track(store, 'payment_select', { label: 'Transferencia' }); }} className="sr-only" />
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${formData.paymentMethod === 'Transferencia' ? 'border-indigo-500' : 'border-zinc-400'}`}>
                       {formData.paymentMethod === 'Transferencia' && <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div>}
                     </div>
@@ -333,6 +336,7 @@ export default function CartDrawer() {
 
 // Datos para pagar por transferencia y avisar por WhatsApp: los de la tienda, no fijos
 function TransferDetails({ settings, order, showTransfer }) {
+  const { store } = useStore();
   const shortId = order?.id?.split('-')[0];
   const total = order?.total?.toLocaleString('es-AR');
   const whatsapp = storeWhatsappLink(settings, showTransfer
@@ -355,6 +359,7 @@ function TransferDetails({ settings, order, showTransfer }) {
       {whatsapp && (
         <a
           href={whatsapp}
+          onClick={() => track(store, 'whatsapp_click', { label: showTransfer ? 'comprobante' : 'consulta' })}
           target="_blank"
           rel="noreferrer"
           className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-btn transition-all flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:-translate-y-0.5"

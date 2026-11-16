@@ -81,7 +81,7 @@ export default function ProductDetailPage() {
 
   // Tráfico (anónimo): qué productos se miran
   useEffect(() => {
-    if (product?.id) track(store, 'product_view', { productId: product.id });
+    if (product?.id) track(store, 'product_view', { productId: product.id, label: product.available_stock <= 0 ? 'agotado' : null });
   }, [product?.id, store?.id]);
 
   useEffect(() => {
@@ -114,6 +114,7 @@ export default function ProductDetailPage() {
   const finalPrice = hasDiscount ? product.price * (1 - product.discount / 100) : product.price;
 
   const handleShare = async () => {
+    track(store, 'share_click', { productId: product.id });
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
@@ -134,6 +135,7 @@ export default function ProductDetailPage() {
   };
 
   const chooseVariant = (name) => {
+    track(store, 'variant_select', { productId: product.id, label: name });
     setVariant(name);
     setVariantError(false);
     setQuantity(q => Math.max(1, Math.min(q, availableFor(product, name))));

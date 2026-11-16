@@ -496,3 +496,106 @@ describe('013 · tráfico e interacciones', () => {
     expect(all.stores.length).toBeGreaterThan(1);
   });
 });
+
+describe('014 · tráfico detallado', () => {
+  const ev = (session, type, extra = {}) => as('anon', `select public.track_event($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [STORE_B, session, type, extra.path || null, extra.product || null, extra.referrer || null, extra.device || 'mobile', extra.label || null]);
+
+  it('registra los eventos nuevos con su dato corto, y el anterior sin dato sigue andando', async () => {
+    await db.exec(sql('014_trafico_detallado.sql'));
+    await db.exec(sql('014_trafico_detallado.sql')); // se puede correr dos veces
+
+    // Visita A: busca, filtra, mira, elige talle, agrega, saca, vuelve a agregar, paga con transferencia y confirma
+    const a = 'detalle-aaaa';
+    await ev(a, 'page_view', { path: '/', referrer: 'www.google.com' });
+    await ev(a, 'search', { label: 'vela' });
+    await ev(a, 'category_filter', { label: 'Velas' });
+    await ev(a, 'product_view', { product: ids.velas });
+    await ev(a, 'variant_select', { product: ids.velas, label: 'Grande' });
+    await ev(a, 'add_to_cart', { product: ids.velas });
+    await ev(a, 'remove_from_cart', { product: ids.velas });
+    await ev(a, 'add_to_cart', { product: ids.velas });
+    await ev(a, 'favorite_add', { product: ids.velas });
+    await ev(a, 'checkout_start');
+    await ev(a, 'payment_select', { label: 'Transferencia' });
+    await ev(a, 'checkout_confirm', { label: 'Transferencia' });
+    // El pedido real, pagado
+    const [{ o }] = await as('anon', createOrder, orderArgs([{ id: ids.velas, quantity: 1 }], STORE_B));
+    await db.query(`update orders set status = 'pagado' where id = $1`, [o.id]);
+    await ev(a, 'order_placed', { label: o.id });
+
+    // Visita B: agrega y se va (carrito abandonado)
+    await ev('detalle-bbbb', 'page_view', { path: '/' });
+    await ev('detalle-bbbb', 'product_view', { product: ids.velas, label: 'agotado' });
+    await ev('detalle-bbbb', 'add_to_cart', { product: ids.velas });
+
+    // Visita C: empieza a comprar y no confirma
+    await ev('detalle-cccc', 'add_to_cart', { product: ids.velas });
+    await ev('detalle-cccc', 'checkout_start');
+    await ev('detalle-cccc', 'payment_select', { label: 'MercadoPago' });
+
+    // Visita D: confirma pero el pedido falla
+    await ev('detalle-dddd', 'checkout_start');
+    await ev('detalle-dddd', 'checkout_confirm', { label: 'MercadoPago' });
+    await ev('detalle-dddd', 'order_error', { label: 'No hay suficiente stock de "Vela".' });
+
+    // Visita E: entra y se va
+    await ev('detalle-eeee', 'page_view', { path: '/', device: 'desktop' });
+
+    // Tipo desconocido: se ignora
+    await ev('detalle-eeee', 'hackeo');
+    expect(Number((await db.query(`select count(*) as n from analytics_events where type = 'hackeo'`)).rows[0].n)).toBe(0);
+  });
+
+  it('el resumen arma embudo completo, abandonos, pedidos pagados, productos y lo más buscado', async () => {
+    const [{ s: r }] = (await db.query(`select public.analytics_report(1, $1) as s`, [STORE_B])).rows;
+    const visit = (id) => id.startsWith('detalle-');
+    expect(r.events).toMatchObject({ search: 1, category_filter: 1, remove_from_cart: 1, checkout_confirm: 2, order_error: 1 });
+
+    // Embudo (incluye las visitas de la prueba de 013 del mismo día)
+    expect(r.funnel.paid).toBe(1);
+    expect(r.funnel.confirmed).toBe(2);
+    expect(r.funnel.ordered).toBeGreaterThanOrEqual(1);
+    expect(r.totals.abandonedCarts).toBeGreaterThanOrEqual(1);       // B
+    expect(r.totals.abandonedCheckouts).toBeGreaterThanOrEqual(1);   // C
+    expect(r.totals.failedConfirms).toBe(1);                         // D
+    expect(r.totals.bounceRate).toBeGreaterThan(0);                  // E
+
+    const vela = r.products.find(p => p.name === 'Vela');
+    expect(vela).toMatchObject({ removes: 1, favorites: 1, soldOutViews: 1 });
+    expect(vela.addToCart).toBeGreaterThanOrEqual(4);
+    expect(vela.abandoned).toBeGreaterThanOrEqual(2);  // B y C no compraron
+    expect(vela.unitsPaid).toBeGreaterThanOrEqual(1);
+    expect(Number(vela.revenue)).toBeGreaterThan(0);
+
+    expect(r.labels.search).toEqual([{ label: 'vela', count: 1 }]);
+    expect(r.labels.order_error[0].label).toMatch(/stock/);
+    expect(r.labels.payment_select.map(x => x.label).sort()).toEqual(['MercadoPago', 'Transferencia']);
+    expect(r.orders.paid).toBeGreaterThanOrEqual(1);
+    expect(r.heatmap.length).toBeGreaterThan(0);
+    expect(r.sources).toEqual(expect.arrayContaining([expect.objectContaining({ source: 'Google', visits: 1, orders: 1 })]));
+    expect(r.daily).toHaveLength(1);
+  });
+
+  it('en vivo: quiénes navegan ahora y lo último que pasó, sin el número de pedido', async () => {
+    const [{ s: live }] = await as('ownerB', `select public.analytics_live($1) as s`, [STORE_B]);
+    expect(live.activeNow).toBeGreaterThanOrEqual(5);
+    expect(live.withCart).toBeGreaterThanOrEqual(3);
+    expect(live.inCheckout).toBeGreaterThanOrEqual(2);
+    expect(live.perMinute).toHaveLength(30);
+    expect(live.recent.length).toBeLessThanOrEqual(25);
+    expect(live.recent.find(e => e.type === 'order_placed')?.label ?? null).toBeNull();
+    expect(live.recent.some(e => e.type === 'add_to_cart' && e.product === 'Vela')).toBe(true);
+
+    await expect(as('anon', `select public.analytics_live($1)`, [STORE_B])).rejects.toThrow(/permission denied/);
+    await expect(as('customer', `select public.analytics_live($1)`, [STORE_B])).rejects.toThrow(/No autorizado/);
+    await expect(as('ownerB', `select public.analytics_live(null)`)).rejects.toThrow(/No autorizado/);
+    expect((await as('admin', `select public.analytics_live(null) as s`))[0].s.activeNow).toBeGreaterThanOrEqual(5);
+  });
+
+  it('el dueño ve el detalle de su tienda; otro dueño no', async () => {
+    const [{ s: own }] = await as('ownerB', `select public.analytics_summary(7, $1) as s`, [STORE_B]);
+    expect(own.products.length).toBeGreaterThan(0);
+    await expect(as('customer', `select public.analytics_summary(7, $1)`, [STORE_B])).rejects.toThrow(/No autorizado/);
+  });
+});

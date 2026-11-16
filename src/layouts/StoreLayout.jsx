@@ -242,7 +242,7 @@ export default function StoreLayout() {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-2">Contacto</p>
                 <ul className="space-y-0.5 text-sm text-zinc-500">
                   {contactLinks.map(l => (
-                    <li key={l.label}><a href={l.href} target={l.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer" className="inline-flex items-center min-h-10 hover:text-black dark:hover:text-white transition break-all">{l.label}</a></li>
+                    <li key={l.label}><a href={l.href} onClick={() => l.label === 'WhatsApp' && track(store, 'whatsapp_click', { label: 'pie de página' })} target={l.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer" className="inline-flex items-center min-h-10 hover:text-black dark:hover:text-white transition break-all">{l.label}</a></li>
                   ))}
                 </ul>
               </div>
@@ -258,6 +258,7 @@ export default function StoreLayout() {
       {branding.whatsapp_button && whatsappLink && (
         <a
           href={whatsappLink}
+          onClick={() => track(store, 'whatsapp_click', { label: 'botón flotante' })}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Escribinos por WhatsApp"

@@ -285,6 +285,7 @@ export function StoreProvider({ children }) {
       } else {
         await supabase.from('favorites').insert([{ user_id: user.id, product_id: productId, store_id: storeId }]);
         setFavorites(prev => [...prev, productId]);
+        track(store, 'favorite_add', { productId });
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -297,7 +298,7 @@ export function StoreProvider({ children }) {
     if (product.variants?.length && !product.variants.some(v => v.name === variant)) return;
     const key = cartKey({ id: product.id, variant });
     const available = availableFor(product, variant);
-    if (available > 0) track(store, 'add_to_cart', { productId: product.id });
+    if (available > 0) track(store, 'add_to_cart', { productId: product.id, label: variant || null });
     setCart(prev => {
       const existing = prev.find(item => cartKey(item) === key);
 
@@ -314,7 +315,11 @@ export function StoreProvider({ children }) {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (key) => setCart(prev => prev.filter(item => cartKey(item) !== key));
+  const removeFromCart = (key) => {
+    const line = cart.find(item => cartKey(item) === key);
+    if (line) track(store, 'remove_from_cart', { productId: line.id, label: line.variant || null });
+    setCart(prev => prev.filter(item => cartKey(item) !== key));
+  };
 
   const updateQuantity = (key, quantity) => {
     if (quantity < 1) return removeFromCart(key);
@@ -513,7 +518,7 @@ export function StoreProvider({ children }) {
       setIsCartOpen(false);
       await fetchProducts();
 
-      track(store, 'order_placed');
+      track(store, 'order_placed', { label: created.id });
       return { success: true, orderId: created.id, total: Number(created.total) };
     } catch (error) {
       console.error('Error processing checkout:', error);

@@ -6,6 +6,7 @@ import { parseBannerUrl } from '../../bannerPosition';
 import { findPreset } from '../../bannerPresets';
 import CampaignHero from '../../components/CampaignHero';
 import { storeWhatsappLink } from '../../paymentMethods';
+import { track } from '../../analytics';
 import { instagramUrl, normalizeBranding, SORT_OPTIONS } from '../../branding';
 
 // Columnas del catálogo en computadora (Panel > Diseño). Clases completas para que Tailwind las genere.
@@ -28,6 +29,14 @@ export default function HomePage() {
   const design = normalizeBranding(store?.branding);
 
   const searchQuery = searchParams.get('q') || '';
+
+  // Tráfico: qué buscan (cuando terminan de escribir)
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) return;
+    const timer = setTimeout(() => track(store, 'search', { label: q.toLowerCase() }), 900);
+    return () => clearTimeout(timer);
+  }, [searchQuery, store?.id]);
   const sortBy = searchParams.get('sort') || design.default_sort;
 
   const sortOptions = SORT_OPTIONS;
@@ -100,7 +109,7 @@ export default function HomePage() {
                   title={storeSettings.campaign_name}
                   maxDiscount={campaignMaxDiscount}
                   productCount={campaignProducts.length}
-                  onCtaClick={() => document.getElementById(campaignProducts.length > 0 ? 'ofertas' : 'catalogo')?.scrollIntoView({ behavior: 'smooth' })}
+                  onCtaClick={() => { track(store, 'banner_click', { label: storeSettings.campaign_name }); document.getElementById(campaignProducts.length > 0 ? 'ofertas' : 'catalogo')?.scrollIntoView({ behavior: 'smooth' }); }}
                 />
               </div>
             )}
@@ -229,6 +238,7 @@ export default function HomePage() {
           <div className="flex overflow-x-auto hide-scrollbar gap-2 min-w-0 -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => {
+                track(store, 'category_filter', { label: 'Todo' });
                 setSearchParams(prev => {
                   prev.delete('category');
                   return prev;
@@ -246,6 +256,7 @@ export default function HomePage() {
               <button
                 key={cat}
                 onClick={() => {
+                  track(store, 'category_filter', { label: cat });
                   setSearchParams(prev => {
                     prev.set('category', cat);
                     return prev;
@@ -279,6 +290,7 @@ export default function HomePage() {
                   <button
                     key={option.value}
                     onClick={() => {
+                      track(store, 'sort_change', { label: option.label });
                       setSearchParams(prev => {
                         prev.set('sort', option.value);
                         return prev;
