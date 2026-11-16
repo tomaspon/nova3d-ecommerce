@@ -8,6 +8,8 @@ import CampaignHero from '../../components/CampaignHero';
 import { storeWhatsappLink } from '../../paymentMethods';
 import { track } from '../../analytics';
 import { instagramUrl, normalizeBranding, SORT_OPTIONS } from '../../branding';
+import ProductRow from '../../components/ProductRow';
+import { searchProducts, recentlyViewed, pickedForYou, forgetHistory } from '../../personalization';
 
 // Columnas del catálogo en computadora (Panel > Diseño). Clases completas para que Tailwind las genere.
 const GRID_CLASSES = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-4 xl:grid-cols-5' };
@@ -23,6 +25,7 @@ export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [, setHistoryVersion] = useState(0); // para redibujar al borrar el historial
   const sortRef = useRef(null);
 
   // Opciones de diseño de la tienda (Panel > Diseño)
@@ -63,7 +66,7 @@ export default function HomePage() {
 
   const categoryFilter = searchParams.get('category') || 'all';
   let activeProducts = products.filter(p => p.is_active);
-  
+
   const campaignProducts = activeProducts.filter(p => p.in_campaign);
   // En la tienda solo se muestran las categorías que tienen productos a la venta
   const storeCategories = categories.filter(cat => activeProducts.some(p => p.category === cat));
@@ -76,12 +79,14 @@ export default function HomePage() {
     activeProducts = activeProducts.filter(p => p.category === categoryFilter);
   }
 
-  if (searchQuery) {
-    activeProducts = activeProducts.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }
+  // Búsqueda tolerante: sin tildes, plurales ni errores de tipeo; lo más parecido primero
+  if (searchQuery) activeProducts = searchProducts(activeProducts, searchQuery);
+
+  // Personalización con lo que miró este visitante (se guarda solo en su dispositivo)
+  const personalize = design.personalize && !searchQuery && categoryFilter === 'all';
+  const seenProducts = personalize ? recentlyViewed(store?.id, products) : [];
+  const forYou = personalize ? pickedForYou(store?.id, products) : [];
+  const clearHistory = () => { forgetHistory(store?.id); setHistoryVersion(v => v + 1); };
 
   // Tarjeta "Próximamente": por WhatsApp o Instagram de la tienda, si tiene alguno
   const whatsappLink = storeWhatsappLink(storeSettings, `¡Hola! Quiero enterarme de los próximos lanzamientos de ${store?.name || 'la tienda'}`);
@@ -100,7 +105,7 @@ export default function HomePage() {
   const compact = campaignAt === 'compact';
   const campaignSection = campaignOn ? (
           <section data-design="campaign" className="bg-white dark:bg-transparent border-b border-zinc-200 dark:border-white/5 transition-colors">
-            
+
             {/* Banner de temporada diseñado (preset) */}
             {campaignPreset && (
               <div className={`w-full ${compact ? 'h-44 sm:h-48 lg:h-56' : 'h-64 sm:h-72 lg:h-96'}`}>
@@ -113,7 +118,7 @@ export default function HomePage() {
                 />
               </div>
             )}
-  
+
             {/* Banner con imagen propia */}
             {storeSettings.campaign_image_url && !campaignPreset && (
               <div className={`w-full relative ${compact ? 'h-32 md:h-40 lg:h-48' : 'h-40 md:h-64 lg:h-80'}`}>
@@ -126,7 +131,7 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-  
+
             {/* Carrusel de Productos Seleccionados */}
             {campaignProducts.length > 0 && (
               <div id="ofertas" className={`scroll-mt-24 max-w-screen-2xl mx-auto px-6 lg:px-12 py-6 ${storeSettings.campaign_image_url ? 'pt-5' : ''}`}>
@@ -140,7 +145,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar snap-x">
                   {campaignProducts.map(p => {
                     const finalPrice = p.price * (1 - (p.discount || 0) / 100);
@@ -176,7 +181,7 @@ export default function HomePage() {
 
   return (
     <div className="bg-store dark:bg-store-dark transition-colors duration-300 min-h-screen pb-12">
-      
+
       {/* OFERTA ACTIVA (Panel › Ofertas): arriba, salvo que en Diseño se haya elegido "Antes del catálogo" */}
       {campaignAt !== 'before_catalog' && campaignSection}
 
@@ -218,6 +223,14 @@ export default function HomePage() {
       )}
 
       {campaignAt === 'before_catalog' && campaignSection}
+
+      {/* PARA ESTE VISITANTE: lo que vio y lo que le puede gustar */}
+      {(seenProducts.length > 0 || forYou.length > 1) && (
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-8 lg:pt-10 space-y-10">
+          <ProductRow title="Volvé a lo que viste" products={seenProducts} design="recently-viewed" onClear={clearHistory} />
+          {forYou.length > 1 && <ProductRow title="Elegidos para vos" hint="Según lo que estuviste mirando" products={forYou} />}
+        </div>
+      )}
 
       {/* HEADER DEL CATÁLOGO */}
       <section id="catalogo" className="scroll-mt-24 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-8 lg:pt-10">
@@ -283,7 +296,7 @@ export default function HomePage() {
               <span className="text-zinc-500 dark:text-zinc-400 font-medium">Ordenar:</span> {currentSortLabel}
               <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isSortOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-50">
                 {sortOptions.map(option => (
@@ -298,8 +311,8 @@ export default function HomePage() {
                       setIsSortOpen(false);
                     }}
                     className={`w-full text-left px-5 py-3 text-sm font-bold transition-colors ${
-                      sortBy === option.value 
-                        ? 'bg-zinc-50 dark:bg-white/5 text-indigo-600 dark:text-indigo-400' 
+                      sortBy === option.value
+                        ? 'bg-zinc-50 dark:bg-white/5 text-indigo-600 dark:text-indigo-400'
                         : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/5'
                     }`}
                   >
@@ -325,12 +338,12 @@ export default function HomePage() {
             {activeProducts.map(product => {
               const finalPrice = product.price * (1 - (product.discount || 0) / 100);
               const isFavorite = favorites.includes(product.id);
-              
+
               return (
                 <div key={product.id} data-design="product-card" data-offer={product.discount > 0 ? 'true' : undefined} className="group cursor-pointer" onClick={() => navigate(`/producto/${product.id}`)}>
-                  
+
                   <div className="aspect-[var(--card-aspect)] bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl relative overflow-hidden mb-4 border border-zinc-100 dark:border-white/5 shadow-sm group-hover:shadow-xl transition-all duration-500">
-                    
+
                     {/* Tags */}
                     <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
                       {product.stock <= 0 ? (
@@ -341,7 +354,7 @@ export default function HomePage() {
                         <div className="bg-amber-500/90 backdrop-blur-md border border-amber-400/20 text-white px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest uppercase shadow-sm">¡ÚLTIMOS {product.available_stock}!
                           </div>
                       )}
-                      
+
                       {product.discount > 0 && (
                         <div className="bg-accent text-accent-ink px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black px-2 py-1 md:px-3 md:py-1.5 tracking-widest uppercase shadow-sm">
                           {product.discount}% OFF
@@ -349,14 +362,14 @@ export default function HomePage() {
                       )}
                     </div>
 
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
                       className="absolute top-3 right-3 z-20 w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center md:opacity-0 opacity-100 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
                     >
                       <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-zinc-600 dark:text-white'}`} />
                     </button>
 
-                    {design.quick_add && <button 
+                    {design.quick_add && <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (product.variants?.length) navigate(`/producto/${product.id}`); // primero se elige el talle
@@ -380,7 +393,7 @@ export default function HomePage() {
 
                   <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm md:text-base leading-tight mb-0.5 group-hover:underline underline-offset-4 truncate">{product.name}</h3>
                   {design.show_category && product.category && <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">{product.category}</span>}
-                  
+
                   <div className="flex items-center gap-2">
                     <span className="font-black text-zinc-900 dark:text-white">${finalPrice.toLocaleString('es-AR')}</span>
                     {product.discount > 0 && (

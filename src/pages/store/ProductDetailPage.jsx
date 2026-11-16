@@ -42,13 +42,17 @@ function VariantPicker({ product, value, onChange, showError }) {
 }
 import { ShoppingBag, Heart, Share2, ChevronLeft, ChevronRight, Check, Minus, Plus, Truck, ArrowRightLeft } from 'lucide-react';
 import { track } from '../../analytics';
+import { supabase } from '../../supabaseClient';
+import ProductRow from '../../components/ProductRow';
+import { normalizeBranding } from '../../branding';
+import { rememberView, recentlyViewed, relatedFor } from '../../personalization';
 
 const Accordion = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-zinc-200 dark:border-white/10">
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
+      <button
+        onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center py-4 text-left text-xs font-bold tracking-widest uppercase text-zinc-900 dark:text-zinc-100 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors"
       >
         {title}
@@ -74,7 +78,21 @@ export default function ProductDetailPage() {
   const [variantError, setVariantError] = useState(false);
 
   const product = products.find(p => p.id === id);
-  const relatedProducts = products.filter(p => p.category === product?.category && p.id !== product?.id).slice(0, 4);
+  const personalize = normalizeBranding(store?.branding).personalize;
+
+  // "Quienes vieron esto también miraron": del tráfico anónimo de la tienda (supabase/015)
+  const [alsoViewed, setAlsoViewed] = useState({ for: null, ids: [] });
+  useEffect(() => {
+    if (!product?.id || !store?.id || !personalize) return undefined;
+    let alive = true;
+    supabase.rpc('products_also_viewed', { p_store_id: store.id, p_product_id: product.id, p_limit: 4 })
+      .then(({ data, error }) => { if (alive && !error && Array.isArray(data)) setAlsoViewed({ for: product.id, ids: data }); }, () => {});
+    return () => { alive = false; };
+  }, [product?.id, store?.id, personalize]);
+  const trafficIds = alsoViewed.for === product?.id ? alsoViewed.ids : [];
+  const relatedProducts = relatedFor(product, products, trafficIds, 4);
+  const fromTraffic = relatedProducts.some(p => trafficIds.includes(p.id));
+  const seenProducts = personalize && product ? recentlyViewed(store?.id, products, { exclude: product.id }) : [];
 
   // Fallback to imageUrl if images array is not available
   const images = product?.images?.length > 0 ? product.images : (product?.imageUrl ? [product.imageUrl] : []);
@@ -82,7 +100,8 @@ export default function ProductDetailPage() {
   // Tráfico (anónimo): qué productos se miran
   useEffect(() => {
     if (product?.id) track(store, 'product_view', { productId: product.id, label: product.available_stock <= 0 ? 'agotado' : null });
-  }, [product?.id, store?.id]);
+    if (product?.id && personalize) rememberView(store?.id, product);
+  }, [product?.id, store?.id, personalize]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -146,7 +165,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-store dark:bg-store-dark transition-colors pb-32 lg:pb-12">
-      
+
       {/* HEADER NAVEGACION (MOBILE & DESKTOP) */}
       {/* Se pega debajo del header de la tienda (16/24) y por debajo de su menú */}
       <div className="sticky top-16 md:top-24 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 transition-colors">
@@ -160,11 +179,11 @@ export default function ProductDetailPage() {
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-          
+
           {/* COLUMNA IZQUIERDA: GALERÍA DE IMÁGENES */}
           <div className="w-full lg:w-[48%] lg:max-w-[600px] mx-auto">
             <div className="relative aspect-square w-full bg-[#f4f4f5] dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-white/5 overflow-hidden flex items-center justify-center transition-colors group">
-              
+
               {hasDiscount && (
                 <div className="absolute top-6 left-6 z-10 bg-brand text-brand-ink text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-xl">
                   {product.discount}% OFF
@@ -176,10 +195,10 @@ export default function ProductDetailPage() {
                   {/* Imagen principal: es lo primero que se ve, se carga con prioridad */}
                   <img fetchPriority="high" decoding="async"
                     src={images[currentImageIndex]}
-                    alt={product.name} 
-                    className="w-full h-full object-contain animate-in fade-in zoom-in-95 duration-700" 
+                    alt={product.name}
+                    className="w-full h-full object-contain animate-in fade-in zoom-in-95 duration-700"
                   />
-                  
+
                   {/* Controles de Carrusel */}
                   {images.length > 1 && (
                     <>
@@ -189,7 +208,7 @@ export default function ProductDetailPage() {
                       <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 dark:bg-black/90 rounded-full flex items-center justify-center shadow-lg border border-black/5 opacity-0 group-hover:opacity-100 transition-all hover:scale-110">
                         <ChevronRight className="w-6 h-6 text-black dark:text-white" />
                       </button>
-                      
+
                       {/* Puntos Indicadores */}
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                         {images.map((_, i) => (
@@ -203,12 +222,12 @@ export default function ProductDetailPage() {
                 <div className="text-zinc-300 dark:text-zinc-600 font-medium text-sm">Sin imagen disponible</div>
               )}
             </div>
-            
+
             {/* Miniaturas */}
             {images.length > 1 && (
               <div className="flex gap-4 mt-4 overflow-x-auto custom-scrollbar pb-2">
                 {images.map((img, idx) => (
-                  <button 
+                  <button
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
                     className={`w-20 h-20 shrink-0 bg-[#f4f4f5] dark:bg-zinc-900 rounded-xl border-2 transition-all overflow-hidden ${idx === currentImageIndex ? 'border-black dark:border-white' : 'border-transparent opacity-50 hover:opacity-100'}`}
@@ -222,13 +241,13 @@ export default function ProductDetailPage() {
 
           {/* COLUMNA DERECHA: INFORMACIÓN IDENTIDAD */}
           <div className="w-full lg:w-[48%] lg:pt-0">
-            
+
             {/* Categoría & Acciones Superiores */}
             <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-white/10 mb-6 transition-colors">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                 Tienda / {product.category || 'Colección'}
               </span>
-              
+
               <div className="flex gap-5">
                 <button onClick={handleShare} aria-label="Copiar enlace" className="p-2.5 -m-2.5 text-zinc-400 dark:text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Copiar enlace">
                   {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Share2 className="w-5 h-5" />}
@@ -244,7 +263,7 @@ export default function ProductDetailPage() {
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter leading-tight mb-2 transition-colors">
                 {product.name}
               </h1>
-              
+
               <div className="flex flex-col gap-2">
                 <div className="flex items-end gap-4">
                   <span className="text-3xl font-bold text-zinc-900 dark:text-white transition-colors">
@@ -277,8 +296,8 @@ export default function ProductDetailPage() {
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                
-                <button 
+
+                <button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
                   className="flex-1 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-sm rounded-btn hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed shadow-xl shadow-black/10 dark:shadow-white/10"
@@ -287,7 +306,7 @@ export default function ProductDetailPage() {
                   {isOutOfStock ? 'Sin Stock' : 'Agregar al Carrito'}
                 </button>
               </div>
-              
+
               {isOutOfStock ? (
                   <p className="text-red-500 text-sm font-bold text-center">Actualmente sin stock disponible.</p>
                 ) : (
@@ -304,7 +323,7 @@ export default function ProductDetailPage() {
                   {product.description || "Un diseño minimalista pensado para destacar. Construido con materiales de primera calidad."}
                 </p>
               </Accordion>
-              
+
               <Accordion title="Especificaciones">
                 {product.features && product.features.length > 0 ? (
                   <ul className="space-y-3">
@@ -319,7 +338,7 @@ export default function ProductDetailPage() {
                   <p>Dimensiones estándar. Consulta al soporte para medidas precisas.</p>
                 )}
               </Accordion>
-              
+
               <Accordion title="Envíos y Devoluciónes">
                 <div className="space-y-4">
                   <div className="flex gap-4 items-start">
@@ -345,7 +364,7 @@ export default function ProductDetailPage() {
         {/* RELATED PRODUCTS */}
         {relatedProducts.length > 0 && (
           <div className="mt-24 border-t border-zinc-200 dark:border-white/10 pt-16">
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter mb-8">También te puede interesar</h2>
+            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter mb-8">{fromTraffic ? 'Quienes vieron esto también miraron' : 'También te puede interesar'}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               {relatedProducts.map(p => {
                 const pFinalPrice = p.discount > 0 ? p.price * (1 - p.discount / 100) : p.price;
@@ -368,6 +387,9 @@ export default function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Lo que este visitante vio antes (solo en su dispositivo) */}
+        <ProductRow title="Volvé a lo que viste" products={seenProducts} design="recently-viewed" className="mt-16 pb-20 lg:pb-0" />
       </div>
 
       {/* STICKY CTA (Solo Móvil) */}
@@ -377,7 +399,7 @@ export default function ProductDetailPage() {
             <span className="text-xs text-zinc-500 font-bold uppercase tracking-widest truncate">{product.name}</span>
             <span className="text-lg font-black text-black dark:text-white">${finalPrice.toLocaleString('es-AR')}</span>
           </div>
-          <button 
+          <button
             onClick={handleAddToCart}
             disabled={isOutOfStock}
             className="flex-1 shrink-0 h-12 bg-brand text-brand-ink font-black uppercase tracking-widest text-xs rounded-btn hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl"

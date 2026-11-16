@@ -111,7 +111,9 @@ export function normalizeBranding(input = {}) {
     show_category: b.show_category !== false,
     quick_add: b.quick_add !== false,
     show_benefits: b.show_benefits !== false,
-    show_coming_soon: b.show_coming_soon !== false
+    show_coming_soon: b.show_coming_soon !== false,
+    // Recomendaciones con lo que mira cada visitante ("Volvé a lo que viste", "Elegidos para vos"...)
+    personalize: b.personalize !== false
   };
 }
 
@@ -120,7 +122,7 @@ export function normalizeBranding(input = {}) {
 export const TEMPLATE_STYLE_FIELDS = [
   'primary_color', 'font', 'theme', 'button_shape', 'image_ratio', 'grid_columns',
   'background', 'background_custom', 'dark_background', 'accent_color', 'announcement_color',
-  'default_sort', 'show_category', 'quick_add', 'show_benefits', 'show_coming_soon', 'campaign_position'
+  'default_sort', 'show_category', 'quick_add', 'show_benefits', 'show_coming_soon', 'campaign_position', 'personalize'
 ];
 
 export const templateStyle = (branding) =>

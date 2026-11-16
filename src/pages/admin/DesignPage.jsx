@@ -21,7 +21,7 @@ const FIELD_TARGET = {
   background: 'page', background_custom: 'page', dark_background: 'page', theme: 'page',
   font: 'catalog-title', button_shape: 'catalog-toolbar',
   image_ratio: 'product-grid', grid_columns: 'product-grid', default_sort: 'product-grid',
-  show_category: 'product-card', quick_add: 'product-card', show_benefits: 'benefits', show_coming_soon: 'coming-soon',
+  show_category: 'product-card', quick_add: 'product-card', show_benefits: 'benefits', show_coming_soon: 'coming-soon', personalize: 'product-grid',
   campaign_position: 'campaign', headline_light: 'headline', headline_bold: 'headline', tagline: 'footer',
   announcement_active: 'announcement', announcement_text: 'announcement', announcement_color: 'announcement',
   instagram: 'footer', tiktok: 'footer', whatsapp_button: 'whatsapp',
@@ -293,6 +293,7 @@ export default function DesignPage() {
             <Toggle checked={draft.quick_add} onChange={set('quick_add')} label='Botón rápido "Agregar al carrito"' />
             <Toggle checked={draft.show_benefits} onChange={set('show_benefits')} label="Franja de beneficios" />
             <Toggle checked={draft.show_coming_soon} onChange={set('show_coming_soon')} label='Tarjeta "Próximamente" (con pocos productos)' />
+            <Toggle checked={draft.personalize} onChange={set('personalize')} label='Recomendaciones para cada visitante ("Volvé a lo que viste", "Elegidos para vos")' />
           </Section>
 
           <Section icon={Megaphone} title="Portada y anuncio">

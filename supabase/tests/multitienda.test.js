@@ -599,3 +599,30 @@ describe('014 · tráfico detallado', () => {
     await expect(as('customer', `select public.analytics_summary(7, $1)`, [STORE_B])).rejects.toThrow(/No autorizado/);
   });
 });
+
+describe('015 · recomendaciones con el tráfico', () => {
+  const view = (session, product, type = 'product_view') => as('anon', `select public.track_event($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [STORE_B, session, type, null, product, null, 'mobile', null]);
+  const also = async (who, product, store = STORE_B) =>
+    (await as(who, `select public.products_also_viewed($1, $2, 4) as ids`, [store, product]))[0].ids;
+
+  it('muestra lo que se miró junto en al menos 2 visitas, solo de la tienda y a la venta', async () => {
+    await db.exec(sql('015_recomendaciones.sql'));
+    await db.exec(sql('015_recomendaciones.sql')); // se puede correr dos veces
+    const add = async (name, active = true) => (await db.query(
+      `insert into products (name, price, stock, store_id, is_active) values ($1, 10, 5, $2, $3) returning id`, [name, STORE_B, active])).rows[0].id;
+    const difusor = await add('Difusor');
+    const sahumerio = await add('Sahumerio');
+    const pausado = await add('Pausado', false);
+
+    await view('reco-aaaa', ids.velas); await view('reco-aaaa', difusor); await view('reco-aaaa', pausado);
+    await view('reco-bbbb', ids.velas); await view('reco-bbbb', difusor, 'add_to_cart'); await view('reco-bbbb', sahumerio); await view('reco-bbbb', pausado);
+    await view('reco-cccc', ids.velas);
+
+    // Difusor: 2 visitas. Sahumerio: 1 sola (no se muestra). Pausado: no está a la venta.
+    expect(await also('anon', ids.velas)).toEqual([difusor]);
+    expect(await also('customer', difusor)).toEqual([ids.velas]);
+    // Con el id de otra tienda no devuelve nada
+    expect(await also('anon', ids.velas, MINIMAL)).toEqual([]);
+  });
+});

@@ -5,6 +5,7 @@ import { mapProduct, cartKey, availableFor } from '../productMapping';
 import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID, isShowcaseStore } from '../currentStore';
 import { isPlatformPath } from '../sitePaths';
+import { rememberCart } from '../personalization';
 import { platformOrigin, onPlatformHost } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
 import { track } from '../analytics';
@@ -300,7 +301,10 @@ export function StoreProvider({ children }) {
     if (product.variants?.length && !product.variants.some(v => v.name === variant)) return;
     const key = cartKey({ id: product.id, variant });
     const available = availableFor(product, variant);
-    if (available > 0) track(store, 'add_to_cart', { productId: product.id, label: variant || null });
+    if (available > 0) {
+      track(store, 'add_to_cart', { productId: product.id, label: variant || null });
+      if (normalizeBranding(store?.branding).personalize) rememberCart(store?.id, product);
+    }
     setCart(prev => {
       const existing = prev.find(item => cartKey(item) === key);
 
