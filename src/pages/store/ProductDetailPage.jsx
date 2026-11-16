@@ -41,6 +41,7 @@ function VariantPicker({ product, value, onChange, showError }) {
   );
 }
 import { ShoppingBag, Heart, Share2, ChevronLeft, ChevronRight, Check, Minus, Plus, Truck, ArrowRightLeft } from 'lucide-react';
+import { track } from '../../analytics';
 
 const Accordion = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -65,7 +66,7 @@ const Accordion = ({ title, children, defaultOpen = false }) => {
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, addToCart, favorites, toggleFavorite } = useStore();
+  const { products, addToCart, favorites, toggleFavorite, store } = useStore();
   const [copied, setCopied] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -77,6 +78,11 @@ export default function ProductDetailPage() {
 
   // Fallback to imageUrl if images array is not available
   const images = product?.images?.length > 0 ? product.images : (product?.imageUrl ? [product.imageUrl] : []);
+
+  // Tráfico (anónimo): qué productos se miran
+  useEffect(() => {
+    if (product?.id) track(store, 'product_view', { productId: product.id });
+  }, [product?.id, store?.id]);
 
   useEffect(() => {
     window.scrollTo(0, 0);

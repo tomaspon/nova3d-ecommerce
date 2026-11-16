@@ -7,6 +7,7 @@ import { resolveStore, DEFAULT_STORE_ID, isShowcaseStore } from '../currentStore
 import { isPlatformPath } from '../sitePaths';
 import { platformOrigin } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
+import { track } from '../analytics';
 import { DEMO_PRODUCTS, DEMO_SETTINGS, DEMO_CHECKOUT_MESSAGE } from '../demoStore';
 
 const DEFAULT_CATEGORIES = ['TecnologÃ­a', 'Indumentaria', 'Accesorios', 'Hogar'];
@@ -296,6 +297,7 @@ export function StoreProvider({ children }) {
     if (product.variants?.length && !product.variants.some(v => v.name === variant)) return;
     const key = cartKey({ id: product.id, variant });
     const available = availableFor(product, variant);
+    if (available > 0) track(store, 'add_to_cart', { productId: product.id });
     setCart(prev => {
       const existing = prev.find(item => cartKey(item) === key);
 
@@ -511,6 +513,7 @@ export function StoreProvider({ children }) {
       setIsCartOpen(false);
       await fetchProducts();
 
+      track(store, 'order_placed');
       return { success: true, orderId: created.id, total: Number(created.total) };
     } catch (error) {
       console.error('Error processing checkout:', error);

@@ -38,6 +38,7 @@ const ManualPage = lazy(() => import('./pages/admin/ManualPage'));
 const DesignPage = lazy(() => import('./pages/admin/DesignPage'));
 const PanelHome = lazy(() => import('./pages/platform/PanelHome'));
 const OffersPage = lazy(() => import('./pages/admin/OffersPage'));
+const TrafficPage = lazy(() => import('./pages/platform/TrafficPage'));
 
 // Dos sitios en un mismo despliegue (ver src/sitePaths.js):
 //  - la plataforma: página oficial, alta, panel de cada tienda y superadmin
@@ -106,6 +107,7 @@ function App() {
           {/* PLATAFORMA: superadmin, con verificación en dos pasos */}
           <Route path={SUPERADMIN} element={platformPage(<AdminAuth mode="platform"><PlatformLayout /></AdminAuth>)}>
             <Route index element={<PlatformDashboard />} />
+            <Route path="trafico" element={<TrafficPage />} />
             <Route path="tiendas" element={<PlatformPage view="stores" />} />
             <Route path="solicitudes" element={<PlatformPage view="requests" />} />
             <Route path="usuarios" element={<UsersPage />} />

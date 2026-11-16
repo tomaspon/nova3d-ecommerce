@@ -5,6 +5,7 @@ import { useStore } from '../context/StoreContext';
 import { availablePaymentMethods, storeWhatsappLink } from '../paymentMethods';
 import { isShowcaseStore } from '../currentStore';
 import { cartKey } from '../productMapping';
+import { track } from '../analytics';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2, Loader2, MapPin, Phone, User, Mail, CreditCard, Landmark } from 'lucide-react';
 
 export default function CartDrawer() {
@@ -301,7 +302,7 @@ export default function CartDrawer() {
             </div>
 
             {checkoutStep === 'cart' ? (
-              <button onClick={() => setCheckoutStep('form')} className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-btn transition-all flex items-center justify-center shadow-xl shadow-black/10 hover:-translate-y-0.5 active:scale-[0.98]">
+              <button onClick={() => { setCheckoutStep('form'); track(store, 'checkout_start'); }} className="w-full bg-brand hover:opacity-90 text-brand-ink font-bold py-4 rounded-btn transition-all flex items-center justify-center shadow-xl shadow-black/10 hover:-translate-y-0.5 active:scale-[0.98]">
                 Siguiente Paso
               </button>
             ) : (

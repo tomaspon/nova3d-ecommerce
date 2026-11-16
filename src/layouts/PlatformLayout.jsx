@@ -1,12 +1,13 @@
 import { Suspense } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { BarChart3, Store, Inbox, Users, Globe, LogOut, ExternalLink, Sparkles } from 'lucide-react';
+import { BarChart3, Activity, Store, Inbox, Users, Globe, LogOut, ExternalLink, Sparkles } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { PLATFORM_BRAND, onPlatformHost } from '../platformBrand';
 
 // Panel del administrador de la plataforma: separado del panel de cada tienda.
 const NAV = [
   { to: '/superadmin', label: 'Resumen', icon: BarChart3, end: true },
+  { to: '/superadmin/trafico', label: 'Tráfico', icon: Activity },
   { to: '/superadmin/tiendas', label: 'Tiendas', icon: Store },
   { to: '/superadmin/solicitudes', label: 'Solicitudes', icon: Inbox },
   { to: '/superadmin/usuarios', label: 'Usuarios', icon: Users }

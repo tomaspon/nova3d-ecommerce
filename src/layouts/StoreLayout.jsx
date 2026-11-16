@@ -8,6 +8,7 @@ import { supabase } from '../supabaseClient';
 import CartDrawer from '../components/CartDrawer';
 import DesignFocus from '../components/DesignFocus';
 import { normalizeBranding, instagramUrl, tiktokUrl } from '../branding';
+import { track } from '../analytics';
 import { storeWhatsappLink } from '../paymentMethods';
 
 export default function StoreLayout() {
@@ -68,6 +69,11 @@ export default function StoreLayout() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  // Tráfico (anónimo): cada página que se abre en la tienda
+  useEffect(() => {
+    if (store?.id) track(store, 'page_view', { path: location.pathname });
+  }, [store?.id, location.pathname]);
 
   return (
     <div className="min-h-screen bg-store dark:bg-store-dark text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">

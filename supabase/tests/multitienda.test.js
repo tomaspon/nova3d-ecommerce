@@ -430,3 +430,56 @@ describe('012 · mails al cliente', () => {
     }
   });
 });
+
+describe('013 · tráfico e interacciones', () => {
+  const track = (who, args) => as(who, `select public.track_event($1, $2, $3, $4, $5, $6, $7)`, args);
+
+  it('cualquier visitante registra eventos, pero nadie más que el servidor los lee', async () => {
+    await db.exec(sql('013_trafico.sql'));
+    await db.exec(sql('013_trafico.sql')); // se puede correr dos veces
+
+    // Visita 1 (Instagram, celular): mira la tienda, un producto, lo agrega y compra
+    await track('anon', [STORE_B, 'visita-0001', 'page_view', '/', null, 'l.instagram.com', 'mobile']);
+    await track('anon', [STORE_B, 'visita-0001', 'page_view', '/producto/' + ids.velas, null, null, 'mobile']);
+    await track('anon', [STORE_B, 'visita-0001', 'product_view', null, ids.velas, null, 'mobile']);
+    await track('anon', [STORE_B, 'visita-0001', 'add_to_cart', null, ids.velas, null, 'mobile']);
+    await track('anon', [STORE_B, 'visita-0001', 'checkout_start', null, null, null, 'mobile']);
+    await track('anon', [STORE_B, 'visita-0001', 'order_placed', null, null, null, 'mobile']);
+    // Visita 2 (directo, computadora): solo mira
+    await track('customer', [STORE_B, 'visita-0002', 'page_view', '/', null, null, 'desktop']);
+    await track('customer', [STORE_B, 'visita-0002', 'product_view', null, ids.velas, null, 'desktop']);
+
+    for (const who of ['anon', 'customer', 'ownerB', 'admin']) {
+      await expect(as(who, `select * from analytics_events`)).rejects.toThrow(/permission denied/);
+      await expect(as(who, `select public.analytics_summary(30, null)`)).rejects.toThrow(/permission denied/);
+    }
+    expect(Number((await db.query(`select count(*) as n from analytics_events`)).rows[0].n)).toBe(8);
+  });
+
+  it('ignora lo inválido: tipo desconocido, tienda apagada, producto de otra tienda', async () => {
+    const before = Number((await db.query(`select count(*) as n from analytics_events`)).rows[0].n);
+    await track('anon', [STORE_B, 'visita-0003', 'hackeo', '/', null, null, 'mobile']);
+    await track('anon', [STORE_OFF, 'visita-0003', 'page_view', '/', null, null, 'mobile']);
+    await track('anon', [STORE_B, 'x', 'page_view', '/', null, null, 'mobile']); // marca de visita inválida
+    expect(Number((await db.query(`select count(*) as n from analytics_events`)).rows[0].n)).toBe(before);
+
+    await track('anon', [STORE_B, 'visita-0003', 'product_view', null, ids.minimal, null, 'mobile']);
+    const [row] = (await db.query(`select product_id from analytics_events where session_id = 'visita-0003'`)).rows;
+    expect(row.product_id).toBeNull();
+  });
+
+  it('el resumen arma visitas por día, embudo, productos, secciones, origen y aparatos', async () => {
+    const [{ s }] = (await db.query(`select public.analytics_summary(7, $1) as s`, [STORE_B])).rows;
+    expect(s.totals).toMatchObject({ visits: 3, pageViews: 3, productViews: 3, addToCart: 1, checkouts: 1, orders: 1 });
+    expect(s.funnel).toEqual({ visits: 3, viewedProduct: 3, addedToCart: 1, startedCheckout: 1, ordered: 1 });
+    expect(s.daily).toHaveLength(7);
+    expect(s.daily[6].visits).toBe(3);
+    expect(s.topProducts[0]).toMatchObject({ name: 'Vela', views: 2, addToCart: 1 });
+    expect(s.topPages).toEqual(expect.arrayContaining([{ path: '/', views: 2 }, { path: '/producto', views: 1 }]));
+    expect(s.sources).toEqual(expect.arrayContaining([{ source: 'Instagram', visits: 1 }, { source: 'Directo', visits: 2 }]));
+    expect(s.devices).toEqual(expect.arrayContaining([{ device: 'mobile', visits: 2 }, { device: 'desktop', visits: 1 }]));
+
+    const [{ s: all }] = (await db.query(`select public.analytics_summary(30, null) as s`)).rows;
+    expect(all.byStore[0]).toMatchObject({ slug: 'velas-luna', visits: 3, orders: 1 });
+  });
+});
