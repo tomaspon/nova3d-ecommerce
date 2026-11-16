@@ -229,20 +229,20 @@ export default function StoreLayout() {
               { title: 'Ayuda', links: [{ to: '/seguimiento', label: 'Seguí tu pedido' }, { to: user ? '/perfil' : '/login', label: 'Mi cuenta' }] }
             ].map(col => (
               <div key={col.title}>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-4">{col.title}</p>
-                <ul className="space-y-2.5 text-sm text-zinc-500">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-2">{col.title}</p>
+                <ul className="space-y-0.5 text-sm text-zinc-500">
                   {col.links.map(l => (
-                    <li key={l.label}><Link to={l.to} className="hover:text-black dark:hover:text-white transition">{l.label}</Link></li>
+                    <li key={l.label}><Link to={l.to} className="inline-flex items-center min-h-10 hover:text-black dark:hover:text-white transition">{l.label}</Link></li>
                   ))}
                 </ul>
               </div>
             ))}
             {contactLinks.length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-4">Contacto</p>
-                <ul className="space-y-2.5 text-sm text-zinc-500">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 dark:text-white mb-2">Contacto</p>
+                <ul className="space-y-0.5 text-sm text-zinc-500">
                   {contactLinks.map(l => (
-                    <li key={l.label}><a href={l.href} target={l.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer" className="hover:text-black dark:hover:text-white transition break-all">{l.label}</a></li>
+                    <li key={l.label}><a href={l.href} target={l.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer" className="inline-flex items-center min-h-10 hover:text-black dark:hover:text-white transition break-all">{l.label}</a></li>
                   ))}
                 </ul>
               </div>

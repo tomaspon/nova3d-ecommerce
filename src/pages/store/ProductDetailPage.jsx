@@ -149,7 +149,7 @@ export default function ProductDetailPage() {
       {/* Se pega debajo del header de la tienda (16/24) y por debajo de su menú */}
       <div className="sticky top-16 md:top-24 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 transition-colors">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white transition-colors group">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 min-h-10 -my-2 pr-3 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white transition-colors group">
             <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
             <span className="text-xs font-bold uppercase tracking-widest">Volver</span>
           </button>
@@ -227,11 +227,11 @@ export default function ProductDetailPage() {
                 Tienda / {product.category || 'Colección'}
               </span>
               
-              <div className="flex gap-4">
-                <button onClick={handleShare} className="text-zinc-400 dark:text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Copiar enlace">
+              <div className="flex gap-5">
+                <button onClick={handleShare} aria-label="Copiar enlace" className="p-2.5 -m-2.5 text-zinc-400 dark:text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Copiar enlace">
                   {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Share2 className="w-5 h-5" />}
                 </button>
-                <button onClick={() => toggleFavorite(product.id)} className={`transition-colors ${isFavorite ? 'text-red-500' : 'text-zinc-400 dark:text-zinc-500 hover:text-red-500'}`}>
+                <button onClick={() => toggleFavorite(product.id)} aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'} className={`p-2.5 -m-2.5 transition-colors ${isFavorite ? 'text-red-500' : 'text-zinc-400 dark:text-zinc-500 hover:text-red-500'}`}>
                   <Heart className="w-5 h-5" fill={isFavorite ? 'currentColor' : 'none'} />
                 </button>
               </div>

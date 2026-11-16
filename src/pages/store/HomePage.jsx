@@ -224,9 +224,9 @@ export default function HomePage() {
         </div>
 
         {/* Barra de herramientas: categorías + orden */}
-        <div data-design="catalog-toolbar" className="flex items-center justify-between gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-6">
+        <div data-design="catalog-toolbar" className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 border-y border-zinc-200 dark:border-white/5 py-3 mb-6">
         {storeCategories.length > 0 ? (
-          <div className="flex overflow-x-auto hide-scrollbar gap-2 min-w-0">
+          <div className="flex overflow-x-auto hide-scrollbar gap-2 min-w-0 -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => {
                 setSearchParams(prev => {
@@ -234,7 +234,7 @@ export default function HomePage() {
                   return prev;
                 });
               }}
-              className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-btn text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
+              className={`shrink-0 min-h-10 px-4 md:px-5 rounded-btn text-[11px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
                 categoryFilter === 'all'
                   ? 'bg-brand text-brand-ink shadow-lg'
                   : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
@@ -251,7 +251,7 @@ export default function HomePage() {
                     return prev;
                   });
                 }}
-                className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-btn text-[10px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
+                className={`shrink-0 min-h-10 px-4 md:px-5 rounded-btn text-[11px] md:text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
                   categoryFilter === cat
                     ? 'bg-brand text-brand-ink shadow-lg'
                     : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
@@ -263,13 +263,13 @@ export default function HomePage() {
           </div>
         ) : <div />}
 
-          <div className="relative shrink-0" ref={sortRef}>
+          <div className="relative shrink-0 self-end sm:self-auto" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
               aria-expanded={isSortOpen}
-              className="flex items-center gap-2 px-2 py-2 text-sm font-bold text-zinc-900 dark:text-white hover:opacity-70 transition"
+              className="flex items-center gap-2 px-2 min-h-10 text-sm font-bold text-zinc-900 dark:text-white hover:opacity-70 transition"
             >
-              <span className="hidden sm:inline text-zinc-500 dark:text-zinc-400 font-medium">Ordenar:</span> {currentSortLabel}
+              <span className="text-zinc-500 dark:text-zinc-400 font-medium">Ordenar:</span> {currentSortLabel}
               <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
             </button>
             
