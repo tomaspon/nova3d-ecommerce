@@ -11,12 +11,14 @@ import StoreLayout from './layouts/StoreLayout';
 
 // Pages
 import HomePage from './pages/store/HomePage';
-import AboutPage from './pages/store/AboutPage';
-import TrackingPage from './pages/store/TrackingPage';
-import LoginPage from './pages/store/LoginPage';
-import ProfilePage from './pages/store/ProfilePage';
+import AuthLinkNotice from './components/AuthLinkNotice';
 import ProductDetailPage from './pages/store/ProductDetailPage';
-import NotFoundPage from './pages/store/NotFoundPage';
+// Lo que no se ve al entrar a una tienda se baja recién cuando hace falta
+const AboutPage = lazy(() => import('./pages/store/AboutPage'));
+const TrackingPage = lazy(() => import('./pages/store/TrackingPage'));
+const LoginPage = lazy(() => import('./pages/store/LoginPage'));
+const ProfilePage = lazy(() => import('./pages/store/ProfilePage'));
+const NotFoundPage = lazy(() => import('./pages/store/NotFoundPage'));
 
 // El panel se descarga recién al entrar a /admin, así los clientes no cargan ese código
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
@@ -40,6 +42,7 @@ const PanelHome = lazy(() => import('./pages/platform/PanelHome'));
 const OffersPage = lazy(() => import('./pages/admin/OffersPage'));
 const TrafficPage = lazy(() => import('./pages/platform/TrafficPage'));
 const StatsPage = lazy(() => import('./pages/admin/StatsPage'));
+const ErrorsPage = lazy(() => import('./pages/platform/ErrorsPage'));
 
 // Dos sitios en un mismo despliegue (ver src/sitePaths.js):
 //  - la plataforma: página oficial, alta, panel de cada tienda y superadmin
@@ -59,6 +62,7 @@ function App() {
     <ErrorBoundary>
     <StoreProvider>
       <BrowserRouter>
+        <AuthLinkNotice />
         <Suspense fallback={adminFallback}>
         <Routes>
           {isPlatform ? (
@@ -113,6 +117,7 @@ function App() {
             <Route path="tiendas" element={<PlatformPage view="stores" />} />
             <Route path="solicitudes" element={<PlatformPage view="requests" />} />
             <Route path="usuarios" element={<UsersPage />} />
+            <Route path="errores" element={<ErrorsPage />} />
           </Route>
 
           {/* Direcciones viejas */}

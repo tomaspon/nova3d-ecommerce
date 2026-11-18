@@ -218,6 +218,8 @@ export default function ProfilePage() {
     return TABS.some(t => t.id === tab) ? tab : 'orders';
   });
   const [orderFilter, setOrderFilter] = useState('all');
+  // Recién confirmó el mail: se le da la bienvenida y se le piden los datos de envío
+  const [welcome, setWelcome] = useState(() => new URLSearchParams(window.location.search).get('bienvenida') === '1');
 
   const handleSaveDatos = async (e) => {
     e.preventDefault();
@@ -459,6 +461,16 @@ export default function ProfilePage() {
 
           {activeTab === 'datos' && (
             <section>
+              {welcome && (
+                <div role="status" className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 flex items-start gap-3">
+                  <span aria-hidden="true" className="text-xl leading-none">🎉</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-zinc-900 dark:text-white">¡Listo, tu cuenta está confirmada!</p>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-0.5">Sumá tu DNI y tu dirección: en la próxima compra se completan solos y terminás en segundos.</p>
+                  </div>
+                  <button type="button" onClick={() => setWelcome(false)} className="shrink-0 min-h-10 px-2 text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white">Cerrar</button>
+                </div>
+              )}
               <div className="mb-6">
                 <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Mis datos</h1>
                 <p className="text-sm text-zinc-500 mt-1">Los usamos para completar tus próximas compras más rápido.</p>

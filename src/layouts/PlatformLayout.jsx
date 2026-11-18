@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { BarChart3, Activity, Store, Inbox, Users, Globe, LogOut, ExternalLink, Sparkles } from 'lucide-react';
+import { BarChart3, Activity, Store, Inbox, Users, Globe, LogOut, ExternalLink, Sparkles, Bug } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { PLATFORM_BRAND, onPlatformHost } from '../platformBrand';
 
@@ -10,7 +10,8 @@ const NAV = [
   { to: '/superadmin/trafico', label: 'Tráfico', icon: Activity },
   { to: '/superadmin/tiendas', label: 'Tiendas', icon: Store },
   { to: '/superadmin/solicitudes', label: 'Solicitudes', icon: Inbox },
-  { to: '/superadmin/usuarios', label: 'Usuarios', icon: Users }
+  { to: '/superadmin/usuarios', label: 'Usuarios', icon: Users },
+  { to: '/superadmin/errores', label: 'Errores', icon: Bug }
 ];
 
 // Página oficial (la que ven los emprendedores) y tienda de ejemplo: se abren en otra pestaña

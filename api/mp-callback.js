@@ -2,6 +2,7 @@ import { getSupabase } from './_lib/payments.js';
 import { verifyState } from './_lib/secrets.js';
 import { exchangeCode, saveAccount } from './_lib/mercadopago.js';
 import { platformUrl } from './_lib/platformAdmin.js';
+import { logApiError } from './_lib/guard.js';
 
 // A donde vuelve MercadoPago después de que el vendedor autoriza (GET ?code=...&state=...).
 // El state firmado dice qué tienda y qué usuario empezaron la conexión: así nadie puede
@@ -33,6 +34,7 @@ export default async function handler(req, res) {
     return res.redirect(302, settingsUrl(req, store, 'conectado'));
   } catch (err) {
     console.error('mp-callback:', err);
+    try { await logApiError(getSupabase(), 'mp-callback', err); } catch { /* sin Supabase */ }
     return res.redirect(302, settingsUrl(req, store, 'error'));
   }
 }

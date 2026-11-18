@@ -6,6 +6,7 @@ import { deleteStore, isHardDeleteEnabled } from './_lib/purgeAccount.js';
 import { STORE_TEMPLATES, slugError, normalizeDomain, isValidDomain } from '../src/platformStores.js';
 import { DEFAULT_STORE_ID } from '../src/storeIds.js';
 import { isPaid } from '../src/orderStatus.js';
+import { logApiError } from './_lib/guard.js';
 
 // Panel de plataforma: listar tiendas, crearlas, suspenderlas, asignar dueños y dominios.
 // Crear tiendas y cambiar estado, slug o dominio no se puede desde el navegador
@@ -61,6 +62,9 @@ async function listStores(supabase) {
     supabase.from('store_members').select('store_id, user_id, role')
   ]);
   for (const r of [storesRes, productsRes, ordersRes, membersRes]) if (r.error) throw r.error;
+  // Datos del dueño (016). Si todavía no se corrió, la lista sigue andando sin ellos.
+  const detailsRes = await supabase.from('store_owner_details').select('store_id, tax_id, whatsapp, sales_channels');
+  const detailsById = Object.fromEntries((detailsRes.error ? [] : detailsRes.data || []).map(d => [d.store_id, d]));
 
   const userIds = [...new Set(membersRes.data.map(m => m.user_id))];
   const users = await Promise.all(userIds.map(id => supabase.auth.admin.getUserById(id)));
@@ -74,6 +78,7 @@ async function listStores(supabase) {
     return {
       ...store,
       isDefault: store.id === DEFAULT_STORE_ID,
+      ownerDetails: detailsById[store.id] || null,
       productCount: productsRes.data.filter(p => p.store_id === store.id && p.is_active).length,
       paidOrderCount: paid.length,
       revenue: paid.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
@@ -247,6 +252,7 @@ export default async function handler(req, res) {
   } catch (error) {
     if (error instanceof UserError) return res.status(error.status).json({ message: error.message });
     console.error('platform-stores:', error);
+    try { await logApiError(getSupabase(), 'platform-stores', error); } catch { /* sin Supabase */ }
     return res.status(500).json({ message: 'Error interno.' });
   }
 }

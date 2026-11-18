@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { installErrorReporter } from './errorReporter'
+
+installErrorReporter()
 
 // Encuadrada en otra página (la vista en vivo de la página oficial): sin barras de scroll visibles
 try {

@@ -1,5 +1,6 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { validateStoreRequest, TERMS_VERSION } from '../src/storeRequest.js';
+import { logApiError } from './_lib/guard.js';
 
 // Recibe las solicitudes de tienda de la página oficial (pública, sin sesión).
 // Guarda junto con los datos cuándo y desde qué IP se aceptaron los términos: es la
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ message: '¡Recibimos tu solicitud! Te contactamos en menos de 48 horas hábiles.' });
   } catch (error) {
     console.error('store-request:', error);
+    try { await logApiError(getSupabase(), 'store-request', error); } catch { /* sin Supabase */ }
     return res.status(500).json({ message: 'No pudimos guardar tu solicitud. Probá de nuevo o escribinos por WhatsApp.' });
   }
 }

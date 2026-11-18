@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Check, ArrowRight, Store, LayoutDashboard, ExternalLink, Mail } from 'lucide-react';
-import { supabase } from '../../supabaseClient';
+import { supabase, rememberAuthReturn } from '../../supabaseClient';
 import { PLATFORM_BRAND, PLATFORM_DOMAIN, onPlatformHost, platformOrigin, storesOrigin } from '../../platformBrand';
 import { STORE_TEMPLATES, storeUrls } from '../../platformStores';
-import { validateStoreSignup, slugify, TERMS_VERSION } from '../../storeSignup';
+import { validateStoreSignup, slugify, TERMS_VERSION, SALES_CHANNELS } from '../../storeSignup';
 import DesignStep from './DesignStep';
 import ThemeToggle from '../../components/ThemeToggle';
 import SocialButtons from '../../components/SocialButtons';
@@ -90,6 +90,7 @@ function AccountStep({ onDone }) {
     } else if (password.length < MIN_PASSWORD_LENGTH) { setError(`La contraseña tiene al menos ${MIN_PASSWORD_LENGTH} caracteres.`); return; }
     setIsSending(true);
     if (mode === 'signup') {
+      rememberAuthReturn(`${window.location.origin}/crear`);
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
@@ -165,7 +166,23 @@ function StoreStep({ onCreated }) {
   const [slugTouched, setSlugTouched] = useDraft('slugTouched', false);
   const [template, setTemplate] = useDraft('template', '');
   const [accepted, setAccepted] = useDraft('accepted', false);
+  const [whatsapp, setWhatsapp] = useDraft('whatsapp', '');
+  const [channels, setChannels] = useDraft('channels', []);
+  // El CUIL/CUIT no se guarda en el borrador: queda solo en memoria hasta enviarlo
+  const [taxId, setTaxId] = useState('');
   const [errors, setErrors] = useState({});
+
+  // WhatsApp: arranca con el teléfono de la cuenta
+  useEffect(() => {
+    if (whatsapp) return;
+    supabase.auth.getSession().then(({ data }) => {
+      const phone = data.session?.user?.user_metadata?.shipping?.phone;
+      if (phone) setWhatsapp(phone);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // "Todavía no vendo" no se combina con los demás
+  const toggleChannel = (id) => setChannels(list => (list.includes(id) ? list.filter(x => x !== id)
+    : id === 'ninguno' ? ['ninguno'] : [...list.filter(x => x !== 'ninguno'), id]));
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -174,7 +191,7 @@ function StoreStep({ onCreated }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    const payload = { action: 'create', name, slug: finalSlug, template, accepted_terms: accepted, terms_version: TERMS_VERSION };
+    const payload = { action: 'create', name, slug: finalSlug, template, tax_id: taxId, whatsapp, sales_channels: channels, accepted_terms: accepted, terms_version: TERMS_VERSION };
     const { errors: found } = validateStoreSignup(payload);
     if (Object.keys(found).length) { setErrors(found); return; }
     setIsSending(true);
@@ -217,6 +234,31 @@ function StoreStep({ onCreated }) {
           {STORE_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
       </Field>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Field label="CUIL (mayor de 18) o CUIT" error={errors.tax_id} hint="El de la cuenta bancaria donde vas a cobrar. No hace falta estar inscripto.">
+          <input className={`${inputClass} font-mono`} inputMode="numeric" autoComplete="off" maxLength={13} placeholder="20-12345678-9"
+            value={taxId} onChange={(e) => { setTaxId(e.target.value.replace(/[^\d-]/g, '')); setErrors(x => ({ ...x, tax_id: undefined })); }} />
+        </Field>
+        <Field label="WhatsApp" error={errors.whatsapp} hint="Para avisarte de ventas y ayudarte a arrancar.">
+          <input className={inputClass} type="tel" inputMode="tel" autoComplete="tel" placeholder="11 2345 6789"
+            value={whatsapp} onChange={(e) => { setWhatsapp(e.target.value); setErrors(x => ({ ...x, whatsapp: undefined })); }} />
+        </Field>
+      </div>
+      <fieldset>
+        <legend className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">¿Dónde vendés hoy? <span className="font-normal text-zinc-500 dark:text-zinc-400">(opcional)</span></legend>
+        <div className="flex flex-wrap gap-2">
+          {SALES_CHANNELS.map(c => {
+            const on = channels.includes(c.id);
+            return (
+              <button key={c.id} type="button" aria-pressed={on} onClick={() => toggleChannel(c.id)}
+                className={`min-h-10 px-3.5 rounded-full border text-sm font-semibold transition ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-zinc-300 text-zinc-700 hover:border-zinc-400 dark:border-white/15 dark:text-zinc-300 dark:hover:border-white/30'}`}>
+                {on && <Check className="inline w-4 h-4 -mt-0.5 mr-1" />}{c.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">Así te mostramos primero lo que más te sirve.</p>
+      </fieldset>
       <label className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300">
         <input type="checkbox" className="mt-0.5 w-5 h-5 rounded accent-indigo-600 shrink-0" checked={accepted} onChange={(e) => { setAccepted(e.target.checked); setErrors(x => ({ ...x, accepted_terms: undefined })); }} />
         <span>Acepto los <Link to="/terminos" target="_blank" className="font-semibold text-indigo-600 underline dark:text-indigo-400">términos del servicio y la política de privacidad</Link>.</span>

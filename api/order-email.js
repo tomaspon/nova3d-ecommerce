@@ -1,5 +1,6 @@
 import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { sendOrderEmail } from './_lib/orderEmails.js';
+import { overLimit, logApiError } from './_lib/guard.js';
 
 // POST { orderId, kind: 'received' | 'paid' }
 // Lo llaman la tienda al crear un pedido con transferencia y el panel al confirmar un pago.
@@ -15,7 +16,15 @@ export default async function handler(req, res) {
   }
   if (!hasServiceKey()) return res.status(200).json({ sent: false });
 
-  const result = await sendOrderEmail(getSupabase(), orderId, kind);
+  const supabase = getSupabase();
+  if (await overLimit(supabase, req, 'order-email', 20, 600)) return res.status(429).json({ sent: false });
+  let result;
+  try {
+    result = await sendOrderEmail(supabase, orderId, kind);
+  } catch (error) {
+    await logApiError(supabase, 'order-email', error);
+    return res.status(200).json({ sent: false });
+  }
   // No se informa el motivo: no da pistas sobre órdenes ajenas
   return res.status(200).json({ sent: result.sent });
 }

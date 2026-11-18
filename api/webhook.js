@@ -1,5 +1,7 @@
 import { processPayment } from './_lib/payments.js';
 import { DEFAULT_STORE_ID } from '../src/storeIds.js';
+import { logApiError } from './_lib/guard.js';
+import { getSupabase } from './_lib/payments.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -24,6 +26,7 @@ export default async function handler(req, res) {
     res.status(200).send('OK');
   } catch (error) {
     console.error('Error en webhook MP:', error);
+    try { await logApiError(getSupabase(), 'webhook', error); } catch { /* sin Supabase */ }
     res.status(500).send('Internal Server Error');
   }
 }

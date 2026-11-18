@@ -2,6 +2,7 @@ import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { signState } from './_lib/secrets.js';
 import { isMpOAuthConfigured, authorizationUrl, disconnectAccount } from './_lib/mercadopago.js';
 import { isPlatformAdmin } from './_lib/platformAdmin.js';
+import { logApiError } from './_lib/guard.js';
 
 // Conexión de MercadoPago desde el panel de una tienda (POST, con el token de sesión):
 //   status      { storeId }  → si está conectada y con qué cuenta
@@ -53,6 +54,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ message: 'Acción inválida.' });
   } catch (error) {
     console.error('mp-connect:', error);
+    try { await logApiError(getSupabase(), 'mp-connect', error); } catch { /* sin Supabase */ }
     return res.status(500).json({ message: 'Error interno.' });
   }
 }

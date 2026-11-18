@@ -6,7 +6,20 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
+        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=(), payment=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'self' https:; frame-ancestors 'self' https://nova3d-ecommerce.vercel.app https://*.vercel.app; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/demo/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
       ]
     },
     {
@@ -27,8 +40,21 @@
     }
   ],
   "rewrites": [
+    { "source": "/robots.txt", "destination": "/api/seo?kind=robots" },
+    { "source": "/sitemap.xml", "destination": "/api/seo?kind=sitemap" },
+    { "source": "/api/health", "destination": "/api/seo?kind=health" },
     {
-      "source": "/(.*)",
+      "source": "/producto/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|WhatsApp|Twitterbot|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Applebot|Embedly|Iframely|vkShare).*" }],
+      "destination": "/api/seo?kind=og&p=/producto/:id"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|WhatsApp|Twitterbot|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Applebot|Embedly|Iframely|vkShare).*" }],
+      "destination": "/api/seo?kind=og&p=/"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

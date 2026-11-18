@@ -119,6 +119,17 @@ export function normalizeBranding(input = {}) {
 
 // Plantilla base (la tienda principal): lo que heredan la tienda de ejemplo y cada tienda nueva.
 // Solo el estilo; nunca lo propio de esa marca (logo, textos, redes, anuncio).
+// Carga una tipografía de Google la primera vez que se necesita
+export function ensureFontCss(id, href) {
+  if (typeof document === 'undefined' || document.querySelector(`link[data-brand-font="${id}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  link.dataset.brandFont = id;
+  document.head.appendChild(link);
+}
+export const SCRIPT_FONT_CSS = 'https://fonts.googleapis.com/css2?family=Pacifico&display=swap';
+
 export const TEMPLATE_STYLE_FIELDS = [
   'primary_color', 'font', 'theme', 'button_shape', 'image_ratio', 'grid_columns',
   'background', 'background_custom', 'dark_background', 'accent_color', 'announcement_color',

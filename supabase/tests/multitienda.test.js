@@ -626,3 +626,48 @@ describe('015 · recomendaciones con el tráfico', () => {
     expect(await also('anon', ids.velas, MINIMAL)).toEqual([]);
   });
 });
+
+describe('016 · privacidad del seguimiento y registro de errores', () => {
+  const track = (doc, check, store = STORE_B) =>
+    as('anon', `select public.track_orders_by_document($1, $2, $3) as t`, [doc, store, check]).then(r => r[0].t);
+
+  it('el seguimiento pide DNI y además el email o el número de pedido', async () => {
+    await db.exec(sql('016_privacidad_y_errores.sql'));
+    await db.exec(sql('016_privacidad_y_errores.sql')); // se puede correr dos veces
+
+    // Las versiones viejas (solo con el DNI) ya no existen
+    await expect(as('anon', `select public.track_orders_by_document('30111222')`)).rejects.toThrow(/does not exist/);
+    await expect(as('anon', `select public.track_orders_by_document('30111222', $1)`, [STORE_B])).rejects.toThrow(/does not exist/);
+
+    expect(await track('30111222', '')).toEqual([]);
+    expect(await track('30111222', 'otra@x.com')).toEqual([]);
+    const byEmail = await track('30.111.222', 'CLIENTE@x.com');
+    expect(byEmail.length).toBeGreaterThan(0);
+    expect(byEmail.every(o => o.short_id.length === 8)).toBe(true);
+    const byCode = await track('30111222', `#${ids.orderB.slice(0, 8)}`);
+    expect(byCode.map(o => o.short_id)).toContain(ids.orderB.slice(0, 8));
+    // El número de pedido de una tienda no sirve en otra
+    expect(await track('30111222', ids.orderB.slice(0, 8), MINIMAL)).toEqual([]);
+  });
+
+  it('corta tras muchos intentos con el mismo DNI', async () => {
+    let blocked = null;
+    for (let i = 0; i < 12 && !blocked; i++) {
+      await track('40999888', `nadie${i}@x.com`).catch(e => { blocked = e; });
+    }
+    expect(blocked?.message).toMatch(/Demasiados intentos/);
+    await expect(as('anon', `select public.rate_limit_ok('x', 1, 60)`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('guarda los errores del navegador (agrupados) y solo el superadmin los ve', async () => {
+    const log = () => as('anon', `select public.log_client_error($1, '/producto/1', 'TypeError: x is undefined', 'at Card')`, [STORE_B]);
+    await log(); await log();
+    const [{ e }] = await as('admin', `select public.recent_errors(7) as e`);
+    const row = e.find(r => r.message === 'TypeError: x is undefined');
+    expect(row).toMatchObject({ source: 'navegador', times: 2, path: '/producto/1', slug: 'velas-luna' });
+
+    await expect(as('customer', `select public.recent_errors(7)`)).rejects.toThrow(/No autorizado/);
+    await expect(as('anon', `select public.recent_errors(7)`)).rejects.toThrow(/permission denied/);
+    await expect(as('anon', `select public.app_error_record('x', null, null, 'y', null, null)`)).rejects.toThrow(/permission denied/);
+  });
+});

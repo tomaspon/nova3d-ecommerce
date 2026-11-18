@@ -21,6 +21,8 @@ export default function TrackingPage() {
   const storeEmail = storeSettings?.store_email || '';
   const whatsapp = (text) => storeWhatsappLink(storeSettings, text);
   const [document, setDocument] = useState('');
+  // Además del DNI: el email de la compra o el número de pedido (así nadie ve compras ajenas probando DNIs)
+  const [check, setCheck] = useState('');
   const [orders, setOrders] = useState([]); // Can be multiple if searching by DNI
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [error, setError] = useState('');
@@ -92,7 +94,7 @@ export default function TrackingPage() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!document) return;
+    if (!document || !check.trim()) return;
 
     setIsLoading(true);
     setError('');
@@ -102,10 +104,13 @@ export default function TrackingPage() {
     try {
       // Por DNI la base devuelve solo estado, artículos y envío: sin dirección ni datos personales,
       // y con el número corto de pedido en lugar del id completo.
-      const { data, error: fetchError } = await supabase.rpc('track_orders_by_document', { p_document: document.trim(), p_store_id: storeId });
+      const { data, error: fetchError } = await supabase.rpc('track_orders_by_document', { p_document: document.trim(), p_store_id: storeId, p_check: check.trim() });
 
+      if (fetchError && /Demasiados intentos/.test(fetchError.message || '')) {
+        throw new Error('Hiciste muchas búsquedas seguidas. Probá de nuevo en un rato.');
+      }
       if (fetchError || !data || data.length === 0) {
-        throw new Error('No encontramos pedidos asociados a este documento.');
+        throw new Error('No encontramos pedidos con esos datos. Revisá el DNI y el email (o el número de pedido) que usaste al comprar.');
       }
 
       const found = data.map(order => ({ ...order, id: order.short_id }));
@@ -171,30 +176,52 @@ export default function TrackingPage() {
               ¿Dónde está<br />tu pedido?
             </h1>
             <p className="text-zinc-600 dark:text-zinc-400 text-base sm:text-lg max-w-md mb-10 lg:mb-12">
-              Ingresá el DNI con el que hiciste la compra y te mostramos en qué etapa está.
+              Ingresá el DNI y el email con los que compraste (o el número de pedido) y te mostramos en qué etapa está.
             </p>
 
             <form onSubmit={handleSearch} className="max-w-2xl">
-              <label htmlFor="tracking-document" className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-2 block">
-                DNI / Documento
-              </label>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  id="tracking-document"
-                  required
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="Ej: 35123456"
-                  value={document}
-                  onChange={(e) => setDocument(e.target.value)}
-                  aria-describedby={error ? 'tracking-error' : undefined}
-                  className="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/20 hover:border-zinc-400 dark:hover:border-white/30 rounded-xl px-4 py-4 text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 transition text-zinc-900 dark:text-white placeholder:text-zinc-500"
-                />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <label htmlFor="tracking-document" className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-2 block">
+                    DNI / Documento
+                  </label>
+                  <input
+                    id="tracking-document"
+                    required
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Ej: 35123456"
+                    value={document}
+                    onChange={(e) => setDocument(e.target.value)}
+                    aria-describedby={error ? 'tracking-error' : undefined}
+                    className="w-full min-w-0 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/20 hover:border-zinc-400 dark:hover:border-white/30 rounded-xl px-4 py-4 text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 transition text-zinc-900 dark:text-white placeholder:text-zinc-500"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor="tracking-check" className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-2 block">
+                    Email o N° de pedido
+                  </label>
+                  <input
+                    id="tracking-check"
+                    required
+                    type="text"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="tu@email.com o A1B2C3D4"
+                    value={check}
+                    onChange={(e) => setCheck(e.target.value)}
+                    aria-describedby={error ? 'tracking-error' : undefined}
+                    className="w-full min-w-0 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-white/20 hover:border-zinc-400 dark:hover:border-white/30 rounded-xl px-4 py-4 text-base focus:outline-none focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 transition text-zinc-900 dark:text-white placeholder:text-zinc-500"
+                  />
+                </div>
+              </div>
+              <div className="mt-3">
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="shrink-0 bg-brand text-brand-ink font-bold px-7 py-4 rounded-btn flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
+                  className="w-full sm:w-auto bg-brand text-brand-ink font-bold px-7 py-4 rounded-btn flex items-center justify-center gap-2 hover:opacity-80 transition disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   Buscar pedidos
@@ -329,12 +356,12 @@ export default function TrackingPage() {
               <h2 className="text-2xl font-black text-black dark:text-white font-mono uppercase tracking-tight">#{selectedOrder.id.split('-')[0]}</h2>
               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{new Date(selectedOrder.created_at).toLocaleDateString()}</p>
             </div>
-            
+
             <div className="border-t border-zinc-200 dark:border-white/10 pt-8">
               <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 text-center">
                 Estado Actual: <span className="text-indigo-500 dark:text-indigo-400">{isConfirmingPayment ? 'Confirmando pago' : selectedOrder.status}</span>
               </h3>
-              
+
               {isCanceled ? (
                 <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center">
                   <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
@@ -343,8 +370,8 @@ export default function TrackingPage() {
               ) : (
                 <div className="relative flex justify-between items-center px-2">
                   <div className="absolute top-1/2 left-0 w-full h-1 bg-zinc-200 dark:bg-zinc-800 -translate-y-1/2 z-0 rounded-full"></div>
-                  
-                  <div 
+
+                  <div
                     className="absolute top-1/2 left-0 h-1 bg-brand -translate-y-1/2 z-0 transition-all duration-1000 ease-out rounded-full"
                     style={{ width: `${((step - 1) / 3) * 100}%` }}
                   ></div>
@@ -383,7 +410,7 @@ export default function TrackingPage() {
                 </div>
               )}
             </div>
-            
+
             {!isCanceled && (
               <div className="mt-8 p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl text-sm">
                   <p className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">

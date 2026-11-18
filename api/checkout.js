@@ -1,12 +1,15 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { getSupabase, RESERVATION_MINUTES } from './_lib/payments.js';
 import { getStoreMpToken, platformFee } from './_lib/mercadopago.js';
+import { overLimit, logApiError, trustedOrigin } from './_lib/guard.js';
+import { siteUrl } from './_lib/platformAdmin.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
+  let supabase = null;
   try {
     const { orderId, payer } = req.body || {};
 
@@ -16,7 +19,11 @@ export default async function handler(req, res) {
 
     // Los artículos y precios salen de la base, no de lo que manda el navegador:
     // así nadie puede pagar un importe distinto al real.
-    const supabase = getSupabase();
+    supabase = getSupabase();
+    // Hasta 20 links de pago cada 10 minutos por conexión
+    if (await overLimit(supabase, req, 'checkout', 20, 600)) {
+      return res.status(429).json({ message: 'Hiciste muchos intentos seguidos. Esperá unos minutos.' });
+    }
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select('id, items, status, total, shipping_cost, store_id')
@@ -64,7 +71,9 @@ export default async function handler(req, res) {
 
     const preference = new Preference(client);
 
-    const baseUrl = req.headers.origin || 'https://nova3d-ecommerce.vercel.app';
+    // A dónde vuelve el comprador: la misma tienda desde la que pagó (su dominio o el de la plataforma).
+    // Un origen ajeno se ignora: nadie puede armar un link de pago que devuelva a otro sitio.
+    const baseUrl = trustedOrigin(req) || siteUrl(req);
 
     // El link de pago vence junto con la reserva de stock
     const expirationDate = new Date(Date.now() + RESERVATION_MINUTES * 60000).toISOString();
@@ -102,6 +111,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error creando preferencia MP:', error);
+    if (supabase) await logApiError(supabase, 'checkout', error, { path: req.body?.orderId ? `orden ${String(req.body.orderId).slice(0, 8)}` : null });
     res.status(500).json({ message: 'Internal Server Error', error: error.message });
   }
 }

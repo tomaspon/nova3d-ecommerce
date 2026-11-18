@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Lock, Loader2, LogIn, Mail, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../../supabaseClient';
+import { supabase, rememberAuthReturn } from '../../supabaseClient';
 import { useStore } from '../../context/StoreContext';
 import { isShowcaseStore, storeHref } from '../../currentStore';
 import SocialButtons from '../../components/SocialButtons';
@@ -67,6 +67,7 @@ export default function LoginPage() {
 
     try {
       if (isResetting) {
+        rememberAuthReturn(storeHref(store, '/perfil?tab=datos'));
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: storeHref(store, '/perfil?tab=datos'),
         });
@@ -74,10 +75,13 @@ export default function LoginPage() {
         setSuccessMsg("Te enviamos un correo con las instrucciones para restablecer tu contraseña.");
         setIsResetting(false);
       } else if (isRegistering) {
+        // Al confirmar el mail: a "Mis datos", con la bienvenida, para sumar DNI y dirección
+        const welcomeUrl = storeHref(store, '/perfil?tab=datos&bienvenida=1');
+        rememberAuthReturn(welcomeUrl);
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: storeHref(store, '/perfil'),
+            emailRedirectTo: welcomeUrl,
             // Mismo lugar donde los usan el perfil y el checkout
             data: { shipping: { name: name.trim(), phone: cleanPhone(phone) } }
           }

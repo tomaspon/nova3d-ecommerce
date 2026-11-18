@@ -4,6 +4,8 @@ import { supabase } from '../../supabaseClient';
 import { formatMoney } from '../../pricing';
 import RequestsList from './RequestsList';
 import { platformOrigin, storesOrigin } from '../../platformBrand';
+import { SALES_CHANNELS } from '../../storeSignup';
+import { isValidCuit } from '../../storeRequest';
 import { STORE_TEMPLATES, slugify, slugError, normalizeDomain, isValidDomain, storeUrls } from '../../platformStores';
 
 async function callPlatformApi(options = {}) {
@@ -205,6 +207,26 @@ function TemplateCard({ store, urls }) {
   );
 }
 
+// CUIL/CUIT (con verificación del dígito y enlace a ARCA), WhatsApp y por dónde vende
+function OwnerDetails({ details }) {
+  const cuit = details.tax_id || '';
+  const pretty = cuit.length === 11 ? `${cuit.slice(0, 2)}-${cuit.slice(2, 10)}-${cuit.slice(10)}` : cuit;
+  const channels = (details.sales_channels || []).map(id => SALES_CHANNELS.find(c => c.id === id)?.label || id);
+  return (
+    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+      <dt className="text-zinc-500">CUIL/CUIT</dt>
+      <dd className="text-zinc-200 min-w-0">
+        <span className="font-mono">{pretty}</span>
+        {!isValidCuit(cuit) && <span className="ml-2 text-red-400">dígito inválido</span>}
+        <a href="https://seti.afip.gob.ar/padron-puc-constancia-internet/ConsultaConstanciaAction.do" target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-300 hover:text-indigo-200 underline underline-offset-2">Verificar en ARCA</a>
+      </dd>
+      <dt className="text-zinc-500">WhatsApp</dt>
+      <dd className="min-w-0"><a href={`https://wa.me/${details.whatsapp.length === 10 ? `549${details.whatsapp}` : details.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-zinc-200 hover:text-white underline underline-offset-2">{details.whatsapp}</a></dd>
+      {channels.length > 0 && <><dt className="text-zinc-500">Vende por</dt><dd className="text-zinc-300 min-w-0">{channels.join(', ')}</dd></>}
+    </dl>
+  );
+}
+
 function StoreCard({ store, urls, busy, onToggleStatus, onToggleSales, onDomain, onAddOwner, onRemoveOwner, onDelete, canDelete }) {
   const salesOff = store.sales_enabled === false;
   const wantsActivation = salesOff && Boolean(store.activation_requested_at);
@@ -267,6 +289,7 @@ function StoreCard({ store, urls, busy, onToggleStatus, onToggleSales, onDomain,
         {/* Dueños y estado */}
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Dueños</p>
+          {store.ownerDetails && <OwnerDetails details={store.ownerDetails} />}
           {store.owners.length === 0 ? (
             <p className="text-xs text-zinc-500">Nadie la administra todavía (solo vos, como plataforma).</p>
           ) : (

@@ -26,6 +26,7 @@ function makeClient() {
     orders: [],
     favorites: [],
     inventory_logs: [],
+    store_owner_details: [],
     store_requests: [{ id: 'req-1', status: 'nueva', business_name: 'Velas Luna', email: 'nuevo@velas.com', admin_notes: null, store_id: null }]
   };
   let nextId = 1;

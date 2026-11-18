@@ -2,13 +2,14 @@ import { getSupabase, hasServiceKey } from './_lib/payments.js';
 import { validateStoreSignup, TERMS_VERSION } from '../src/storeSignup.js';
 import { bearerToken, isPlatformAdmin as hasPlatformAccess } from './_lib/platformAdmin.js';
 import { templateDefaults } from './_lib/storeTemplate.js';
+import { logApiError } from './_lib/guard.js';
 
 // Alta de tiendas por autoservicio (como Shopify o Tiendanube): quien tiene cuenta crea
 // su tienda al instante y queda como dueño. La tienda nace con las ventas deshabilitadas:
 // el dueño pide la activación y la plataforma la habilita después de verificarlo.
 //
 // Acciones (POST, con el token de sesión):
-//   create             { name, slug, template, accepted_terms, terms_version }
+//   create             { name, slug, template, tax_id, whatsapp, sales_channels?, accepted_terms, terms_version }
 //   requestActivation  { storeId }
 
 const MAX_STORES_PER_ACCOUNT = 1;
@@ -87,19 +88,22 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    const [settingsRes, memberRes] = await Promise.all([
+    const [settingsRes, memberRes, detailsRes] = await Promise.all([
       supabase.from('store_settings').insert({ ...base.settings, store_id: store.id, store_name: data.name }),
-      supabase.from('store_members').insert({ store_id: store.id, user_id: user.id, role: 'owner' })
+      supabase.from('store_members').insert({ store_id: store.id, user_id: user.id, role: 'owner' }),
+      // Datos del dueño, privados (supabase/016): CUIL/CUIT, WhatsApp y por dónde vende
+      supabase.from('store_owner_details').insert({ store_id: store.id, tax_id: data.tax_id, whatsapp: data.whatsapp, sales_channels: data.sales_channels })
     ]);
-    if (settingsRes.error || memberRes.error) {
-      // No dejar tiendas a medias: se deshace todo (la membresía cae con la tienda)
+    if (settingsRes.error || memberRes.error || detailsRes.error) {
+      // No dejar tiendas a medias: se deshace todo (la membresía y los datos caen con la tienda)
       await supabase.from('stores').delete().eq('id', store.id);
-      throw settingsRes.error || memberRes.error;
+      throw settingsRes.error || memberRes.error || detailsRes.error;
     }
 
     return res.status(200).json({ message: '¡Tu tienda está creada!', store });
   } catch (error) {
     console.error('store-signup:', error);
+    try { await logApiError(getSupabase(), 'store-signup', error); } catch { /* sin Supabase */ }
     return res.status(500).json({ message: 'No pudimos crear tu tienda. Probá de nuevo en un momento.' });
   }
 }

@@ -7,12 +7,14 @@ import { BANNER_PRESETS, isPresetBanner, findPreset, presetValue, isDefaultTitle
 import { compressImage } from '../../imageCompression';
 import { panelPath } from '../../sitePaths';
 import CampaignHero from '../../components/CampaignHero';
+import { ensureFontCss, SCRIPT_FONT_CSS } from '../../branding';
 import { SEASON_ART } from '../../components/campaignArt';
 import { Palette, Settings, Bell, Shield, Store, Save, TicketPercent, CheckCircle2, Upload, Loader2, Image as ImageIcon, Truck, MapPin, MoveVertical, AlignVerticalJustifyCenter } from 'lucide-react';
 
 // Panel › Ofertas: QUÉ se ofrece (campaña de temporada, banner y productos destacados).
 // DÓNDE se ve en la portada se elige en Panel › Diseño.
 export default function OffersPage() {
+  useEffect(() => { ensureFontCss('pacifico', SCRIPT_FONT_CSS); }, []);
   const { store, storeSettings, updateStoreSettings, products, toggleProductCampaign, storeId } = useStore();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);

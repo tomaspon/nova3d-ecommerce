@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Image as ImageIcon, SearchX, Heart, Plus, ArrowDown, CreditCard, Truck, MessageCircle, Sparkles } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { parseBannerUrl } from '../../bannerPosition';
 import { findPreset } from '../../bannerPresets';
 import CampaignHero from '../../components/CampaignHero';
@@ -150,7 +150,7 @@ export default function HomePage() {
                   {campaignProducts.map(p => {
                     const finalPrice = p.price * (1 - (p.discount || 0) / 100);
                     return (
-                      <div key={p.id} onClick={() => navigate(`/producto/${p.id}`)} className="w-36 md:w-48 shrink-0 snap-start group cursor-pointer">
+                      <Link key={p.id} to={`/producto/${p.id}`} className="block w-36 md:w-48 shrink-0 snap-start group">
                         <div className="aspect-[var(--card-aspect)] bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl relative overflow-hidden mb-3 border border-zinc-100 dark:border-white/5 transition-colors">
                           {p.discount > 0 && (
                             <div className="absolute top-2 left-2 z-20">
@@ -170,7 +170,7 @@ export default function HomePage() {
                           <span className="font-bold text-zinc-900 dark:text-white text-sm">${finalPrice.toLocaleString('es-AR')}</span>
                           {p.discount > 0 && <span className="text-[10px] text-zinc-400 line-through">${p.price.toLocaleString('es-AR')}</span>}
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -340,7 +340,7 @@ export default function HomePage() {
               const isFavorite = favorites.includes(product.id);
 
               return (
-                <div key={product.id} data-design="product-card" data-offer={product.discount > 0 ? 'true' : undefined} className="group cursor-pointer" onClick={() => navigate(`/producto/${product.id}`)}>
+                <div key={product.id} data-design="product-card" data-offer={product.discount > 0 ? 'true' : undefined} className="group relative">
 
                   <div className="aspect-[var(--card-aspect)] bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl relative overflow-hidden mb-4 border border-zinc-100 dark:border-white/5 shadow-sm group-hover:shadow-xl transition-all duration-500">
 
@@ -364,7 +364,9 @@ export default function HomePage() {
 
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
-                      className="absolute top-3 right-3 z-20 w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center md:opacity-0 opacity-100 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
+                      aria-label={isFavorite ? `Quitar ${product.name} de favoritos` : `Guardar ${product.name} en favoritos`}
+                      aria-pressed={isFavorite}
+                      className="absolute top-3 right-3 z-20 w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center md:opacity-0 opacity-100 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-300 hover:scale-110"
                     >
                       <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-zinc-600 dark:text-white'}`} />
                     </button>
@@ -377,7 +379,7 @@ export default function HomePage() {
                       }}
                       disabled={product.available_stock <= 0}
                       aria-label={`Agregar ${product.name} al carrito`}
-                      className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-brand text-brand-ink rounded-btn flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
+                      className="absolute bottom-3 right-3 z-20 w-12 h-12 bg-brand text-brand-ink rounded-btn flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:scale-100"
                     >
                       <Plus className="w-6 h-6" />
                     </button>}
@@ -391,7 +393,10 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm md:text-base leading-tight mb-0.5 group-hover:underline underline-offset-4 truncate">{product.name}</h3>
+                  {/* El nombre es el enlace; su capa cubre toda la tarjeta (se toca en cualquier parte, y anda con teclado) */}
+                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm md:text-base leading-tight mb-0.5 group-hover:underline underline-offset-4 truncate">
+                    <Link to={`/producto/${product.id}`} className="after:absolute after:inset-0 after:z-10 after:rounded-2xl md:after:rounded-3xl focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-offset-4 focus-visible:after:ring-zinc-900 dark:focus-visible:after:ring-white">{product.name}</Link>
+                  </h3>
                   {design.show_category && product.category && <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">{product.category}</span>}
 
                   <div className="flex items-center gap-2">

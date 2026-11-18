@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { Outlet, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Search, User, ShoppingBag, X, Moon, Sun, Menu, MessageCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
@@ -17,12 +17,12 @@ export default function StoreLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const searchInputRef = useRef(null);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const currentQuery = searchParams.get('q') || '';
-  
+
   // Nombre e inicial de la tienda actual (cada tienda de la plataforma tiene el suyo)
   const storeName = store?.name || '';
   const storeInitial = storeName.replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase();
@@ -123,25 +123,25 @@ export default function StoreLayout() {
             {(branding.show_store_name || !branding.logo_url) && <span className="text-lg md:text-[1.35rem] font-black tracking-tighter text-black dark:text-white max-[339px]:hidden truncate max-w-[11rem] md:max-w-none">{storeName}</span>}
           </Link>
         </div>
-        
+
         {/* LINKS */}
         <nav className="hidden md:flex items-center gap-10 text-[14px] font-bold absolute left-1/2 -translate-x-1/2">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className={`transition-all duration-300 relative py-2 ${isActive('/') ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
           >
             Catálogo
             {isActive('/') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
           </Link>
-          <Link 
-            to="/nosotros" 
+          <Link
+            to="/nosotros"
             className={`transition-all duration-300 relative py-2 ${isActive('/nosotros') ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
           >
             Nosotros
             {isActive('/nosotros') && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand rounded-t-full animate-in fade-in zoom-in duration-300"></span>}
           </Link>
-          <Link 
-            to="/seguimiento" 
+          <Link
+            to="/seguimiento"
             className={`transition-all duration-300 relative py-2 ${isActive('/seguimiento') ? 'text-black dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
           >
             Seguimiento
@@ -213,10 +213,10 @@ export default function StoreLayout() {
             <p className="mt-2 text-sm text-zinc-500 max-w-sm">Por el momento no está recibiendo pedidos. Volvé a intentar más tarde.</p>
           </div>
         ) : (
-          <Outlet />
+          <Suspense fallback={<div className="min-h-[60vh]" />}><Outlet /></Suspense>
         )}
       </main>
-      
+
       <footer data-design="footer" className="border-t border-zinc-200 dark:border-white/5 mt-auto">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-14 pb-8">
           <div className="grid grid-cols-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr] gap-x-6 gap-y-10">
@@ -254,7 +254,7 @@ export default function StoreLayout() {
           </div>
         </div>
       </footer>
-    
+
       {branding.whatsapp_button && whatsappLink && (
         <a
           href={whatsappLink}
@@ -272,26 +272,26 @@ export default function StoreLayout() {
       {/* SEARCH OVERLAY */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-start pt-24 px-4 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md animate-in fade-in duration-200" onKeyDown={(e) => e.key === 'Escape' && setIsSearchOpen(false)}>
-          <button 
-            onClick={() => setIsSearchOpen(false)} 
+          <button
+            onClick={() => setIsSearchOpen(false)}
             className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
           >
             <X className="w-8 h-8" />
           </button>
-          
-          <form 
+
+          <form
             onSubmit={(e) => {
               handleSearchSubmit(e);
               setIsSearchOpen(false);
-            }} 
+            }}
             className="w-full max-w-2xl animate-in slide-in-from-top-4 duration-300"
           >
             <div className="flex items-center gap-4 md:gap-6 border-b-2 border-zinc-200 dark:border-white/10 pb-4">
               <Search className="w-8 h-8 md:w-10 md:h-10 text-zinc-400 shrink-0" />
-              <input 
+              <input
                 name="search"
                 defaultValue={currentQuery}
-                placeholder="¿Qué estás buscando?" 
+                placeholder="¿Qué estás buscando?"
                 className="w-full bg-transparent text-2xl md:text-5xl font-black text-black dark:text-white focus:outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
                 autoComplete="off"
                 autoFocus

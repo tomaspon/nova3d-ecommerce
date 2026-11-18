@@ -6,6 +6,7 @@ import { ORDER_STATUS, isAwaitingPayment } from '../orderStatus';
 import { resolveStore, DEFAULT_STORE_ID, isShowcaseStore } from '../currentStore';
 import { isPlatformPath } from '../sitePaths';
 import { rememberCart } from '../personalization';
+import { setErrorContext } from '../errorReporter';
 import { platformOrigin, onPlatformHost } from '../platformBrand';
 import { applyBranding, normalizeBranding } from '../branding';
 import { track } from '../analytics';
@@ -112,6 +113,7 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     if (!store || isPlatformPath(window.location.pathname)) return;
     applyBranding(store.branding);
+    setErrorContext({ storeId: store.id || null });
     if (localStorage.getItem('theme') === null) setIsDarkMode(normalizeBranding(store.branding).theme === 'dark');
   }, [store]);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, rememberAuthReturn } from '../supabaseClient';
 
 // Botones "Continuar con Google / Apple / Facebook / Microsoft". Cada uno aparece solo cuando
 // ese proveedor está activado en Supabase (Authentication → Sign In / Providers): se consulta
@@ -72,6 +72,7 @@ export default function SocialButtons({ redirectTo, variant = 'light', dividerLa
 
   const signIn = async (provider) => {
     setError('');
+    rememberAuthReturn(redirectTo || window.location.href);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: redirectTo || window.location.href } });
     if (oauthError) setError('No pudimos conectar con ese servicio. Probá de nuevo o usá tu email.');
   };

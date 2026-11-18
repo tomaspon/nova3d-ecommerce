@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../../context/StoreContext';
 import { availableFor } from '../../productMapping';
 
@@ -369,7 +369,7 @@ export default function ProductDetailPage() {
               {relatedProducts.map(p => {
                 const pFinalPrice = p.discount > 0 ? p.price * (1 - p.discount / 100) : p.price;
                 return (
-                  <div key={p.id} className="group cursor-pointer" onClick={() => navigate(`/producto/${p.id}`)}>
+                  <Link key={p.id} to={`/producto/${p.id}`} className="group block">
                     <div className="relative aspect-[4/5] bg-[#f4f4f5] dark:bg-zinc-900 rounded-2xl overflow-hidden mb-4">
                       {p.imageUrl && <img loading="lazy" decoding="async" src={p.imageUrl} alt={p.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />}
                       {p.discount > 0 && <span className="absolute top-3 left-3 bg-black/60 dark:bg-white/20 backdrop-blur-md border border-white/10 text-white text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-widest">{p.discount}%</span>}
@@ -381,7 +381,7 @@ export default function ProductDetailPage() {
                         {p.discount > 0 && <span className="text-xs text-zinc-400 line-through">${p.price.toLocaleString('es-AR')}</span>}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>

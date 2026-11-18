@@ -174,9 +174,9 @@ describe('cobro y verificación con la cuenta de cada tienda', () => {
   const connectVelas = () => fake.client.tables.store_payment_accounts.push({
     store_id: 'velas', access_token_enc: encryptSecret('APP_USR-vendedor'), expires_at: new Date(Date.now() + 100 * 86400000).toISOString()
   });
-  const pay = (orderId) => {
+  const pay = (orderId, origin = 'https://plataforma.test') => {
     const res = response();
-    return checkout({ method: 'POST', body: { orderId }, headers: { origin: 'https://plataforma.test' } }, res).then(() => res);
+    return checkout({ method: 'POST', body: { orderId }, headers: { origin, host: 'plataforma.test' } }, res).then(() => res);
   };
 
   it('una tienda sin MercadoPago conectado no puede cobrar con MercadoPago', async () => {
@@ -192,6 +192,12 @@ describe('cobro y verificación con la cuenta de cada tienda', () => {
     expect(pref.body.notification_url).toBe('https://plataforma.test/api/webhook?store=velas');
     expect(pref.body.marketplace_fee).toBe(50);
     delete process.env.PLATFORM_FEE_PERCENT;
+  });
+
+  it('vuelve siempre a la tienda que cobra, aunque el pedido diga venir de otro sitio', async () => {
+    connectVelas();
+    expect((await pay('orden-velas', 'https://sitio-falso.com')).statusCode).toBe(200);
+    expect(fake.preferences[0].body.back_urls.success).toMatch(/^https:\/\/plataforma\.test\/seguimiento\?order=orden-velas/);
   });
 
   it('la tienda principal sigue cobrando con la cuenta de la plataforma, sin comisión', async () => {

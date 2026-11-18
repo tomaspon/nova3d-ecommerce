@@ -14,7 +14,7 @@ const users = {
 };
 
 function makeClient() {
-  const tables = { stores: [{ id: 'minimal', slug: 'minimal', created_by: null, signup_ip: null, created_at: '2020-01-01' }], store_settings: [], store_members: [] };
+  const tables = { stores: [{ id: 'minimal', slug: 'minimal', created_by: null, signup_ip: null, created_at: '2020-01-01' }], store_settings: [], store_members: [], store_owner_details: [] };
   let nextId = 1;
   const from = (table) => {
     const filters = [];
@@ -55,7 +55,7 @@ function makeClient() {
   };
 }
 
-const valid = { action: 'create', name: 'Velas Luna', slug: 'velas-luna', template: 'velas', accepted_terms: true, terms_version: TERMS_VERSION };
+const valid = { action: 'create', name: 'Velas Luna', slug: 'velas-luna', template: 'velas', tax_id: '20-12345678-6', whatsapp: '11 2345-6789', sales_channels: ['instagram', 'otra-cosa'], accepted_terms: true, terms_version: TERMS_VERSION };
 
 function call(token, body, ip = '200.1.1.1') {
   const req = { method: 'POST', body, headers: { authorization: token ? `Bearer ${asToken(token)}` : '', 'x-forwarded-for': ip } };
@@ -71,9 +71,9 @@ describe('api/store-signup', () => {
   });
 
   it('valida los datos y que acepte los términos', async () => {
-    const res = await call('ana', { ...valid, slug: 'admin', accepted_terms: false });
+    const res = await call('ana', { ...valid, slug: 'admin', accepted_terms: false, tax_id: '20-12345678-5', whatsapp: '123' });
     expect(res.statusCode).toBe(400);
-    expect(Object.keys(res.body.errors).sort()).toEqual(['accepted_terms', 'slug']);
+    expect(Object.keys(res.body.errors).sort()).toEqual(['accepted_terms', 'slug', 'tax_id', 'whatsapp']);
   });
 
   it('crea la tienda sin ventas habilitadas, con su configuración, su dueño y el consentimiento', async () => {
@@ -83,6 +83,8 @@ describe('api/store-signup', () => {
     expect(store).toMatchObject({ sales_enabled: false, created_by: 'u-ana', terms_version: TERMS_VERSION, signup_ip: '200.1.1.1' });
     expect(fake.client.tables.store_settings[0]).toMatchObject({ store_id: store.id, store_name: 'Velas Luna' });
     expect(fake.client.tables.store_members[0]).toMatchObject({ store_id: store.id, user_id: 'u-ana', role: 'owner' });
+    // CUIL/CUIT y WhatsApp solo con números; de los canales, solo los conocidos
+    expect(fake.client.tables.store_owner_details[0]).toMatchObject({ store_id: store.id, tax_id: '20123456786', whatsapp: '1123456789', sales_channels: ['instagram'] });
   });
 
   it('una tienda por cuenta y enlaces únicos', async () => {

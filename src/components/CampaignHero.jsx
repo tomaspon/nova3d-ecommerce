@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { SEASON_ART } from './campaignArt';
+import { ensureFontCss, SCRIPT_FONT_CSS } from '../branding';
 
 const SCRIPT_FONT = "'Pacifico', cursive";
 
@@ -11,6 +13,8 @@ const SCRIPT_FONT = "'Pacifico', cursive";
 // - maxDiscount: el mayor descuento real entre los productos de la campaña (0 = no se muestra).
 // - onCtaClick: si no se pasa, el botón se muestra sin acción (vista previa).
 export default function CampaignHero({ preset, title, maxDiscount = 0, productCount = 0, onCtaClick, as: Heading = 'h2' }) {
+  // La letra script se baja solo donde hay un banner de temporada
+  useEffect(() => { ensureFontCss('pacifico', SCRIPT_FONT_CSS); }, []);
   const { colors } = preset;
   const art = SEASON_ART[preset.id];
   const words = (title || preset.defaultTitle).trim().split(/\s+/);

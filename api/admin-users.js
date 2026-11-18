@@ -3,6 +3,7 @@ import { summarizeUsers, DISABLE_BAN_DURATION } from '../src/adminUsers.js';
 import { requirePlatformAdmin, listAllUsers, siteUrl } from './_lib/platformAdmin.js';
 import { purgeAccount, isHardDeleteEnabled } from './_lib/purgeAccount.js';
 import { DEFAULT_STORE_ID } from '../src/storeIds.js';
+import { logApiError } from './_lib/guard.js';
 
 // Gestión de usuarios para el panel. Listar cuentas, desactivarlas o mandar el mail de
 // restablecimiento necesita la service role key, que solo existe acá en el servidor.
@@ -100,6 +101,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ message: action === 'disable' ? 'Cuenta desactivada.' : 'Cuenta reactivada.' });
   } catch (error) {
     console.error('admin-users:', error);
+    try { await logApiError(getSupabase(), 'admin-users', error); } catch { /* sin Supabase */ }
     return res.status(500).json({ message: 'Error interno.' });
   }
 }
