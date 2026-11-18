@@ -46,6 +46,8 @@ import { supabase } from '../../supabaseClient';
 import ProductRow from '../../components/ProductRow';
 import { normalizeBranding } from '../../branding';
 import { rememberView, recentlyViewed, relatedFor } from '../../personalization';
+import { setPageMeta, productJsonLd } from '../../pageMeta';
+import { storeHref } from '../../currentStore';
 
 const Accordion = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -102,6 +104,20 @@ export default function ProductDetailPage() {
     if (product?.id) track(store, 'product_view', { productId: product.id, label: product.available_stock <= 0 ? 'agotado' : null });
     if (product?.id && personalize) rememberView(store?.id, product);
   }, [product?.id, store?.id, personalize]);
+
+  // Para Google y los buscadores: título, descripción y ficha del producto (precio, stock, fotos)
+  useEffect(() => {
+    if (!product || !store?.name) return undefined;
+    const url = storeHref(store, `/producto/${product.id}`);
+    const price = Number(product.price) * (1 - (Number(product.discount) || 0) / 100);
+    setPageMeta({
+      title: `${product.name} | ${store.name}`,
+      description: [`$${Math.round(price).toLocaleString('es-AR')}`, product.description].filter(Boolean).join(' · '),
+      canonical: url,
+      jsonLd: productJsonLd(product, store, url)
+    });
+    return () => setPageMeta({ title: `${store.name} | Tienda online`, jsonLd: null });
+  }, [product?.id, product?.price, product?.discount, product?.available_stock, store?.id]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -288,11 +304,11 @@ export default function ProductDetailPage() {
             <div className="hidden lg:block bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl p-5 border border-zinc-200 dark:border-white/5 mb-6 transition-colors">
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-btn overflow-hidden h-12 transition-colors">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                  <button type="button" aria-label="Restar uno" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="w-12 text-center font-bold text-zinc-900 dark:text-white text-lg">{quantity}</span>
-                  <button onClick={() => setQuantity(Math.max(1, Math.min(maxQuantity, quantity + 1)))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
+                  <button type="button" aria-label="Sumar uno" onClick={() => setQuantity(Math.max(1, Math.min(maxQuantity, quantity + 1)))} className="px-5 h-full hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
@@ -310,7 +326,7 @@ export default function ProductDetailPage() {
               {isOutOfStock ? (
                   <p className="text-red-500 text-sm font-bold text-center">Actualmente sin stock disponible.</p>
                 ) : (
-                  <p className="text-emerald-500 text-sm font-bold flex items-center justify-center gap-2">
+                  <p className="text-emerald-700 dark:text-emerald-400 text-sm font-bold flex items-center justify-center gap-2">
                     <Check className="w-4 h-4" /> Hay stock disponible
                   </p>
                 )}

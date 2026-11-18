@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { BarChart3, Activity, Store, Inbox, Users, Globe, LogOut, ExternalLink, Sparkles, Bug } from 'lucide-react';
 import { supabase } from '../supabaseClient';
@@ -21,7 +21,23 @@ const SHORTCUTS = [
   { href: () => '/crear', label: 'Alta de tiendas', icon: Sparkles }
 ];
 
+// Errores de las últimas 24 horas (Superadmin › Errores), para verlos sin entrar
+function useErrorCount() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = () => supabase.rpc('recent_errors', { p_days: 1 }).then(({ data }) => {
+      if (alive && Array.isArray(data)) setCount(data.reduce((sum, e) => sum + (e.times || 1), 0));
+    }, () => {});
+    load();
+    const timer = setInterval(load, 5 * 60000);
+    return () => { alive = false; clearInterval(timer); };
+  }, []);
+  return count;
+}
+
 export default function PlatformLayout() {
+  const errorCount = useErrorCount();
   const logout = async () => {
     await supabase.auth.signOut();
     window.location.href = '/';
@@ -31,7 +47,7 @@ export default function PlatformLayout() {
     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${isActive ? 'bg-indigo-600/15 text-indigo-300 font-bold border border-indigo-500/20' : 'text-zinc-500 hover:text-white hover:bg-white/5 font-medium'}`;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">
+    <div className="panel-a11y min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">
       <aside className="w-60 shrink-0 border-r border-white/5 bg-black hidden md:flex flex-col">
         <div className="h-20 flex items-center gap-3 px-6 border-b border-white/5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm">
@@ -44,7 +60,10 @@ export default function PlatformLayout() {
         </div>
         <nav className="flex-1 p-3 space-y-0.5">
           {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={linkClass}><Icon className="w-4 h-4" /> {label}</NavLink>
+            <NavLink key={to} to={to} end={end} className={linkClass}>
+            <Icon className="w-4 h-4" /> {label}
+            {to.endsWith('/errores') && errorCount > 0 && <span className="ml-auto rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold px-1.5 py-0.5 tabular-nums" aria-label={`${errorCount} errores en las últimas 24 horas`}>{errorCount > 99 ? '99+' : errorCount}</span>}
+          </NavLink>
           ))}
           <p className="px-3 pt-5 pb-1.5 text-[9px] font-black text-zinc-600 tracking-widest uppercase">Ver como cliente</p>
           {SHORTCUTS.map(({ href, label, icon: Icon }) => (

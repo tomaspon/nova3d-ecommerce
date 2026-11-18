@@ -37,7 +37,7 @@ export default function AdminLayout() {
     : '/';
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">
+    <div className="panel-a11y min-h-screen bg-zinc-950 text-zinc-300 font-sans flex">
       {/* Sidebar Oscuro */}
       <aside className="w-60 border-r border-white/5 bg-black flex-col hidden md:flex shrink-0 sticky top-0 h-screen overflow-y-auto">
         <div className="h-20 flex items-center px-6 border-b border-white/5">

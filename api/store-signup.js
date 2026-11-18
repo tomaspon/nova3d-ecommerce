@@ -11,6 +11,7 @@ import { logApiError } from './_lib/guard.js';
 // Acciones (POST, con el token de sesión):
 //   create             { name, slug, template, tax_id, whatsapp, sales_channels?, accepted_terms, terms_version }
 //   requestActivation  { storeId }
+//   deleteMyAccount    { confirm: <email de la cuenta> }  (compradores: borra la cuenta; los pedidos quedan sin ella)
 
 const MAX_STORES_PER_ACCOUNT = 1;
 const MAX_STORES_PER_IP_PER_DAY = 3;
@@ -43,6 +44,25 @@ export default async function handler(req, res) {
         .update({ activation_requested_at: new Date().toISOString() }).eq('id', body.storeId);
       if (error) throw error;
       return res.status(200).json({ message: 'Recibimos tu pedido. Te escribimos para verificar tus datos y habilitar las ventas.' });
+    }
+
+    if (body.action === 'deleteMyAccount') {
+      if (String(body.confirm || '').trim().toLowerCase() !== String(user.email || '').toLowerCase()) {
+        return res.status(400).json({ message: 'Escribí tu email exactamente para confirmar.' });
+      }
+      // Quien administra una tienda no se borra desde acá: primero hay que resolver la tienda
+      const { count, error: memberError } = await supabase.from('store_members')
+        .select('store_id', { count: 'exact', head: true }).eq('user_id', user.id);
+      if (memberError) throw memberError;
+      if (count > 0 || isPlatformAdmin) {
+        return res.status(409).json({ message: 'Tu cuenta administra una tienda. Escribinos para darla de baja.' });
+      }
+      const favs = await supabase.from('favorites').delete().eq('user_id', user.id);
+      if (favs.error) throw favs.error;
+      // Los pedidos quedan (la tienda los necesita), sin la cuenta: la base pone user_id en vacío
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+      if (deleteError) throw deleteError;
+      return res.status(200).json({ message: 'Tu cuenta fue eliminada.' });
     }
 
     if (body.action !== 'create') return res.status(400).json({ message: 'Acción inválida.' });

@@ -60,7 +60,7 @@ export default function DemoPreview({ url, title }) {
       style={{ width: spec.width, height: spec.height, transform: `scale(${scale})` }}
     />
   ) : (
-    <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-400 bg-[#FAFAFA]">Cargando tienda…</div>
+    <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-600 bg-[#FAFAFA]">Cargando tienda…</div>
   );
 
   const hint = !hasInteracted && (

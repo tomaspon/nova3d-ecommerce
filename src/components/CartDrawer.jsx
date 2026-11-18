@@ -120,7 +120,7 @@ export default function CartDrawer() {
           <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2 transition-colors">
             {checkoutStep === 'success' ? 'Pedido Confirmado' : checkoutStep === 'form' ? 'Checkout' : 'Tu Carrito'}
           </h2>
-          <button onClick={toggleCart} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-full transition-colors group">
+          <button type="button" onClick={toggleCart} aria-label="Cerrar carrito" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-full transition-colors group">
             <X className="w-5 h-5 text-zinc-500 dark:text-zinc-400 group-hover:text-black dark:group-hover:text-white" />
           </button>
         </div>

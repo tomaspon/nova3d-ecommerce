@@ -99,7 +99,7 @@ function CodeInput({ value, onChange }) {
 }
 
 // Pide el código de la app del celular y sube la sesión a "aal2"
-function MfaChallenge({ factorId }) {
+function MfaChallenge({ factorId, onVerified }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -111,6 +111,7 @@ function MfaChallenge({ factorId }) {
     const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
     if (verifyError) { setError('Código incorrecto o vencido. Probá con el que muestra ahora la app.'); setCode(''); }
     setIsSending(false);
+    if (!verifyError) onVerified?.();
   };
 
   return (
@@ -125,7 +126,7 @@ function MfaChallenge({ factorId }) {
 }
 
 // Primera vez: vincula la app del celular (Google Authenticator, Authy, 1Password...) con un QR
-function MfaEnroll() {
+export function MfaEnroll({ friendlyName = 'Superadmin', onVerified }) {
   const [factor, setFactor] = useState(null); // { id, qr, secret }
   const [error, setError] = useState('');
 
@@ -137,7 +138,7 @@ function MfaEnroll() {
       for (const f of list?.all || []) {
         if (f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id });
       }
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Superadmin ${new Date().toISOString().slice(0, 10)}` });
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `${friendlyName} ${new Date().toISOString().slice(0, 10)}` });
       if (cancelled) return;
       if (enrollError) setError('No pudimos iniciar la verificación en dos pasos. Revisá que esté habilitada en Supabase (Authentication → Multi-Factor).');
       else setFactor({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
@@ -162,7 +163,7 @@ function MfaEnroll() {
         <summary className="cursor-pointer hover:text-zinc-300">¿No podés escanear? Cargá la clave a mano</summary>
         <code className="mt-2 block break-all text-zinc-300 select-all">{factor.secret}</code>
       </details>
-      <MfaChallenge factorId={factor.id} />
+      <MfaChallenge factorId={factor.id} onVerified={onVerified} />
     </div>
   );
 }

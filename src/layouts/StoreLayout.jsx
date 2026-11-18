@@ -76,7 +76,8 @@ export default function StoreLayout() {
   }, [store?.id, location.pathname]);
 
   return (
-    <div className="min-h-screen bg-store dark:bg-store-dark text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
+    <div className="store-a11y min-h-screen bg-store dark:bg-store-dark text-zinc-900 dark:text-zinc-100 font-sans flex flex-col relative transition-colors duration-300">
+      <a href="#contenido" className="skip-link">Saltar al contenido</a>
       <CartDrawer />
       {/* Vista previa del panel de Diseño: ilumina la parte que cambia */}
       <DesignFocus />
@@ -205,7 +206,7 @@ export default function StoreLayout() {
 
       </header>
 
-      <main className="flex-1 flex flex-col pb-0">
+      <main id="contenido" tabIndex={-1} className="flex-1 flex flex-col pb-0 focus:outline-none">
         {store && store.status !== 'active' ? (
           // Tienda suspendida desde la plataforma: no se muestra el catálogo ni se puede comprar
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24">

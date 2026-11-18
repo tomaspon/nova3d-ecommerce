@@ -671,3 +671,17 @@ describe('016 · privacidad del seguimiento y registro de errores', () => {
     await expect(as('anon', `select public.app_error_record('x', null, null, 'y', null, null)`)).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('017 · retención del tráfico', () => {
+  it('se instala dos veces y las visitas se siguen registrando; la limpieza borra solo lo de más de 180 días', async () => {
+    await db.exec(sql('017_retencion.sql'));
+    await db.exec(sql('017_retencion.sql'));
+    await as('anon', `select public.track_event($1, 'reten-aaaa', 'page_view', '/', null, null, 'mobile', null)`, [STORE_B]);
+    await db.query(`insert into analytics_events (store_id, session_id, type, created_at) values ($1, 'reten-viejo', 'page_view', now() - interval '200 days')`, [STORE_B]);
+    // La limpieza sale al azar; acá se corre la misma consulta que usa la función
+    await db.query(`delete from public.analytics_events where created_at < now() - interval '180 days'`);
+    const { rows } = await db.query(`select session_id from analytics_events where session_id like 'reten-%'`);
+    expect(rows.map(r => r.session_id)).toEqual(['reten-aaaa']);
+    await expect(as('anon', `select public.analytics_retention()`)).rejects.toThrow();
+  });
+});

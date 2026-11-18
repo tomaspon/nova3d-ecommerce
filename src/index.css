@@ -22,7 +22,7 @@
   --color-announce-ink: var(--announce-ink, var(--brand-ink));
   /* "font-sans" (lo usan la tienda y los paneles) toma la tipografía elegida en Panel > Diseño.
      Sin elegir (y en los paneles), Plus Jakarta Sans. */
-  --font-sans: var(--font-store, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+  --font-sans: var(--font-store, 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
 }
 
 :root {
@@ -51,7 +51,7 @@ html.dark {
 
 body {
   /* Tipografía de la tienda (Panel > Diseño) */
-  font-family: var(--font-store, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+  font-family: var(--font-store, 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -107,3 +107,14 @@ html.embedded::-webkit-scrollbar {
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Contraste mínimo (WCAG AA, 4,5:1) en textos secundarios.
+   Tienda: de noche, los grises más apagados se aclaran; de día (sobre fondos crema como "hueso"), se oscurecen un tono.
+   Paneles (siempre oscuros): los grises medios pasan a uno legible sobre negro. */
+html.dark .store-a11y :is(.text-zinc-500, .text-zinc-600, .dark\:text-zinc-500, .dark\:text-zinc-600) { color: var(--color-zinc-400); }
+html:not(.dark) .store-a11y :is(.text-zinc-400, .text-zinc-500) { color: var(--color-zinc-600); }
+.panel-a11y :is(.text-zinc-500, .text-zinc-600) { color: var(--color-zinc-400); }
+
+/* "Saltar al contenido": invisible hasta que se llega con el teclado */
+.skip-link { position: absolute; left: 0.75rem; top: -4rem; z-index: 200; padding: 0.75rem 1rem; border-radius: 0.75rem; background: #000; color: #fff; font-weight: 700; font-size: 0.875rem; transition: top 0.15s; }
+.skip-link:focus { top: 0.75rem; }

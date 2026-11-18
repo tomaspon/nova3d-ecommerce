@@ -10,6 +10,8 @@ import { track } from '../../analytics';
 import { instagramUrl, normalizeBranding, SORT_OPTIONS } from '../../branding';
 import ProductRow from '../../components/ProductRow';
 import { searchProducts, recentlyViewed, pickedForYou, forgetHistory } from '../../personalization';
+import { setPageMeta, storeJsonLd } from '../../pageMeta';
+import { storeHref } from '../../currentStore';
 
 // Columnas del catálogo en computadora (Panel > Diseño). Clases completas para que Tailwind las genere.
 const GRID_CLASSES = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-4 xl:grid-cols-5' };
@@ -41,6 +43,19 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [searchQuery, store?.id]);
   const sortBy = searchParams.get('sort') || design.default_sort;
+
+  // Para Google: la portada como tienda, con su descripción
+  useEffect(() => {
+    if (!store?.name) return;
+    const url = storeHref(store, '/');
+    setPageMeta({
+      title: `${store.name} | Tienda online`,
+      description: store.branding?.tagline || store.branding?.about_text || `Comprá online en ${store.name}: pagá con MercadoPago o transferencia y seguí tu pedido.`,
+      canonical: url,
+      jsonLd: storeJsonLd(store, url)
+    });
+    return () => setPageMeta({ jsonLd: null });
+  }, [store?.id, store?.name]);
 
   const sortOptions = SORT_OPTIONS;
 
@@ -179,6 +194,9 @@ export default function HomePage() {
           </section>
   ) : null;
 
+  const showHeadline = !(campaignOn && campaignAt !== 'before_catalog') && !searchQuery && categoryFilter === 'all';
+  const CatalogHeading = showHeadline ? 'h2' : 'h1';
+
   return (
     <div className="bg-store dark:bg-store-dark transition-colors duration-300 min-h-screen pb-12">
 
@@ -186,7 +204,7 @@ export default function HomePage() {
       {campaignAt !== 'before_catalog' && campaignSection}
 
       {/* PRESENTACIÓN DE MARCA (cuando la oferta no ocupa la portada, y sin búsqueda) */}
-      {!(campaignOn && campaignAt !== 'before_catalog') && !searchQuery && categoryFilter === 'all' && (
+      {showHeadline && (
         <section data-design="headline" className="border-b border-zinc-200 dark:border-white/5">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-12 md:py-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             {/* Lo que sobra, fino y apagado; lo que importa, con peso */}
@@ -238,9 +256,9 @@ export default function HomePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
           <div>
             <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 tracking-[0.2em] uppercase mb-2">Inicio / Catálogo {categoryFilter !== 'all' ? `/ ${categoryFilter}` : ''}</div>
-            <h2 data-design="catalog-title" className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
+            <CatalogHeading data-design="catalog-title" className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
               {searchQuery ? `Resultados para "${searchQuery}"` : categoryFilter !== 'all' ? categoryFilter : 'Todos los productos'}
-            </h2>
+            </CatalogHeading>
           </div>
           <p className="text-zinc-500 dark:text-zinc-400 text-sm">{activeProducts.length} {activeProducts.length === 1 ? 'producto' : 'productos'}</p>
         </div>

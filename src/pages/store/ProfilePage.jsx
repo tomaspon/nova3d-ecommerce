@@ -6,6 +6,7 @@ import { Package, Heart, LogOut, Save, Key, User, MapPin, Loader2, ChevronRight,
 import { printReceipt } from '../../printReceipt';
 import { unitPrice, lineTotal, formatMoney } from '../../pricing';
 import { isAwaitingPayment, isCanceled, isPaid, trackingStep } from '../../orderStatus';
+import AccountPrivacy from '../../components/AccountPrivacy';
 
 const TABS = [
   { id: 'orders', label: 'Pedidos', icon: Package },
@@ -509,6 +510,7 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
+              <AccountPrivacy user={user} orders={orders} store={store} />
             </section>
           )}
         </main>

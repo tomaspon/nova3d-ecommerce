@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { isPlatformPath, SUPERADMIN } from './sitePaths';
 import { onPlatformHost } from './platformBrand';
+import { authReturnTarget } from './authReturn';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -33,19 +34,6 @@ const STORAGE_KEYS = {
 const RETURN_KEY = 'vitrina_auth_return';
 export function rememberAuthReturn(url) {
   try { localStorage.setItem(RETURN_KEY, JSON.stringify({ url: String(url), at: Date.now() })); } catch { /* sin almacenamiento */ }
-}
-
-export function authReturnTarget(location, saved, now = Date.now()) {
-  if (!/access_token=|error_description=/.test(location.hash || '')) return null;
-  if (!saved?.url || now - saved.at > 7 * 86400000) return null;
-  try {
-    const target = new URL(saved.url);
-    if (target.origin !== location.origin) return null;
-    if (target.pathname === location.pathname) return null;
-    return `${target.origin}${target.pathname}${target.search}${location.hash}`;
-  } catch {
-    return null;
-  }
 }
 
 function redirectAuthReturn() {

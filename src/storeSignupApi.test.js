@@ -14,7 +14,7 @@ const users = {
 };
 
 function makeClient() {
-  const tables = { stores: [{ id: 'minimal', slug: 'minimal', created_by: null, signup_ip: null, created_at: '2020-01-01' }], store_settings: [], store_members: [], store_owner_details: [] };
+  const tables = { stores: [{ id: 'minimal', slug: 'minimal', created_by: null, signup_ip: null, created_at: '2020-01-01' }], store_settings: [], store_members: [], store_owner_details: [], favorites: [] };
   let nextId = 1;
   const from = (table) => {
     const filters = [];
@@ -48,10 +48,12 @@ function makeClient() {
     };
     return b;
   };
+  const deleted = [];
   return {
     tables,
+    deleted,
     from,
-    auth: { getUser: async (t) => ({ data: { user: users[keyOf(t)] || null }, error: users[keyOf(t)] ? null : new Error('x') }) }
+    auth: { admin: { deleteUser: async (id) => { deleted.push(id); return { error: null }; } }, getUser: async (t) => ({ data: { user: users[keyOf(t)] || null }, error: users[keyOf(t)] ? null : new Error('x') }) }
   };
 }
 
@@ -109,5 +111,21 @@ describe('api/store-signup', () => {
     expect((await call('admin', { action: 'requestActivation', storeId: store.id })).statusCode).toBe(403);
     expect((await call('ana', { action: 'requestActivation', storeId: store.id })).statusCode).toBe(200);
     expect(store.activation_requested_at).toBeTruthy();
+  });
+});
+
+describe('api/store-signup: borrar mi cuenta', () => {
+  beforeEach(() => { fake.client = makeClient(); });
+
+  it('pide el email exacto, no borra a quien administra una tienda, y borra al comprador', async () => {
+    expect((await call('ana', { action: 'deleteMyAccount', confirm: 'otra@x.com' })).statusCode).toBe(400);
+    await call('ana', valid); // ana ahora es dueña
+    expect((await call('ana', { action: 'deleteMyAccount', confirm: 'ana@x.com' })).statusCode).toBe(409);
+    fake.client.tables.store_members = [];
+    fake.client.tables.favorites.push({ user_id: 'u-ana', product_id: 'p1' }, { user_id: 'otro', product_id: 'p1' });
+    const res = await call('ana', { action: 'deleteMyAccount', confirm: ' ANA@x.com ' });
+    expect(res.statusCode).toBe(200);
+    expect(fake.client.deleted).toEqual(['u-ana']);
+    expect(fake.client.tables.favorites).toEqual([{ user_id: 'otro', product_id: 'p1' }]);
   });
 });
